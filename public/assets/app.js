@@ -377,6 +377,7 @@ async function loadCampaign() {
   renderStorage(data.storage_readiness || [], data.database_tables || [], data.blob_artifacts || []);
   renderTrafficInsights(data.traffic_insights);
   renderHealEvents(data.heal_events);
+  renderPersistence(data.persistence);
 }
 
 const savedTheme = localStorage.getItem("launch-audit-theme");
@@ -466,8 +467,67 @@ function initMotion() {
   initCounters();
 }
 
+
+/* ============================================================
+   VIEW ROUTER — hash-based navigation. Six real destinations:
+   #/campaigns #/projects #/runner #/evidence #/reports #/models
+   ============================================================ */
+
+const VIEW_NAMES = ["campaigns", "projects", "runner", "evidence", "reports", "models"];
+
+function currentView() {
+  const candidate = window.location.hash.replace(/^#\/?/, "");
+  return VIEW_NAMES.includes(candidate) ? candidate : "campaigns";
+}
+
+function applyView() {
+  const view = currentView();
+
+  for (const node of document.querySelectorAll("[data-view]")) {
+    const views = node.dataset.view.split(" ");
+    const show = views.includes(view);
+    node.hidden = !show;
+    if (show) {
+      node.classList.remove("view-enter");
+      void node.offsetWidth; // restart entrance animation
+      node.classList.add("view-enter");
+      for (const child of node.querySelectorAll(".reveal")) child.classList.add("in-view");
+      if (node.classList.contains("reveal")) node.classList.add("in-view");
+    }
+  }
+
+  for (const link of document.querySelectorAll("#main-nav .nav-item")) {
+    link.classList.toggle("nav-active", link.dataset.nav === view);
+  }
+
+  const inspector = document.querySelector(".inspector");
+  const inspectorVisible = [...inspector.querySelectorAll("[data-view]")].some((node) => !node.hidden);
+  inspector.hidden = !inspectorVisible;
+  document.querySelector(".content-grid").classList.toggle("no-inspector", !inspectorVisible);
+
+  window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+}
+
+function initRouter() {
+  window.addEventListener("hashchange", applyView);
+  applyView();
+}
+
+function renderPersistence(persistence) {
+  const badge = document.getElementById("persistence-status");
+  if (!badge || !persistence) return;
+  const live = persistence.mode === "postgres";
+  badge.textContent = live ? "postgres live" : "seeded mode";
+  badge.classList.remove("badge-medium", "badge-success", "badge-muted");
+  badge.classList.add(live ? "badge-success" : "badge-medium");
+  badge.title = persistence.detail || "";
+}
+
 loadCampaign()
-  .then(() => initMotion())
+  .then(() => {
+    initMotion();
+    initRouter();
+  })
   .catch((error) => {
     document.getElementById("metrics").innerHTML = `<article class="metric-card"><strong>Load failed</strong><p>${escapeHtml(error.message)}</p></article>`;
   });

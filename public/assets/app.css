@@ -1417,3 +1417,25 @@ h1 {
   }
   .reveal { opacity: 1; transform: none; }
 }
+
+/* ---- View router ---- */
+[hidden] {
+  display: none !important;
+}
+
+.lower-grid {
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+.content-grid.no-inspector {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.view-enter {
+  animation: view-enter 0.35s var(--ease-smooth);
+}
+
+@keyframes view-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
