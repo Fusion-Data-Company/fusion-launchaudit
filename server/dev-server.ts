@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { competitiveScorecard } from "../src/lib/competitive-data.ts";
 import { campaign, categoryLabels, findings, repairTasks, stages, testCards } from "../src/lib/campaign-data.ts";
+import { flagshipFeatures, healEvents, trafficInsights } from "../src/lib/flagship-features.ts";
 import { runnerTools, type RunnerSyncPayload } from "../src/lib/mcp-runner-contract.ts";
 
 const host = "127.0.0.1";
@@ -284,6 +285,9 @@ async function main() {
         repair_tasks: repairTasks,
         runner_tools: runnerTools,
         competitive_scorecard: competitiveScorecard,
+        flagship_features: flagshipFeatures,
+        traffic_insights: trafficInsights,
+        heal_events: healEvents,
       });
       return;
     }

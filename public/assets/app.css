@@ -699,14 +699,21 @@ h3 {
   padding: 12px;
 }
 
-.scorecard-grid {
+.scorecard-grid,
+.flagship-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 16px;
 }
 
-.scorecard-card {
+.flagship-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.scorecard-card,
+.flagship-card,
+.traffic-row {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: color-mix(in srgb, var(--surface) 82%, var(--surface-muted));
@@ -736,6 +743,64 @@ h3 {
   color: var(--detail-text);
   font-size: 12px;
   line-height: 1.55;
+}
+
+.flagship-card > p {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.flagship-card .badge-row {
+  margin-top: 12px;
+}
+
+.traffic-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.traffic-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.traffic-row code {
+  display: block;
+  margin-top: 8px;
+  color: var(--code-text);
+  font-size: 12px;
+}
+
+.traffic-row strong {
+  color: var(--text);
+}
+
+.traffic-row span,
+.traffic-row small {
+  color: var(--soft);
+  font-size: 12px;
+}
+
+.heal-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.heal-row p {
+  margin-top: 8px;
+  color: var(--detail-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.heal-row small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.45;
 }
 
 .repair-panel {
@@ -832,7 +897,8 @@ h3 {
 @media (max-width: 1200px) {
   .content-grid,
   .lower-grid,
-  .scorecard-grid {
+  .scorecard-grid,
+  .flagship-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -180,6 +180,62 @@ function renderScorecard(scorecard) {
     .join("");
 }
 
+function renderFlagshipFeatures(features) {
+  document.getElementById("flagship-features").innerHTML = features
+    .map(
+      (feature) => `
+        <article class="flagship-card">
+          <div class="scorecard-top">
+            <h3>${escapeHtml(feature.name)}</h3>
+            ${badge(feature.sourceInspiredBy, "badge-info")}
+          </div>
+          <p>${escapeHtml(feature.fusionVersion)}</p>
+          <div class="scorecard-row">
+            <span>Why it matters</span>
+            <p>${escapeHtml(feature.whyItMatters)}</p>
+          </div>
+          <div class="scorecard-row">
+            <span>Proof gate</span>
+            <p>${escapeHtml(feature.proofGate)}</p>
+          </div>
+          <div class="badge-row">${feature.evidence.map((item) => badge(item)).join("")}</div>
+        </article>`,
+    )
+    .join("");
+}
+
+function renderTrafficInsights(items) {
+  document.getElementById("traffic-insights").innerHTML = items
+    .map(
+      (item) => `
+        <article class="traffic-row">
+          <div>
+            <div class="badge-row">${badge(item.method, "badge-info")}${badge(item.risk, item.risk === "clean" ? "badge-success" : item.risk === "slow" ? "badge-medium" : "badge-high")}</div>
+            <code>${escapeHtml(item.url)}</code>
+          </div>
+          <strong>${escapeHtml(item.status || "blocked")}</strong>
+          <span>${escapeHtml(item.durationMs)}ms</span>
+        </article>`,
+    )
+    .join("");
+}
+
+function renderHealEvents(items) {
+  document.getElementById("heal-events").innerHTML = items
+    .map(
+      (item) => `
+        <article class="traffic-row heal-row">
+          <div>
+            <div class="badge-row">${badge(item.testCardId, "badge-info")}${badge(item.disposition, item.disposition === "approved" ? "badge-success" : "badge-medium")}</div>
+            <p>${escapeHtml(item.event)}</p>
+            <small>${escapeHtml(item.auditNote)}</small>
+          </div>
+          <strong>${Math.round(item.confidence * 100)}%</strong>
+        </article>`,
+    )
+    .join("");
+}
+
 async function loadCampaign() {
   const response = await fetch("/api/campaign");
   if (!response.ok) throw new Error(`Campaign API failed: ${response.status}`);
@@ -190,6 +246,9 @@ async function loadCampaign() {
   renderTestCards(data.test_cards);
   renderInspector(data.campaign, data.findings, data.repair_tasks);
   renderScorecard(data.competitive_scorecard);
+  renderFlagshipFeatures(data.flagship_features);
+  renderTrafficInsights(data.traffic_insights);
+  renderHealEvents(data.heal_events);
 }
 
 const savedTheme = localStorage.getItem("launch-audit-theme");
