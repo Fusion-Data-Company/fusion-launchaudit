@@ -1,6 +1,6 @@
-import type { ArtifactRegistration } from "../../src/lib/campaign-store.ts";
-import { ensureCampaignReady, registerArtifactRecord } from "../../src/lib/campaign-store.ts";
-import { getSqlClient } from "../../src/lib/db.ts";
+import type { ArtifactRegistration } from "../../../src/lib/campaign-store.ts";
+import { ensureCampaignReady, registerArtifactRecord } from "../../../src/lib/campaign-store.ts";
+import { getSqlClient } from "../../../src/lib/db.ts";
 
 type VercelRequest = {
   method?: string;

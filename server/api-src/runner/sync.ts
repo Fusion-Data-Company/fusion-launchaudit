@@ -1,6 +1,6 @@
-import type { RunnerSyncPayload } from "../../src/lib/mcp-runner-contract.ts";
-import { ensureCampaignReady, recordRunnerSync } from "../../src/lib/campaign-store.ts";
-import { getSqlClient } from "../../src/lib/db.ts";
+import type { RunnerSyncPayload } from "../../../src/lib/mcp-runner-contract.ts";
+import { ensureCampaignReady, recordRunnerSync } from "../../../src/lib/campaign-store.ts";
+import { getSqlClient } from "../../../src/lib/db.ts";
 
 type VercelRequest = {
   method?: string;

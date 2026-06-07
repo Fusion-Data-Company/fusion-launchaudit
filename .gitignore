@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated API bundles (built on Vercel)
+/api/campaign.js
+/api/runner/sync.js
+/api/storage/register-artifact.js

@@ -5,16 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "node --experimental-strip-types server/dev-server.ts",
-    "build": "node --experimental-strip-types scripts/write-campaign-json.ts && node --experimental-strip-types runner/local-runner.ts --print > /dev/null",
+    "build": "node --experimental-strip-types scripts/write-campaign-json.ts && node --experimental-strip-types scripts/build-api.ts && node --experimental-strip-types runner/local-runner.ts --print > /dev/null",
     "runner:print": "node --experimental-strip-types runner/local-runner.ts --print",
     "runner:sync": "node --experimental-strip-types runner/local-runner.ts",
     "db:verify": "node --experimental-strip-types scripts/verify-db.ts",
-    "runner:scan": "node --experimental-strip-types runner/local-runner.ts --print --repo ."
+    "runner:scan": "node --experimental-strip-types runner/local-runner.ts --print --repo .",
+    "build:api": "node --experimental-strip-types scripts/build-api.ts"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@neondatabase/serverless": "^1.1.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.1"
+    "@electric-sql/pglite": "^0.5.1",
+    "esbuild": "^0.28.0"
   }
 }
