@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fusion LaunchAudit</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <main class="app-shell" id="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">F</div>
+          <div>
+            <div class="brand-name">Fusion LaunchAudit</div>
+            <div class="brand-subtitle">Campaign OS</div>
+          </div>
+        </div>
+        <nav class="nav-list">
+          <a class="nav-item nav-active" href="#">Campaigns</a>
+          <a class="nav-item" href="#">Projects</a>
+          <a class="nav-item" href="#">Runner</a>
+          <a class="nav-item" href="#">Evidence</a>
+          <a class="nav-item" href="#">Reports</a>
+          <a class="nav-item" href="#">Models</a>
+        </nav>
+        <div class="runner-note">
+          <div class="runner-note-title">Local MCP Runner</div>
+          <p>Repo inspection, auth capture, Playwright execution, artifact sync, and coding-agent repair packets run close to the codebase.</p>
+          <span class="badge badge-success">connected</span>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <div class="title-row">
+              <h1>Fusion Launch Audit Campaign</h1>
+              <span class="badge badge-info">Full launch audit</span>
+            </div>
+            <p>Evidence-grade QA campaigns that turn repo context and runtime behavior into client-ready proof and repair work.</p>
+          </div>
+          <div class="actions">
+            <button class="btn btn-secondary theme-toggle" id="theme-toggle" type="button">Light</button>
+            <button class="btn btn-secondary" type="button">Capture auth</button>
+            <button class="btn btn-primary" type="button">Start campaign</button>
+          </div>
+        </header>
+
+        <div class="content-grid">
+          <div class="main-column">
+            <section class="metric-grid" id="metrics"></section>
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Campaign spine</h2>
+                  <p>One campaign ID ties web review, local MCP execution, artifacts, findings, repair tasks, and final audit proof together.</p>
+                </div>
+                <span class="badge badge-success">report_ready</span>
+              </div>
+              <div class="stage-grid" id="stages"></div>
+            </section>
+
+            <section class="lower-grid">
+              <div class="panel">
+                <div class="panel-title-line">
+                  <h2>Context contract</h2>
+                  <span class="accent-dot"></span>
+                </div>
+                <div class="contract-stack" id="context-contract"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-heading">
+                  <div>
+                    <h2>Generated test cards</h2>
+                    <p>Specific, evidence-gated checks generated from repo truth, runtime crawl, risk model, and launch criteria.</p>
+                  </div>
+                  <span class="badge badge-info">reviewed</span>
+                </div>
+                <div class="test-card-list" id="test-cards"></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Outperformance proof harness</h2>
+                  <p>Competitive categories are tracked as proof gates, not marketing claims.</p>
+                </div>
+                <span class="badge badge-info">vs TestSprite baseline</span>
+              </div>
+              <div class="scorecard-grid" id="scorecard"></div>
+            </section>
+          </div>
+
+          <aside class="inspector">
+            <section class="panel">
+              <div class="panel-title-line">
+                <h2>Runner truth</h2>
+                <span class="accent-dot"></span>
+              </div>
+              <div class="kv-list" id="runner-truth"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-title-line">
+                <h2>Findings</h2>
+                <span class="accent-dot"></span>
+              </div>
+              <div class="finding-list" id="findings"></div>
+            </section>
+
+            <section class="repair-panel" id="repair-panel"></section>
+          </aside>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>

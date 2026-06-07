@@ -1,0 +1,52 @@
+import type { RunnerSyncPayload } from "../../src/lib/mcp-runner-contract";
+
+type VercelRequest = {
+  method?: string;
+  body?: Partial<RunnerSyncPayload>;
+};
+
+type VercelResponse = {
+  status: (code: number) => VercelResponse;
+  json: (body: unknown) => void;
+};
+
+function hasRequiredSyncShape(body: Partial<RunnerSyncPayload>): body is RunnerSyncPayload {
+  return Boolean(
+    body.campaign_id &&
+      body.runner_host &&
+      body.repo_summary?.framework &&
+      body.runtime_summary?.app_url &&
+      Array.isArray(body.test_cards) &&
+      Array.isArray(body.artifact_refs),
+  );
+}
+
+export default function handler(request: VercelRequest, response: VercelResponse) {
+  if (request.method !== "POST") {
+    response.status(405).json({ accepted: false, error: "Method not allowed." });
+    return;
+  }
+
+  const body = request.body ?? {};
+
+  if (!hasRequiredSyncShape(body)) {
+    response.status(400).json({
+      accepted: false,
+      error:
+        "Runner sync payload must include campaign_id, runner_host, repo_summary, runtime_summary, test_cards, and artifact_refs.",
+    });
+    return;
+  }
+
+  response.status(200).json({
+    accepted: true,
+    campaign_id: body.campaign_id,
+    synced_at: new Date().toISOString(),
+    normalized: {
+      framework: body.repo_summary.framework,
+      app_url: body.runtime_summary.app_url,
+      cards_received: body.test_cards.length,
+      artifacts_received: body.artifact_refs.length,
+    },
+  });
+}
