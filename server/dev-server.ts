@@ -7,6 +7,13 @@ import { campaign, categoryLabels, findings, repairTasks, stages, testCards } fr
 import { flagshipFeatures, healEvents, trafficInsights } from "../src/lib/flagship-features.ts";
 import { modelProviderSlots, modelRoutes, modelTaskContracts } from "../src/lib/model-routing.ts";
 import { runnerTools, type RunnerSyncPayload } from "../src/lib/mcp-runner-contract.ts";
+import {
+  blobArtifacts,
+  databaseTables,
+  getStorageRuntimeReadiness,
+  storageReadiness,
+  storageSchemaSql,
+} from "../src/lib/storage-contract.ts";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PORT ?? 3010);
@@ -48,6 +55,27 @@ function hasRequiredSyncShape(body: Partial<RunnerSyncPayload>): body is RunnerS
       Array.isArray(body.test_cards) &&
       Array.isArray(body.artifact_refs),
   );
+}
+
+type ArtifactRegistrationPayload = {
+  campaign_id: string;
+  run_id: string;
+  test_card_id: string;
+  artifact_type: string;
+  filename: string;
+  sha256: string;
+};
+
+function safeSegment(value: string) {
+  return value
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 120);
+}
+
+function artifactPath(body: ArtifactRegistrationPayload) {
+  return `campaigns/${safeSegment(body.campaign_id)}/runs/${safeSegment(body.run_id)}/${safeSegment(body.artifact_type)}/${safeSegment(body.test_card_id)}-${safeSegment(body.filename)}`;
 }
 
 function badge(text: string, tone = "badge-muted") {
@@ -292,6 +320,10 @@ async function main() {
         model_provider_slots: modelProviderSlots,
         model_routes: modelRoutes,
         model_task_contracts: modelTaskContracts,
+        storage_readiness: storageReadiness,
+        database_tables: databaseTables,
+        blob_artifacts: blobArtifacts,
+        storage_schema_sql: storageSchemaSql,
       });
       return;
     }
@@ -301,6 +333,53 @@ async function main() {
         model_provider_slots: modelProviderSlots,
         model_routes: modelRoutes,
         model_task_contracts: modelTaskContracts,
+      });
+      return;
+    }
+
+    if (request.method === "GET" && request.url === "/api/storage/readiness") {
+      json(response, 200, {
+        storage_readiness: getStorageRuntimeReadiness(process.env),
+        database_tables: databaseTables,
+        blob_artifacts: blobArtifacts,
+      });
+      return;
+    }
+
+    if (request.method === "GET" && request.url === "/api/storage/schema") {
+      json(response, 200, {
+        schema_sql: storageSchemaSql,
+        tables: databaseTables,
+      });
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/api/storage/register-artifact") {
+      const body = await readJsonBody<ArtifactRegistrationPayload>(request);
+      const requiredFields = ["campaign_id", "run_id", "test_card_id", "artifact_type", "filename", "sha256"] as const;
+      const missing = requiredFields.filter((field) => !body[field]);
+
+      if (missing.length > 0) {
+        json(response, 400, {
+          accepted: false,
+          error: "Artifact registration payload is incomplete.",
+          missing,
+        });
+        return;
+      }
+
+      const completeBody = body as ArtifactRegistrationPayload;
+
+      json(response, 200, {
+        accepted: true,
+        campaign_id: completeBody.campaign_id,
+        run_id: completeBody.run_id,
+        artifact_ref: `blob://${artifactPath(completeBody)}`,
+        upload: {
+          mode: process.env.BLOB_READ_WRITE_TOKEN ? "vercel_blob_ready" : "contract_only_missing_blob_token",
+          path: artifactPath(completeBody),
+          access: "private",
+        },
       });
       return;
     }

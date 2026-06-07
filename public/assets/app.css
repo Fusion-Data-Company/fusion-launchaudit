@@ -701,7 +701,9 @@ h3 {
 
 .scorecard-grid,
 .flagship-grid,
-.model-route-grid {
+.model-route-grid,
+.storage-grid,
+.data-contract-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
@@ -716,6 +718,8 @@ h3 {
 .flagship-card,
 .model-route-card,
 .provider-card,
+.storage-card,
+.contract-row,
 .traffic-row {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -807,6 +811,37 @@ h3 {
 
 .provider-card .badge-row {
   margin-top: 12px;
+}
+
+.storage-card > p {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.data-contract-grid {
+  margin-top: 18px;
+}
+
+.table-contract-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.contract-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.contract-row p {
+  margin-top: 4px;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .traffic-list {
@@ -952,6 +987,8 @@ h3 {
   .lower-grid,
   .scorecard-grid,
   .model-route-grid,
+  .storage-grid,
+  .data-contract-grid,
   .flagship-grid {
     grid-template-columns: 1fr;
   }

@@ -32,6 +32,8 @@ const statusTone = {
   implemented: "badge-success",
   designed: "badge-info",
   next: "badge-medium",
+  missing_secret: "badge-medium",
+  seeded_only: "badge-muted",
 };
 
 const escapeHtml = (value) =>
@@ -251,6 +253,58 @@ function renderProviderSlots(providers) {
     .join("");
 }
 
+function renderStorage(readiness, tables, artifacts) {
+  document.getElementById("storage-readiness").innerHTML = readiness
+    .map(
+      (item) => `
+        <article class="storage-card">
+          <div class="scorecard-top">
+            <div>
+              <span class="mono-id">${escapeHtml(item.subsystem)}</span>
+              <h3>${escapeHtml(item.label)}</h3>
+            </div>
+            ${badge(item.status.replaceAll("_", " "), statusTone[item.status] || "badge-muted")}
+          </div>
+          <p>${escapeHtml(item.purpose)}</p>
+          <div class="scorecard-row">
+            <span>Required env</span>
+            <p>${escapeHtml(item.requiredEnv.join(", "))}</p>
+          </div>
+          <div class="scorecard-row">
+            <span>Production gate</span>
+            <p>${escapeHtml(item.productionGate)}</p>
+          </div>
+        </article>`,
+    )
+    .join("");
+
+  document.getElementById("database-tables").innerHTML = tables
+    .map(
+      (table) => `
+        <article class="contract-row">
+          <div>
+            <h3>${escapeHtml(table.table)}</h3>
+            <p>${escapeHtml(table.purpose)}</p>
+          </div>
+          ${badge(table.requiredForV1 ? "v1" : "later", table.requiredForV1 ? "badge-info" : "badge-muted")}
+        </article>`,
+    )
+    .join("");
+
+  document.getElementById("blob-artifacts").innerHTML = artifacts
+    .map(
+      (artifact) => `
+        <article class="contract-row">
+          <div>
+            <h3>${escapeHtml(artifact.artifactType.replaceAll("_", " "))}</h3>
+            <p>${escapeHtml(artifact.pathTemplate)}</p>
+          </div>
+          ${badge(artifact.access, artifact.access === "private" ? "badge-medium" : "badge-info")}
+        </article>`,
+    )
+    .join("");
+}
+
 function renderFlagshipFeatures(features) {
   document.getElementById("flagship-features").innerHTML = features
     .map(
@@ -320,6 +374,7 @@ async function loadCampaign() {
   renderFlagshipFeatures(data.flagship_features);
   renderModelRouting(data.model_routes || [], data.model_provider_slots || []);
   renderProviderSlots(data.model_provider_slots || []);
+  renderStorage(data.storage_readiness || [], data.database_tables || [], data.blob_artifacts || []);
   renderTrafficInsights(data.traffic_insights);
   renderHealEvents(data.heal_events);
 }

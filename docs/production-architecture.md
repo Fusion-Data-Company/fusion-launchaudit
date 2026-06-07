@@ -24,6 +24,10 @@ Minimum production schema:
 - `repair_tasks`: finding, likely files, repro steps, expected behavior, verification command, agent prompt.
 - `model_tasks`: campaign, task category, provider, model, prompt hash, output hash, cost, latency, status.
 
+Current migration artifact:
+
+- `db/migrations/001_launch_audit_core.sql`
+
 ## Blob Storage
 
 Artifact paths should be deterministic:
@@ -71,6 +75,14 @@ Current seed endpoints:
 
 - `/api/campaign`: includes `model_provider_slots`, `model_routes`, and `model_task_contracts`.
 - `/api/model-routing`: returns only the model harness contract for setup and admin screens.
+
+## Storage Readiness API
+
+Current seed endpoints:
+
+- `/api/storage/readiness`: reports Postgres, Blob, and runner-sync secret readiness without returning secret values.
+- `/api/storage/schema`: returns the Postgres table contract and schema SQL.
+- `/api/storage/register-artifact`: validates runner artifact registration payloads and returns the deterministic Blob path. Until `BLOB_READ_WRITE_TOKEN` is configured, it runs in `contract_only_missing_blob_token` mode.
 
 ## Deployment Defaults
 
