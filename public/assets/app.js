@@ -386,6 +386,88 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
   setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 });
 
-loadCampaign().catch((error) => {
-  document.getElementById("metrics").innerHTML = `<article class="metric-card"><strong>Load failed</strong><p>${escapeHtml(error.message)}</p></article>`;
-});
+
+/* ============================================================
+   MOTION LAYER — staggered reveals + animated counters.
+   GPU-only (transform/opacity). Skips everything when the
+   user prefers reduced motion.
+   ============================================================ */
+
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function initReveals() {
+  if (prefersReducedMotion) return;
+
+  const groups = [
+    ".metric-card",
+    ".stage",
+    ".test-card",
+    ".finding-card",
+    ".score-card, .scorecard-grid > *",
+    ".feature-card",
+    ".slot-card",
+    ".route-row",
+    ".storage-row",
+    ".traffic-row",
+    ".panel, .repair-panel",
+  ];
+
+  const seen = new Set();
+  for (const selector of groups) {
+    const nodes = [...document.querySelectorAll(selector)].filter((node) => !seen.has(node));
+    nodes.forEach((node, index) => {
+      seen.add(node);
+      node.classList.add("reveal");
+      node.style.setProperty("--reveal-delay", `${Math.min(index, 8) * 60}ms`);
+    });
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in-view");
+          observer.unobserve(entry.target);
+        }
+      }
+    },
+    { rootMargin: "0px 0px -40px 0px", threshold: 0.08 },
+  );
+
+  for (const node of seen) observer.observe(node);
+}
+
+function initCounters() {
+  if (prefersReducedMotion) return;
+
+  for (const node of document.querySelectorAll(".metric-card strong")) {
+    const original = node.textContent;
+    const match = original.match(/^(\d+)/);
+    if (!match) continue;
+    const target = Number(match[1]);
+    if (target === 0) continue;
+
+    const start = performance.now();
+    const duration = 1100;
+    const ease = (t) => 1 - Math.pow(1 - t, 3);
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const value = Math.round(ease(progress) * target);
+      node.textContent = original.replace(/^(\d+)/, String(value));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+}
+
+function initMotion() {
+  initReveals();
+  initCounters();
+}
+
+loadCampaign()
+  .then(() => initMotion())
+  .catch((error) => {
+    document.getElementById("metrics").innerHTML = `<article class="metric-card"><strong>Load failed</strong><p>${escapeHtml(error.message)}</p></article>`;
+  });

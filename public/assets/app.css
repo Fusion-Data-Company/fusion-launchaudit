@@ -1043,3 +1043,377 @@ h3 {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   ELITE POLISH LAYER
+   Glass, glow, gloss, and motion on top of the base system.
+   Only transform/opacity animate. Reduced motion kills it all.
+   ============================================================ */
+
+:root {
+  --display-font: "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
+  --sheen: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.14) 38%, rgba(255, 255, 255, 0.32) 50%, rgba(255, 255, 255, 0.14) 62%, transparent 100%);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --panel-blur: 18px;
+  --lift-shadow: 0 18px 40px -18px rgba(15, 23, 42, 0.25);
+  --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+:root[data-theme="dark"] {
+  --sheen: linear-gradient(115deg, transparent 0%, rgba(186, 218, 255, 0.05) 38%, rgba(208, 230, 255, 0.16) 50%, rgba(186, 218, 255, 0.05) 62%, transparent 100%);
+  --glass-highlight: inset 0 1px 0 rgba(160, 200, 255, 0.12);
+  --lift-shadow: 0 24px 60px -20px rgba(2, 8, 23, 0.85), 0 0 36px -6px var(--shadow-glow-blue);
+}
+
+/* ---- Typography upgrade ---- */
+h1, h2, h3, .brand-name, .metric-card strong {
+  font-family: var(--display-font);
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  background: linear-gradient(92deg, var(--text) 30%, var(--primary) 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ---- Ambient atmosphere ---- */
+.app-shell::before,
+.app-shell::after {
+  animation: orb-drift 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.app-shell::after {
+  animation-duration: 22s;
+  animation-delay: -8s;
+}
+
+@keyframes orb-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-40px, 32px, 0) scale(1.08); }
+}
+
+:root[data-theme="dark"] body {
+  background-image:
+    radial-gradient(circle at 78% 0%, var(--shadow-glow-blue), transparent 34%),
+    radial-gradient(circle at 100% 96%, var(--shadow-glow-cayenne), transparent 30%),
+    linear-gradient(rgba(96, 144, 226, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(96, 144, 226, 0.035) 1px, transparent 1px);
+  background-size: auto, auto, 44px 44px, 44px 44px;
+}
+
+/* ---- Glass panels ---- */
+.panel,
+.metric-card,
+.repair-panel,
+.inspector .panel {
+  position: relative;
+  backdrop-filter: blur(var(--panel-blur));
+  -webkit-backdrop-filter: blur(var(--panel-blur));
+  box-shadow: var(--glass-highlight), 0 10px 32px -18px rgba(2, 8, 23, 0.5);
+  transition: border-color 0.3s var(--ease-smooth), box-shadow 0.3s var(--ease-smooth), transform 0.3s var(--ease-smooth);
+}
+
+.panel:hover,
+.repair-panel:hover {
+  border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
+}
+
+/* ---- Metric cards: glossy stat tiles ---- */
+.metric-card {
+  overflow: hidden;
+}
+
+.metric-card::before {
+  position: absolute;
+  top: 0;
+  left: 10%;
+  width: 80%;
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0.55;
+}
+
+.metric-card::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: var(--sheen);
+  transform: translateX(-130%);
+  transition: transform 0.9s var(--ease-smooth);
+  pointer-events: none;
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glass-highlight), var(--lift-shadow);
+}
+
+.metric-card:hover::after {
+  transform: translateX(130%);
+}
+
+.metric-card strong {
+  background: linear-gradient(135deg, var(--text) 20%, var(--primary) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-card .metric-top b {
+  background: linear-gradient(120deg, var(--primary), var(--info));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.62rem;
+}
+
+/* ---- Badges: glossy chips ---- */
+.badge {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(2, 8, 23, 0.18);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  transition: transform 0.18s var(--ease-spring), box-shadow 0.25s var(--ease-smooth);
+}
+
+.badge:hover {
+  transform: translateY(-1px);
+}
+
+.badge-success::before,
+.badge-high::before,
+.badge-critical::before,
+.badge-medium::before,
+.badge-info::before {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  content: "";
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.badge-success::before { animation: chip-pulse 2.6s ease-in-out infinite; }
+.badge-critical::before, .badge-high::before { animation: chip-pulse 1.7s ease-in-out infinite; }
+
+@keyframes chip-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* ---- Buttons: gradient gloss ---- */
+.btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  transition: transform 0.18s var(--ease-spring), box-shadow 0.3s var(--ease-smooth), background 0.3s var(--ease-smooth);
+}
+
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(0) scale(0.97); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 55%, var(--info) 130%);
+  border: 1px solid color-mix(in srgb, var(--primary) 60%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 8px 22px -8px var(--primary);
+}
+
+.btn-primary::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: var(--sheen);
+  transform: translateX(-130%);
+  transition: transform 0.7s var(--ease-smooth);
+}
+
+.btn-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 10px 30px -6px var(--primary); }
+.btn-primary:hover::after { transform: translateX(130%); }
+
+.btn-secondary {
+  backdrop-filter: blur(8px);
+  box-shadow: var(--glass-highlight), 0 2px 10px -4px rgba(2, 8, 23, 0.4);
+}
+
+/* ---- Sidebar & nav ---- */
+.brand-mark {
+  background: linear-gradient(135deg, var(--primary), var(--cayenne) 130%);
+  color: #fff;
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px -6px var(--primary);
+  font-family: var(--display-font);
+  font-weight: 700;
+}
+
+.nav-item {
+  position: relative;
+  border-radius: 10px;
+  transition: transform 0.2s var(--ease-spring), background 0.25s var(--ease-smooth), color 0.25s var(--ease-smooth);
+}
+
+.nav-item:hover { transform: translateX(4px); }
+
+.nav-active {
+  background: linear-gradient(90deg, var(--nav-active-bg), transparent 130%);
+  box-shadow: var(--glass-highlight);
+}
+
+.nav-active::before {
+  position: absolute;
+  left: -1px;
+  top: 18%;
+  bottom: 18%;
+  width: 3px;
+  border-radius: 999px;
+  content: "";
+  background: linear-gradient(180deg, var(--primary), var(--info));
+  box-shadow: 0 0 12px var(--primary);
+}
+
+.runner-note {
+  backdrop-filter: blur(10px);
+  box-shadow: var(--glass-highlight);
+}
+
+/* ---- Cards: test, finding, traffic, slots ---- */
+.test-card,
+.finding-card,
+.traffic-row,
+.slot-card,
+.feature-card,
+.route-row,
+.storage-row {
+  position: relative;
+  transition: transform 0.25s var(--ease-smooth), border-color 0.25s var(--ease-smooth), box-shadow 0.25s var(--ease-smooth);
+}
+
+.test-card:hover,
+.finding-card:hover,
+.slot-card:hover,
+.feature-card:hover {
+  transform: translateY(-3px) scale(1.005);
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  box-shadow: var(--glass-highlight), 0 16px 38px -18px rgba(2, 8, 23, 0.7), 0 0 24px -8px var(--shadow-glow-blue);
+}
+
+.test-card::before {
+  position: absolute;
+  left: 0;
+  top: 12%;
+  bottom: 12%;
+  width: 2px;
+  border-radius: 999px;
+  content: "";
+  background: linear-gradient(180deg, var(--primary), transparent);
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-smooth);
+}
+
+.test-card:hover::before { opacity: 1; }
+
+.test-card .arrow {
+  transition: transform 0.25s var(--ease-spring);
+}
+
+.test-card:hover .arrow {
+  transform: translateX(5px);
+  color: var(--primary);
+}
+
+/* ---- Stage dots: alive ---- */
+.stage-dot {
+  transition: transform 0.25s var(--ease-spring), box-shadow 0.3s var(--ease-smooth);
+}
+
+.stage-active,
+.stage-dot.stage-active {
+  animation: stage-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes stage-glow {
+  0%, 100% { box-shadow: 0 0 6px var(--shadow-glow-blue); }
+  50% { box-shadow: 0 0 18px var(--primary); }
+}
+
+.stage:hover .stage-dot { transform: scale(1.12); }
+
+/* ---- Repair panel: the showpiece ---- */
+.repair-panel {
+  overflow: hidden;
+}
+
+.repair-panel::before {
+  position: absolute;
+  top: 0;
+  left: 8%;
+  width: 84%;
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, transparent, var(--cayenne), transparent);
+  opacity: 0.6;
+}
+
+/* ---- Reveal-on-scroll choreography ---- */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.55s var(--ease-smooth), transform 0.55s var(--ease-smooth);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: transform, opacity;
+}
+
+.reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---- Focus, selection, scrollbar ---- */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--primary) 40%, transparent) transparent;
+}
+
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 35%, transparent);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--primary) 55%, transparent);
+}
+
+/* ---- Reduced motion: everything off ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+}
