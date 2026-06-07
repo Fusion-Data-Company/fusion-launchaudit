@@ -523,10 +523,108 @@ function renderPersistence(persistence) {
   badge.title = persistence.detail || "";
 }
 
+
+/* ============================================================
+   TOPBAR ACTIONS — honest quickstart modals. No fake spinners:
+   these show the real commands until Playwright execution lands.
+   ============================================================ */
+
+const MODALS = {
+  "start-campaign": {
+    title: "Start a campaign",
+    sub: "LaunchAudit runs through your own coding agent — your Claude does the planning, the local runner keeps your code private, this command center stores the evidence.",
+    steps: [
+      {
+        h: "Add the LaunchAudit MCP server to Claude Code",
+        p: "From the fusion-launchaudit repo folder (after npm install):",
+        code: "claude mcp add launchaudit -- node --experimental-strip-types ./runner/mcp-server.ts",
+      },
+      {
+        h: "Ask your agent to plan the audit",
+        p: "In Claude Code, point it at your project:",
+        code: "Scan ~/my-app with launchaudit_scan_repo, then write evidence-gated test cards per launchaudit_get_test_card_contract and sync them.",
+      },
+      {
+        h: "Or sync directly with the local runner",
+        p: "One command, no agent:",
+        code: "node --experimental-strip-types runner/local-runner.ts --repo ~/my-app",
+      },
+    ],
+    note: "Honest status: test cards sync and persist today. Playwright execution of approved cards is the next production layer — nothing here pretends to run tests it didn't run.",
+  },
+  "capture-auth": {
+    title: "Capture auth state",
+    sub: "Production credentials never get pasted into this web app. Auth capture happens on your machine through the local runner.",
+    steps: [
+      {
+        h: "How it works",
+        p: "The runner opens a controlled browser session on your machine; you log into your app; encrypted Playwright storage state is saved locally and referenced by ID — the platform only ever sees the reference.",
+      },
+      {
+        h: "Contract",
+        p: "qa.capture_auth_state — input { campaign_id, app_url }, output { auth_state_ref, expires_at, roles_detected[] }.",
+      },
+    ],
+    note: "Honest status: browser-state capture ships with the Playwright execution layer. The contract and storage path are final; this button will run it the day it lands.",
+  },
+};
+
+function escapeAttr(v) { return escapeHtml(String(v)); }
+
+function openModal(kind) {
+  const def = MODALS[kind];
+  if (!def) return;
+  document.getElementById("modal-title").textContent = def.title;
+  document.getElementById("modal-sub").textContent = def.sub;
+  document.getElementById("modal-body").innerHTML =
+    def.steps
+      .map(
+        (s, i) => `
+        <div class="modal-step">
+          <div class="modal-step-num">${i + 1}</div>
+          <div>
+            <h3>${escapeHtml(s.h)}</h3>
+            <p>${escapeHtml(s.p)}</p>
+            ${s.code ? `<code class="modal-code">${escapeHtml(s.code)}<button class="modal-copy" data-copy="${escapeAttr(s.code)}" type="button">Copy</button></code>` : ""}
+          </div>
+        </div>`,
+      )
+      .join("") + `<div class="modal-note">${escapeHtml(def.note)}</div>`;
+  document.getElementById("modal-backdrop").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("modal-backdrop").classList.remove("open");
+}
+
+function initModals() {
+  document.getElementById("start-campaign-btn")?.addEventListener("click", () => openModal("start-campaign"));
+  document.getElementById("capture-auth-btn")?.addEventListener("click", () => openModal("capture-auth"));
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  document.getElementById("modal-backdrop").addEventListener("click", (event) => {
+    if (event.target === document.getElementById("modal-backdrop")) closeModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeModal();
+  });
+  document.getElementById("modal-body").addEventListener("click", async (event) => {
+    const btn = event.target.closest(".modal-copy");
+    if (!btn) return;
+    try {
+      await navigator.clipboard.writeText(btn.dataset.copy);
+      btn.textContent = "Copied";
+      setTimeout(() => { btn.textContent = "Copy"; }, 1400);
+    } catch {
+      btn.textContent = "Select + copy manually";
+    }
+  });
+}
+
 loadCampaign()
   .then(() => {
     initMotion();
     initRouter();
+    initModals();
   })
   .catch((error) => {
     document.getElementById("metrics").innerHTML = `<article class="metric-card"><strong>Load failed</strong><p>${escapeHtml(error.message)}</p></article>`;

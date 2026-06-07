@@ -48,8 +48,8 @@
           </div>
           <div class="actions">
             <button class="btn btn-secondary theme-toggle" id="theme-toggle" type="button">Light</button>
-            <button class="btn btn-secondary" type="button">Capture auth</button>
-            <button class="btn btn-primary" type="button">Start campaign</button>
+            <button class="btn btn-secondary" id="capture-auth-btn" type="button">Capture auth</button>
+            <button class="btn btn-primary" id="start-campaign-btn" type="button">Start campaign</button>
           </div>
         </header>
 
@@ -197,5 +197,16 @@
       </section>
     </main>
     <script type="module" src="/assets/app.js"></script>
+
+    <div class="modal-backdrop" id="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal" id="modal-box">
+        <div class="modal-head">
+          <h2 id="modal-title"></h2>
+          <button class="modal-close" id="modal-close" type="button" aria-label="Close">✕</button>
+        </div>
+        <p class="modal-sub" id="modal-sub"></p>
+        <div id="modal-body"></div>
+      </div>
+    </div>
   </body>
 </html>
