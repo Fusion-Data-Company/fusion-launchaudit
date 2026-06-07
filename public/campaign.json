@@ -1,0 +1,354 @@
+{
+  "campaign": {
+    "id": "cmp_launch_001",
+    "name": "Launch Audit Campaign",
+    "status": "report_ready",
+    "readinessScore": 82,
+    "appUrl": "http://localhost:3000",
+    "repoPath": "~/client-app",
+    "depth": "Full launch audit",
+    "runner": {
+      "status": "connected",
+      "host": "Rob-MacBook-Pro.local",
+      "version": "mcp-runner 0.1.0",
+      "lastSync": "2 min ago"
+    },
+    "environment": {
+      "framework": "Next.js / TypeScript / Playwright candidate",
+      "supportTier": "first-class",
+      "auth": "captured locally",
+      "scripts": [
+        "npm run dev",
+        "npm run lint",
+        "npm run test:e2e"
+      ],
+      "unsupportedGaps": [
+        "Webhook side effects need sandbox provider keys before execution."
+      ]
+    }
+  },
+  "stages": [
+    {
+      "label": "Context",
+      "status": "complete",
+      "detail": "Repo + runtime mapped"
+    },
+    {
+      "label": "Plan",
+      "status": "complete",
+      "detail": "5 test cards generated"
+    },
+    {
+      "label": "Review",
+      "status": "complete",
+      "detail": "High-risk cards approved"
+    },
+    {
+      "label": "Run",
+      "status": "complete",
+      "detail": "2 passed / 2 failed / 1 blocked"
+    },
+    {
+      "label": "Analyze",
+      "status": "complete",
+      "detail": "Findings classified"
+    },
+    {
+      "label": "Report",
+      "status": "active",
+      "detail": "Client-ready audit assembled"
+    }
+  ],
+  "test_cards": [
+    {
+      "id": "TC-101",
+      "title": "Authenticated user can complete the primary workflow without hidden console failures",
+      "category": "core_workflow",
+      "status": "passed",
+      "risk": "critical",
+      "goal": "Prove the app's highest-value workflow works from first page load through final confirmation.",
+      "steps": [
+        "Reuse captured local auth state.",
+        "Open dashboard from a clean browser context.",
+        "Create a new record with valid boundary data.",
+        "Verify confirmation, persisted state, and reload behavior."
+      ],
+      "expectedEvidence": [
+        "Trace",
+        "Before/after screenshots",
+        "Network log",
+        "Persisted record assertion"
+      ],
+      "dataNeeds": [
+        "Authenticated builder account",
+        "Fresh test record name"
+      ],
+      "acceptanceCriteria": "The record exists after reload and no console error or failed API request appears during the flow."
+    },
+    {
+      "id": "TC-118",
+      "title": "Role boundary prevents client user from reaching admin-only repair actions",
+      "category": "roles_permissions",
+      "status": "failed",
+      "risk": "high",
+      "goal": "Confirm role separation is enforced at navigation, page load, and API mutation layers.",
+      "steps": [
+        "Load captured client-role auth state.",
+        "Attempt direct navigation to admin repair task URL.",
+        "Attempt the backing mutation request from the browser context.",
+        "Capture server response and visible UI state."
+      ],
+      "expectedEvidence": [
+        "403/redirect proof",
+        "Screenshot",
+        "Network request/response pair"
+      ],
+      "dataNeeds": [
+        "Client role session",
+        "Known admin task id"
+      ],
+      "acceptanceCriteria": "Client role receives a blocked state and cannot mutate or view admin-only repair tasks."
+    },
+    {
+      "id": "TC-124",
+      "title": "Slow API response preserves form input and shows a recoverable state",
+      "category": "forms_validation",
+      "status": "passed",
+      "risk": "medium",
+      "goal": "Expose the common launch bug where slow services erase user work or double-submit forms.",
+      "steps": [
+        "Throttle submit endpoint to 4 seconds.",
+        "Submit a valid form.",
+        "Verify disabled state, spinner, and no duplicate request.",
+        "Refresh after completion and confirm saved data."
+      ],
+      "expectedEvidence": [
+        "Network throttle trace",
+        "DOM disabled-state assertion",
+        "Screenshot"
+      ],
+      "dataNeeds": [
+        "Valid form payload",
+        "Network interception rule"
+      ],
+      "acceptanceCriteria": "Only one mutation fires, user input remains visible, and the saved state survives reload."
+    },
+    {
+      "id": "TC-142",
+      "title": "Mobile audit report is readable without horizontal overflow",
+      "category": "responsive_visual",
+      "status": "failed",
+      "risk": "medium",
+      "goal": "Verify the client-ready report can be reviewed on mobile without clipped tables or overlapping action buttons.",
+      "steps": [
+        "Open report page at 390px width.",
+        "Scroll every section.",
+        "Inspect issue table, evidence gallery, and repair task cards.",
+        "Capture screenshot and overflow metrics."
+      ],
+      "expectedEvidence": [
+        "Mobile screenshot",
+        "Layout overflow measurement",
+        "DOM bounding boxes"
+      ],
+      "dataNeeds": [
+        "Generated audit report with at least two findings"
+      ],
+      "acceptanceCriteria": "No primary content overflows the viewport and all action labels remain readable."
+    },
+    {
+      "id": "TC-153",
+      "title": "Webhook/payment side effects are declared instead of silently skipped",
+      "category": "integration_side_effects",
+      "status": "blocked",
+      "risk": "high",
+      "goal": "Prevent fake confidence by forcing unsupported third-party checks into the audit report.",
+      "steps": [
+        "Inspect env and integration code references.",
+        "Detect missing sandbox keys.",
+        "Mark affected checks as blocked with exact reason."
+      ],
+      "expectedEvidence": [
+        "Env-key presence map",
+        "Integration file references",
+        "Blocked finding"
+      ],
+      "dataNeeds": [
+        "Sandbox provider keys or explicit skip approval"
+      ],
+      "acceptanceCriteria": "The report names the blocked integration checks and does not count them as passed."
+    }
+  ],
+  "findings": [
+    {
+      "id": "FD-118",
+      "type": "product_bug",
+      "severity": "high",
+      "title": "Client role can load admin repair task detail by direct URL",
+      "testCardId": "TC-118",
+      "evidenceRefs": [
+        "trace://TC-118/direct-url.zip",
+        "screenshot://TC-118/admin-detail.png"
+      ],
+      "summary": "Navigation hides the admin action, but the route-level loader returns repair task details for a client-role session."
+    },
+    {
+      "id": "FD-142",
+      "type": "product_bug",
+      "severity": "medium",
+      "title": "Mobile report table overflows 390px viewport",
+      "testCardId": "TC-142",
+      "evidenceRefs": [
+        "screenshot://TC-142/mobile-overflow.png",
+        "metric://TC-142/body-scroll-width"
+      ],
+      "summary": "The evidence table uses fixed columns and pushes primary actions outside the viewport."
+    },
+    {
+      "id": "FD-153",
+      "type": "environment_issue",
+      "severity": "high",
+      "title": "Webhook checks blocked by missing sandbox keys",
+      "testCardId": "TC-153",
+      "evidenceRefs": [
+        "env-map://campaign/cmp_launch_001"
+      ],
+      "summary": "Payment/webhook confidence cannot be claimed until sandbox credentials are present or the check is explicitly waived."
+    }
+  ],
+  "repair_tasks": [
+    {
+      "finding_id": "FD-118",
+      "severity": "high",
+      "title": "Enforce server-side role guard on repair task detail route",
+      "why_it_matters": "The UI hides admin actions, but direct navigation still exposes admin-only repair task details to a client user.",
+      "evidence_refs": [
+        "trace://TC-118/direct-url.zip",
+        "screenshot://TC-118/admin-detail.png"
+      ],
+      "likely_files": [
+        "src/app/admin/repair-tasks/[id]/page.tsx",
+        "src/lib/auth/roles.ts",
+        "src/app/api/repair-tasks/[id]/route.ts"
+      ],
+      "reproduction_steps": [
+        "Login with captured client-role browser state.",
+        "Navigate directly to /admin/repair-tasks/rt_102.",
+        "Observe repair task title, likely files, and agent prompt in the rendered page."
+      ],
+      "expected_behavior": "Client role should receive a 403 page or redirect and API detail route should return 403.",
+      "verification_command": "npx playwright test tests/roles/repair-task-guard.spec.ts",
+      "agent_prompt": "Patch the repair task detail page and API route so authorization is enforced server-side. Keep admin access unchanged, return 403 for client users, and add a Playwright regression for direct URL access."
+    },
+    {
+      "finding_id": "FD-142",
+      "severity": "medium",
+      "title": "Make audit report evidence table responsive",
+      "why_it_matters": "The launch audit is supposed to be client-ready, but the mobile report currently clips evidence and action labels.",
+      "evidence_refs": [
+        "screenshot://TC-142/mobile-overflow.png",
+        "metric://TC-142/body-scroll-width"
+      ],
+      "likely_files": [
+        "src/app/reports/[id]/page.tsx",
+        "src/components/report/evidence-table.tsx"
+      ],
+      "reproduction_steps": [
+        "Open /reports/rpt_launch_001 at 390px viewport width.",
+        "Scroll to Evidence.",
+        "Observe horizontal overflow and clipped action column."
+      ],
+      "expected_behavior": "Evidence rows collapse into readable stacked rows on narrow screens with no body overflow.",
+      "verification_command": "npx playwright test tests/responsive/audit-report-mobile.spec.ts",
+      "agent_prompt": "Refactor the audit evidence table responsive layout so mobile uses stacked row cards while desktop preserves the dense table. Verify no horizontal body overflow at 390px."
+    }
+  ],
+  "runner_tools": [
+    {
+      "name": "qa.inspect_repo",
+      "description": "Inspect package metadata, scripts, route files, API handlers, env expectations, and existing test tooling.",
+      "inputShape": "{ repo_path: string }",
+      "outputShape": "{ framework, package_manager, scripts, route_count, api_route_count, env_keys }"
+    },
+    {
+      "name": "qa.detect_app",
+      "description": "Detect app stack and support tier so the audit report names first-class and generic coverage honestly.",
+      "inputShape": "{ repo_summary: RepoSummary }",
+      "outputShape": "{ framework, support_tier, unsupported_gaps[] }"
+    },
+    {
+      "name": "qa.capture_auth_state",
+      "description": "Open a controlled browser session and store encrypted local Playwright storage state without sending credentials to the web app.",
+      "inputShape": "{ campaign_id: string, app_url: string }",
+      "outputShape": "{ auth_state_ref, expires_at, roles_detected[] }"
+    },
+    {
+      "name": "qa.start_or_verify_app",
+      "description": "Run or verify the local app URL, then collect console, network, and route reachability facts.",
+      "inputShape": "{ app_url: string, start_command?: string }",
+      "outputShape": "{ reachable, console_errors, failed_requests, discovered_routes[] }"
+    },
+    {
+      "name": "qa.run_test_card",
+      "description": "Execute an approved test card with Playwright and persist trace, screenshot, video, and structured assertions.",
+      "inputShape": "{ campaign_id: string, test_card_id: string, storage_state_ref?: string }",
+      "outputShape": "{ status, assertions[], artifact_refs[], finding_seed? }"
+    },
+    {
+      "name": "qa.collect_artifacts",
+      "description": "Normalize traces, screenshots, videos, network logs, and accessibility snapshots into report-ready artifact references.",
+      "inputShape": "{ campaign_id: string, run_id: string }",
+      "outputShape": "{ artifact_refs[], evidence_summary }"
+    },
+    {
+      "name": "qa.sync_campaign_results",
+      "description": "Send sanitized campaign results to the web app under one campaign id.",
+      "inputShape": "RunnerSyncPayload",
+      "outputShape": "{ accepted: boolean, synced_at: string }"
+    }
+  ],
+  "competitive_scorecard": [
+    {
+      "category": "Codebase context",
+      "testspriteBaseline": "URL, PRD, generated test plan, and black-box crawl are the public baseline.",
+      "fusionAdvantage": "Local MCP runner inspects repo structure, scripts, routes, API handlers, env expectations, and test tooling before planning.",
+      "proofGate": "Campaign cannot mark context complete until repo summary and runtime summary sync under one campaign ID.",
+      "status": "implemented"
+    },
+    {
+      "category": "Test specificity",
+      "testspriteBaseline": "Generic AI-generated happy-path and broad E2E coverage.",
+      "fusionAdvantage": "Each card includes risk, data needs, evidence gates, acceptance criteria, and blocked-gap policy.",
+      "proofGate": "Every generated card must include goal, steps, expected evidence, data needs, and acceptance criteria.",
+      "status": "implemented"
+    },
+    {
+      "category": "Repair quality",
+      "testspriteBaseline": "Reports failure and may suggest a fix.",
+      "fusionAdvantage": "Creates coding-agent repair packets with likely files, exact repro, expected behavior, verification command, and agent prompt.",
+      "proofGate": "Product bugs are not complete until a repair task can be handed to Codex, Claude, Cursor, or a local model.",
+      "status": "implemented"
+    },
+    {
+      "category": "Evidence integrity",
+      "testspriteBaseline": "Screenshots/video/report artifacts after execution.",
+      "fusionAdvantage": "Treats unsupported integrations and missing sandbox keys as blocked findings, never as implicit passes.",
+      "proofGate": "Audit score must include blocked checks and unsupported gaps as first-class report items.",
+      "status": "implemented"
+    },
+    {
+      "category": "Model harness",
+      "testspriteBaseline": "Vendor model behavior is hidden behind the product.",
+      "fusionAdvantage": "Planned category router can send planning, repo analysis, test generation, repair packets, and patching to different hosted or local models.",
+      "proofGate": "ModelTask interface and provider adapters must support OpenAI, Anthropic, OpenRouter, Genspark bridge, and Docker-hosted OpenAI-compatible endpoints.",
+      "status": "designed"
+    },
+    {
+      "category": "Deployment ownership",
+      "testspriteBaseline": "Hosted vendor workflow.",
+      "fusionAdvantage": "Vercel static/serverless app plus local runner keeps private code local while web reporting stays shareable.",
+      "proofGate": "Static app loads without framework dev server; API accepts runner sync; artifacts can move to Blob and campaign state to Postgres.",
+      "status": "implemented"
+    }
+  ]
+}
