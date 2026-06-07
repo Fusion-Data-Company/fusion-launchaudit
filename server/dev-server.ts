@@ -14,6 +14,14 @@ import {
   storageReadiness,
   storageSchemaSql,
 } from "../src/lib/storage-contract.ts";
+import { getSqlClient } from "../src/lib/db.ts";
+import {
+  ensureCampaignReady,
+  loadCampaignBundle,
+  recordRunnerSync,
+  registerArtifactRecord,
+  type ArtifactRegistration as StoreArtifactRegistration,
+} from "../src/lib/campaign-store.ts";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PORT ?? 3010);
@@ -306,12 +314,41 @@ async function main() {
     }
 
     if (request.method === "GET" && request.url === "/api/campaign") {
+      let liveCampaign = campaign;
+      let liveTestCards = testCards;
+      let liveFindings = findings;
+      let liveRepairTasks = repairTasks;
+      let persistence: Record<string, unknown> = {
+        mode: "seeded",
+        detail: "POSTGRES_URL is not configured; serving seeded campaign data.",
+      };
+
+      const sql = await getSqlClient();
+      if (sql) {
+        try {
+          await ensureCampaignReady(sql);
+          const bundle = await loadCampaignBundle(sql);
+          if (bundle) {
+            liveCampaign = bundle.campaign;
+            liveTestCards = bundle.testCards;
+            liveFindings = bundle.findings;
+            liveRepairTasks = bundle.repairTasks;
+            persistence = bundle.persistence;
+          }
+        } catch (error) {
+          persistence = {
+            mode: "seeded",
+            detail: `Postgres unavailable (${error instanceof Error ? error.message : "unknown error"}); serving seeded fallback.`,
+          };
+        }
+      }
+
       json(response, 200, {
-        campaign,
+        campaign: liveCampaign,
         stages,
-        test_cards: testCards,
-        findings,
-        repair_tasks: repairTasks,
+        test_cards: liveTestCards,
+        findings: liveFindings,
+        repair_tasks: liveRepairTasks,
         runner_tools: runnerTools,
         competitive_scorecard: competitiveScorecard,
         flagship_features: flagshipFeatures,
@@ -324,6 +361,7 @@ async function main() {
         database_tables: databaseTables,
         blob_artifacts: blobArtifacts,
         storage_schema_sql: storageSchemaSql,
+        persistence,
       });
       return;
     }
@@ -369,17 +407,39 @@ async function main() {
       }
 
       const completeBody = body as ArtifactRegistrationPayload;
+      const blobPath = artifactPath(completeBody);
+
+      let persistence: Record<string, unknown> = {
+        mode: "seeded",
+        detail: "POSTGRES_URL is not configured; artifact contract validated but not durably stored.",
+      };
+
+      const sql = await getSqlClient();
+      if (sql) {
+        try {
+          await ensureCampaignReady(sql);
+          const result = await registerArtifactRecord(sql, completeBody as StoreArtifactRegistration, blobPath);
+          persistence = { mode: "postgres", ...result };
+        } catch (error) {
+          persistence = {
+            mode: "postgres",
+            persisted: false,
+            reason: error instanceof Error ? error.message : "Unknown persistence failure.",
+          };
+        }
+      }
 
       json(response, 200, {
         accepted: true,
         campaign_id: completeBody.campaign_id,
         run_id: completeBody.run_id,
-        artifact_ref: `blob://${artifactPath(completeBody)}`,
+        artifact_ref: `blob://${blobPath}`,
         upload: {
           mode: process.env.BLOB_READ_WRITE_TOKEN ? "vercel_blob_ready" : "contract_only_missing_blob_token",
-          path: artifactPath(completeBody),
+          path: blobPath,
           access: "private",
         },
+        persistence,
       });
       return;
     }
@@ -396,16 +456,42 @@ async function main() {
         return;
       }
 
+      let persistence: Record<string, unknown> = {
+        mode: "seeded",
+        detail: "POSTGRES_URL is not configured; sync accepted but not durably stored.",
+      };
+
+      const sql = await getSqlClient();
+      if (sql) {
+        try {
+          await ensureCampaignReady(sql);
+          const result = await recordRunnerSync(sql, body);
+          persistence = {
+            mode: "postgres",
+            session_id: result.sessionId,
+            cards_updated: result.cardsUpdated,
+            cards_unknown: result.cardsUnknown,
+          };
+        } catch (error) {
+          persistence = {
+            mode: "postgres",
+            error: error instanceof Error ? error.message : "Unknown persistence failure.",
+          };
+        }
+      }
+
       json(response, 200, {
         accepted: true,
         campaign_id: body.campaign_id,
         synced_at: new Date().toISOString(),
+        scan_mode: body.scan_mode ?? "seeded_simulation",
         normalized: {
           framework: body.repo_summary.framework,
           app_url: body.runtime_summary.app_url,
           cards_received: body.test_cards.length,
           artifacts_received: body.artifact_refs.length,
         },
+        persistence,
       });
       return;
     }

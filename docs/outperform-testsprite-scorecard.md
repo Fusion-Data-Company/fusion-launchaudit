@@ -4,8 +4,8 @@ This product wins only if evidence proves it is better in the categories below.
 
 | Category | Required Fusion Behavior | Current Status |
 |---|---|---|
-| Codebase context | Local runner inspects repo, scripts, routes, API handlers, env expectations, and existing tests before planning. | Seeded contract implemented; real scanner next. |
-| Runtime truth | Campaign crawls the live/local URL, captures console/network failures, screenshots, traces, and route reachability. | Contract implemented; Playwright runner next. |
+| Codebase context | Local runner inspects repo, scripts, routes, API handlers, env expectations, and existing tests before planning. | Real scanner implemented (`runner/repo-scanner.ts`): framework, package manager, routes, env keys, test tooling. Verified against a Next.js fixture. |
+| Runtime truth | Campaign crawls the live/local URL, captures console/network failures, screenshots, traces, and route reachability. | HTTP reachability probe implemented; console/network/trace capture ships with the Playwright layer. |
 | Test specificity | Every test card includes goal, risk, steps, data needs, expected evidence, and acceptance criteria. | Implemented in seeded test-card model. |
 | Auth handling | User-guided auth state is captured locally; production credentials are not pasted into the web app. | Contract implemented; browser-state capture next. |
 | Failure classification | Failures are classified as product bug, test bug, environment issue, missing context, flaky behavior, or unclear requirement. | Implemented in finding model. |

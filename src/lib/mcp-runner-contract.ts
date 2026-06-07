@@ -16,10 +16,14 @@ export type RunnerTool = {
   outputShape: string;
 };
 
+export type RunnerScanMode = "seeded_simulation" | "live_scan";
+
 export type RunnerSyncPayload = {
   campaign_id: string;
   runner_host: string;
   build_sha?: string;
+  scan_mode?: RunnerScanMode;
+  scan_detail?: Record<string, unknown>;
   repo_summary: {
     framework: string;
     package_manager: string;

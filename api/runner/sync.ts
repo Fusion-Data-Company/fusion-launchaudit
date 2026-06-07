@@ -1,4 +1,6 @@
-import type { RunnerSyncPayload } from "../../src/lib/mcp-runner-contract";
+import type { RunnerSyncPayload } from "../../src/lib/mcp-runner-contract.ts";
+import { ensureCampaignReady, recordRunnerSync } from "../../src/lib/campaign-store.ts";
+import { getSqlClient } from "../../src/lib/db.ts";
 
 type VercelRequest = {
   method?: string;
@@ -21,7 +23,7 @@ function hasRequiredSyncShape(body: Partial<RunnerSyncPayload>): body is RunnerS
   );
 }
 
-export default function handler(request: VercelRequest, response: VercelResponse) {
+export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== "POST") {
     response.status(405).json({ accepted: false, error: "Method not allowed." });
     return;
@@ -38,15 +40,42 @@ export default function handler(request: VercelRequest, response: VercelResponse
     return;
   }
 
+  let persistence: Record<string, unknown> = {
+    mode: "seeded",
+    detail: "POSTGRES_URL is not configured; sync accepted but not durably stored.",
+  };
+
+  const sql = await getSqlClient();
+
+  if (sql) {
+    try {
+      await ensureCampaignReady(sql);
+      const result = await recordRunnerSync(sql, body);
+      persistence = {
+        mode: "postgres",
+        session_id: result.sessionId,
+        cards_updated: result.cardsUpdated,
+        cards_unknown: result.cardsUnknown,
+      };
+    } catch (error) {
+      persistence = {
+        mode: "postgres",
+        error: error instanceof Error ? error.message : "Unknown persistence failure.",
+      };
+    }
+  }
+
   response.status(200).json({
     accepted: true,
     campaign_id: body.campaign_id,
     synced_at: new Date().toISOString(),
+    scan_mode: body.scan_mode ?? "seeded_simulation",
     normalized: {
       framework: body.repo_summary.framework,
       app_url: body.runtime_summary.app_url,
       cards_received: body.test_cards.length,
       artifacts_received: body.artifact_refs.length,
     },
+    persistence,
   });
 }

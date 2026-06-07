@@ -76,6 +76,16 @@ Current seed endpoints:
 - `/api/campaign`: includes `model_provider_slots`, `model_routes`, and `model_task_contracts`.
 - `/api/model-routing`: returns only the model harness contract for setup and admin screens.
 
+## Postgres Persistence (Implemented)
+
+`src/lib/db.ts` + `src/lib/campaign-store.ts` wire the Neon serverless driver into the
+campaign API, runner sync, and artifact registration. With `POSTGRES_URL` set, schema
+applies and seeds idempotently on first touch; campaign reads, test-card status updates
+from runner syncs, runner sessions, runs, and artifact metadata are durable. Without it,
+every endpoint serves seeded data and reports `persistence.mode: "seeded"` honestly.
+`npm run db:verify` proves the full layer against in-process Postgres (PGlite) — the
+production driver runs the identical SQL.
+
 ## Storage Readiness API
 
 Current seed endpoints:
