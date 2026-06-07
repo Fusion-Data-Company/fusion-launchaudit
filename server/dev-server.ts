@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { competitiveScorecard } from "../src/lib/competitive-data.ts";
 import { campaign, categoryLabels, findings, repairTasks, stages, testCards } from "../src/lib/campaign-data.ts";
 import { flagshipFeatures, healEvents, trafficInsights } from "../src/lib/flagship-features.ts";
+import { modelProviderSlots, modelRoutes, modelTaskContracts } from "../src/lib/model-routing.ts";
 import { runnerTools, type RunnerSyncPayload } from "../src/lib/mcp-runner-contract.ts";
 
 const host = "127.0.0.1";
@@ -288,6 +289,18 @@ async function main() {
         flagship_features: flagshipFeatures,
         traffic_insights: trafficInsights,
         heal_events: healEvents,
+        model_provider_slots: modelProviderSlots,
+        model_routes: modelRoutes,
+        model_task_contracts: modelTaskContracts,
+      });
+      return;
+    }
+
+    if (request.method === "GET" && request.url === "/api/model-routing") {
+      json(response, 200, {
+        model_provider_slots: modelProviderSlots,
+        model_routes: modelRoutes,
+        model_task_contracts: modelTaskContracts,
       });
       return;
     }

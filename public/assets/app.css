@@ -700,7 +700,8 @@ h3 {
 }
 
 .scorecard-grid,
-.flagship-grid {
+.flagship-grid,
+.model-route-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
@@ -713,6 +714,8 @@ h3 {
 
 .scorecard-card,
 .flagship-card,
+.model-route-card,
+.provider-card,
 .traffic-row {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -753,6 +756,56 @@ h3 {
 }
 
 .flagship-card .badge-row {
+  margin-top: 12px;
+}
+
+.model-route-main,
+.provider-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.model-route-main div,
+.provider-meta div {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-chip-bg);
+  padding: 10px;
+}
+
+.model-route-main span,
+.provider-meta span {
+  color: var(--soft);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.model-route-main strong,
+.provider-meta strong,
+.provider-meta code {
+  display: block;
+  margin-top: 6px;
+  color: var(--detail-text);
+  font-size: 12px;
+}
+
+.model-route-main code {
+  display: block;
+  margin-top: 6px;
+  color: var(--code-text);
+  font-size: 11px;
+}
+
+.provider-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.provider-card .badge-row {
   margin-top: 12px;
 }
 
@@ -898,6 +951,7 @@ h3 {
   .content-grid,
   .lower-grid,
   .scorecard-grid,
+  .model-route-grid,
   .flagship-grid {
     grid-template-columns: 1fr;
   }
@@ -930,7 +984,9 @@ h3 {
 
   .metric-grid,
   .mini-grid,
-  .test-detail-grid {
+  .test-detail-grid,
+  .model-route-main,
+  .provider-meta {
     grid-template-columns: 1fr;
   }
 }

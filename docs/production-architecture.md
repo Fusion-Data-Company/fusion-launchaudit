@@ -38,27 +38,27 @@ Never store raw secrets or `.env` files in Blob. Store sanitized env-key presenc
 
 ## Model Harness Reality
 
-The model layer should not be one chatbot call. It should be a task router:
+The model layer is now represented in the app as a seeded task router. It is not live invocation yet, but the campaign API exposes provider slots, route assignments, fallbacks, and quality gates so the production execution layer has a concrete contract instead of an abstract wish.
 
 ```ts
 type ModelTaskCategory =
-  | "campaign_planning"
-  | "repo_analysis"
-  | "runtime_exploration"
+  | "repo_context"
+  | "runtime_crawl"
   | "test_generation"
   | "failure_classification"
-  | "repair_packet"
-  | "patch_generation"
-  | "client_report";
+  | "repair_task_writing"
+  | "patch_planning"
+  | "visual_review"
+  | "traffic_analysis";
 ```
 
-Provider adapters:
+Seeded provider slots:
 
-- OpenAI: Responses API for planning, classification, repair packets, and Codex-style code tasks.
-- Anthropic: long-context repo analysis and repair reasoning.
-- OpenRouter: user-selectable coding models and low-cost smaller task routing.
-- Genspark bridge: treat as an external research/agent provider through a controlled adapter when API/browser access is available.
-- Docker-hosted LLM: expose an OpenAI-compatible endpoint such as `http://model-gateway:8080/v1/chat/completions`.
+- Fusion managed default: planning, classification, test generation, and repair writing fallback.
+- OpenRouter coding model: owner-selected coding models for repair packets and patch planning.
+- Genspark agent bridge: browser/runtime/visual-review provider through a controlled HTTPS bridge.
+- Docker hosted local LLM: OpenAI-compatible local endpoint for private repo context and traffic analysis.
+- Proprietary QA model: future customer-owned endpoint or fine-tuned model trained only from approved artifacts.
 
 The proprietary model path is not “train a model first.” The realistic path is:
 
@@ -66,6 +66,11 @@ The proprietary model path is not “train a model first.” The realistic path 
 2. Store clean supervised examples: input context -> test card, failure -> classification, finding -> repair packet.
 3. Fine-tune or distill narrow tasks after enough successful campaigns.
 4. Keep execution deterministic with Playwright; use the model for planning and diagnosis, not final truth.
+
+Current seed endpoints:
+
+- `/api/campaign`: includes `model_provider_slots`, `model_routes`, and `model_task_contracts`.
+- `/api/model-routing`: returns only the model harness contract for setup and admin screens.
 
 ## Deployment Defaults
 

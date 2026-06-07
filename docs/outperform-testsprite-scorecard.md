@@ -11,7 +11,7 @@ This product wins only if evidence proves it is better in the categories below.
 | Failure classification | Failures are classified as product bug, test bug, environment issue, missing context, flaky behavior, or unclear requirement. | Implemented in finding model. |
 | Repair packets | Product bugs generate coding-agent-ready tasks with likely files, repro steps, expected behavior, verification command, and agent prompt. | Implemented in seeded repair tasks. |
 | Blocked-gap honesty | Missing sandbox keys and unsupported integrations are reported as blocked, not silently skipped or counted as passed. | Implemented in seeded campaign and scorecard. |
-| Model flexibility | Planning, repo analysis, test generation, classification, repair, and patching can route to different models/providers. | Designed; adapters next. |
+| Model flexibility | Planning, repo analysis, runtime crawl, test generation, classification, repair writing, visual review, and traffic analysis can route to different models/providers. | Seed contract implemented with 5 provider slots, 7 routes, fallbacks, and quality gates; live invocation adapters next. |
 | Deployment ownership | Web reporting deploys to Vercel while private code execution stays local through MCP. | Static/serverless structure implemented. |
 
 ## Proof Gates

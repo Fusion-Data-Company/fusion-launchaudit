@@ -26,6 +26,12 @@ const statusTone = {
   passed: "badge-success",
   failed: "badge-high",
   blocked: "badge-medium",
+  configurable: "badge-info",
+  needs_secret: "badge-medium",
+  planned: "badge-muted",
+  implemented: "badge-success",
+  designed: "badge-info",
+  next: "badge-medium",
 };
 
 const escapeHtml = (value) =>
@@ -161,7 +167,7 @@ function renderScorecard(scorecard) {
         <article class="scorecard-card">
           <div class="scorecard-top">
             <h3>${escapeHtml(item.category)}</h3>
-            ${badge(item.status, item.status === "implemented" ? "badge-success" : item.status === "designed" ? "badge-info" : "badge-medium")}
+            ${badge(item.status, statusTone[item.status] || "badge-muted")}
           </div>
           <div class="scorecard-row">
             <span>Baseline</span>
@@ -175,6 +181,71 @@ function renderScorecard(scorecard) {
             <span>Proof gate</span>
             <p>${escapeHtml(item.proofGate)}</p>
           </div>
+        </article>`,
+    )
+    .join("");
+}
+
+function renderModelRouting(routes, providers) {
+  const providerById = Object.fromEntries(providers.map((provider) => [provider.id, provider]));
+
+  document.getElementById("model-routes").innerHTML = routes
+    .map((route) => {
+      const provider = providerById[route.providerSlotId];
+      const fallback = providerById[route.fallbackProviderSlotId];
+
+      return `
+        <article class="model-route-card">
+          <div class="scorecard-top">
+            <div>
+              <span class="mono-id">${escapeHtml(route.task.replaceAll("_", " "))}</span>
+              <h3>${escapeHtml(route.label)}</h3>
+            </div>
+            ${badge(provider?.kind || "unknown", "badge-info")}
+          </div>
+          <div class="model-route-main">
+            <div>
+              <span>Primary</span>
+              <strong>${escapeHtml(provider?.label || route.providerSlotId)}</strong>
+              <code>${escapeHtml(route.model)}</code>
+            </div>
+            <div>
+              <span>Fallback</span>
+              <strong>${escapeHtml(fallback?.label || route.fallbackProviderSlotId)}</strong>
+              <code>${escapeHtml(`temp ${route.temperature} / ${route.maxTokens} tokens`)}</code>
+            </div>
+          </div>
+          <div class="scorecard-row">
+            <span>Quality gate</span>
+            <p>${escapeHtml(route.qualityGate)}</p>
+          </div>
+        </article>`;
+    })
+    .join("");
+}
+
+function renderProviderSlots(providers) {
+  document.getElementById("provider-slots").innerHTML = providers
+    .map(
+      (provider) => `
+        <article class="provider-card">
+          <div class="scorecard-top">
+            <h3>${escapeHtml(provider.label)}</h3>
+            ${badge(provider.status.replaceAll("_", " "), statusTone[provider.status] || "badge-muted")}
+          </div>
+          <div class="provider-meta">
+            <div><span>Kind</span><strong>${escapeHtml(provider.kind.replaceAll("_", " "))}</strong></div>
+            <div><span>Secret</span><code>${escapeHtml(provider.secretEnv)}</code></div>
+          </div>
+          <div class="scorecard-row">
+            <span>Endpoint</span>
+            <p>${escapeHtml(provider.endpoint)}</p>
+          </div>
+          <div class="scorecard-row">
+            <span>Guardrail</span>
+            <p>${escapeHtml(provider.guardrail)}</p>
+          </div>
+          <div class="badge-row">${provider.bestFor.map((task) => badge(task.replaceAll("_", " "))).join("")}</div>
         </article>`,
     )
     .join("");
@@ -247,6 +318,8 @@ async function loadCampaign() {
   renderInspector(data.campaign, data.findings, data.repair_tasks);
   renderScorecard(data.competitive_scorecard);
   renderFlagshipFeatures(data.flagship_features);
+  renderModelRouting(data.model_routes || [], data.model_provider_slots || []);
+  renderProviderSlots(data.model_provider_slots || []);
   renderTrafficInsights(data.traffic_insights);
   renderHealEvents(data.heal_events);
 }

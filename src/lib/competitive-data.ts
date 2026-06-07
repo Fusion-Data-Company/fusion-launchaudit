@@ -38,9 +38,9 @@ export const competitiveScorecard: CompetitiveCategory[] = [
   {
     category: "Model harness",
     testspriteBaseline: "Vendor model behavior is hidden behind the product.",
-    fusionAdvantage: "Planned category router can send planning, repo analysis, test generation, repair packets, and patching to different hosted or local models.",
-    proofGate: "ModelTask interface and provider adapters must support OpenAI, Anthropic, OpenRouter, Genspark bridge, and Docker-hosted OpenAI-compatible endpoints.",
-    status: "designed",
+    fusionAdvantage: "Category router assigns repo context, runtime crawl, test generation, classification, repair writing, visual review, and traffic analysis to different managed, OpenRouter, Genspark, Docker, or proprietary model slots.",
+    proofGate: "ModelTask contracts, provider slots, route assignments, fallbacks, and quality gates are exposed through the campaign API before live model invocation is enabled.",
+    status: "implemented",
   },
   {
     category: "Deployment ownership",

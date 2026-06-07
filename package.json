@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --experimental-strip-types server/dev-server.ts",
-    "build": "node --experimental-strip-types runner/local-runner.ts --print > /dev/null",
+    "build": "node --experimental-strip-types scripts/write-campaign-json.ts && node --experimental-strip-types runner/local-runner.ts --print > /dev/null",
     "runner:print": "node --experimental-strip-types runner/local-runner.ts --print",
     "runner:sync": "node --experimental-strip-types runner/local-runner.ts"
   }
