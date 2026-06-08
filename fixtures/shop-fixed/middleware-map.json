@@ -1,0 +1,7 @@
+{
+  "protected_routes": ["/admin", "/admin/users/:id"],
+  "protected_apis": ["/api/admin/delete-user"],
+  "login_path": "/login",
+  "admin_creds": { "username": "admin", "password": "admin" },
+  "user_creds": { "username": "user", "password": "user" }
+}
