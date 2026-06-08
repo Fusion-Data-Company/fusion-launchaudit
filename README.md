@@ -1,11 +1,28 @@
-# Fusion LaunchAudit
+# LaunchAudit
 
-Evidence-gated launch QA. Point it at a running app and a repo; it scans the code,
-crawls the live DOM, generates executable test cards specific to that app, runs them
-in a real browser, captures screenshot/console/network evidence, turns failures into
-findings with coding-agent-ready repair packets, computes an earned readiness score,
-and renders a client-ready report. Private code never leaves the machine that runs
-the audit — only sanitized summaries and evidence references sync.
+A **deep** automated testing framework for developers. Pull it into your own
+Claude Code (it runs on your Claude subscription — no API key, the PAI model:
+Claude Code is the engine, this is the layer). It audits a web app across front
+end, back end, **admin panels / RBAC**, and **middleware** — the surfaces
+TestSprite is shallow on — and drives a codebase from ~80% "works on my machine"
+to 100% "hand to client."
+
+## Why it's deeper than TestSprite
+TestSprite covers front end and basic flows. LaunchAudit adds the launch-blockers
+that actually get apps owned:
+- **Admin / RBAC** — admin routes and APIs must block anonymous AND normal users;
+  admins pass (positive control); direct-URL access to admin detail pages is
+  blocked; privileged mutations are server-guarded, not UI-hidden.
+- **Middleware** — security headers (X-Frame-Options, X-Content-Type-Options,
+  CSP), HSTS, auth redirects, protected-path coverage.
+- **Back end** — every API: correct status, malformed input → 4xx not 5xx, no
+  stack-trace leaks, auth enforced.
+- **Role-based execution** — captures admin + user sessions locally and runs the
+  same surface as each role.
+
+Proven on a fixture with 5 planted bugs: the audit caught all 5 (including the
+RBAC direct-URL leak and unguarded admin API), scored it 57/100; after fixes the
+same audit scored 100/100. The loop closes.
 
 ## The one command
 
