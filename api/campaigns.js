@@ -5535,9 +5535,6 @@ alter table test_cards add column if not exists exec jsonb not null default '[]'
 // src/lib/campaign-store.ts
 var SEED_PROJECT_ID = "proj_local_001";
 var SEED_OWNER_ID = "owner_fusion_rob";
-function safeSegment(value) {
-  return value.trim().replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").slice(0, 120);
-}
 async function ensureSchema(sql) {
   const statements = storageSchemaSql.split(";").map((statement) => statement.trim()).filter((statement) => statement.length > 0);
   for (const statement of statements) {
@@ -5628,117 +5625,36 @@ async function seedCampaignData(sql) {
     );
   }
 }
-async function recordRunnerSync(sql, payload) {
-  const sessionId = `rs_${safeSegment(payload.campaign_id)}_${safeSegment(payload.runner_host)}`;
+async function createCampaign(sql, input) {
+  const slug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "campaign";
+  const id = `cmp_${slug}_${Date.now().toString(36)}`;
   await sql(
-    `insert into runner_sessions (id, campaign_id, runner_host, version, last_sync_at)
-     values ($1, $2, $3, $4, now())
-     on conflict (id) do update set last_sync_at = now(), version = excluded.version`,
-    [sessionId, payload.campaign_id, payload.runner_host, payload.build_sha ?? "unknown"]
+    `insert into projects (id, owner_id, repo_path_hint, framework, support_tier)
+     values ($1, $2, $3, $4, $5) on conflict (id) do nothing`,
+    [`proj_${slug}`, SEED_OWNER_ID, input.repoPathHint ?? null, "pending scan", "generic"]
   );
-  let cardsUpdated = 0;
-  let cardsInserted = 0;
-  for (const card of payload.test_cards) {
-    const inserted = await sql(
-      `insert into test_cards (id, campaign_id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria, exec)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-       on conflict (id) do update set
-         status = excluded.status,
-         title = excluded.title,
-         risk = excluded.risk,
-         goal = case when excluded.goal <> '' then excluded.goal else test_cards.goal end,
-         steps = case when excluded.steps <> '[]'::jsonb then excluded.steps else test_cards.steps end,
-         expected_evidence = case when excluded.expected_evidence <> '[]'::jsonb then excluded.expected_evidence else test_cards.expected_evidence end,
-         acceptance_criteria = case when excluded.acceptance_criteria <> '' then excluded.acceptance_criteria else test_cards.acceptance_criteria end,
-         exec = case when excluded.exec <> '[]'::jsonb then excluded.exec else test_cards.exec end
-       returning (xmax = 0) as inserted`,
-      [
-        card.id,
-        payload.campaign_id,
-        card.category,
-        card.risk,
-        card.status,
-        card.title,
-        card.goal ?? "",
-        JSON.stringify(card.steps ?? []),
-        JSON.stringify(card.expectedEvidence ?? []),
-        JSON.stringify(card.dataNeeds ?? []),
-        card.acceptanceCriteria ?? "",
-        JSON.stringify(card.exec ?? [])
-      ]
-    );
-    if (inserted[0]?.inserted) cardsInserted += 1;
-    else cardsUpdated += 1;
-  }
-  for (const run of payload.run_results ?? []) {
-    await sql(
-      `insert into runs (id, campaign_id, test_card_id, status, started_at, ended_at)
-       values ($1, $2, $3, $4, $5, $6)
-       on conflict (id) do update set status = excluded.status, ended_at = excluded.ended_at`,
-      [run.run_id, payload.campaign_id, run.test_card_id, run.status, run.started_at, run.ended_at]
-    );
-  }
-  for (const finding of payload.findings ?? []) {
-    await sql(
-      `insert into findings (id, campaign_id, test_card_id, type, severity, title, summary, evidence_refs)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
-       on conflict (id) do update set summary = excluded.summary, severity = excluded.severity, evidence_refs = excluded.evidence_refs`,
-      [finding.id, payload.campaign_id, finding.test_card_id, finding.type, finding.severity, finding.title, finding.summary, JSON.stringify(finding.evidence_refs)]
-    );
-    if (finding.type === "product_bug") {
-      const card = payload.test_cards.find((c) => c.id === finding.test_card_id);
-      const scanDetail = payload.scan_detail ?? {};
-      const likelyFiles = (scanDetail.route_files_sampled ?? []).slice(0, 4);
-      const reproSteps = card?.steps?.length ? card.steps : [`Re-run test card ${finding.test_card_id} against ${payload.runtime_summary.app_url}`];
-      const agentPrompt = [
-        `Fix the following launch-blocking issue in this codebase.`,
-        `Failure: ${finding.title}.`,
-        `Details: ${finding.summary}`,
-        `Reproduction: ${reproSteps.join(" -> ")}`,
-        `Acceptance: ${card?.acceptanceCriteria ?? "the failed check passes on re-run"}.`,
-        `Do not weaken the test; fix the behavior. Evidence refs: ${finding.evidence_refs.join(", ") || "screenshot on file"}.`
-      ].join(" ");
-      await sql(
-        `insert into repair_tasks (id, finding_id, severity, title, why_it_matters, evidence_refs, likely_files, reproduction_steps, expected_behavior, verification_command, agent_prompt)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-         on conflict (id) do update set
-           severity = excluded.severity,
-           why_it_matters = excluded.why_it_matters,
-           evidence_refs = excluded.evidence_refs,
-           agent_prompt = excluded.agent_prompt`,
-        [
-          `rt_${finding.id}`,
-          finding.id,
-          finding.severity,
-          `Repair: ${finding.title.replace(/ — failed$/, "")}`,
-          `This check is part of the launch gate for ${payload.runtime_summary.app_url}; it failed with evidence attached and blocks the readiness score.`,
-          JSON.stringify(finding.evidence_refs),
-          JSON.stringify(likelyFiles),
-          JSON.stringify(reproSteps),
-          card?.acceptanceCriteria ?? "The failed check passes on re-run with evidence.",
-          `node --experimental-strip-types runner/audit.ts --name "verify-fix" --app-url ${payload.runtime_summary.app_url}`,
-          agentPrompt
-        ]
-      );
-    }
-  }
-  const scoreRows = await sql(
-    `select
-       count(*) filter (where status = 'passed')::int as passed,
-       count(*) filter (where status = 'failed')::int as failed,
-       count(*) filter (where status = 'blocked')::int as blocked
-     from test_cards where campaign_id = $1`,
-    [payload.campaign_id]
-  );
-  const { passed = 0, failed = 0, blocked = 0 } = scoreRows[0] ?? {};
-  const denominator = Number(passed) + Number(failed) + Number(blocked);
-  const readiness = denominator === 0 ? 0 : Math.round(Number(passed) / denominator * 100);
-  const status = Number(failed) > 0 ? "analyzing" : denominator > 0 ? "report_ready" : "planning";
   await sql(
-    `update campaigns set updated_at = now(), readiness_score = $2, status = $3 where id = $1`,
-    [payload.campaign_id, readiness, status]
+    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score, name, repo_path_hint)
+     values ($1, $2, 'planning', $3, 'Full launch audit', 0, $4, $5)`,
+    [id, `proj_${slug}`, input.appUrl, input.name, input.repoPathHint ?? null]
   );
-  return { sessionId, cardsUpdated, cardsInserted, readiness };
+  return { id };
+}
+async function listCampaigns(sql) {
+  const rows = await sql(
+    `select c.id, c.name, c.status, c.app_url, c.readiness_score, c.updated_at,
+            (select count(*)::int from test_cards t where t.campaign_id = c.id) as card_count
+     from campaigns c order by c.updated_at desc`
+  );
+  return rows.map((row) => ({
+    id: String(row.id),
+    name: String(row.name),
+    status: String(row.status),
+    appUrl: String(row.app_url),
+    readinessScore: Number(row.readiness_score),
+    cardCount: Number(row.card_count),
+    updatedAt: String(row.updated_at)
+  }));
 }
 
 // src/lib/db.ts
@@ -5762,61 +5678,43 @@ async function getSqlClient(env = process.env) {
   return cachedClient;
 }
 
-// server/api-src/runner/sync.ts
-function hasRequiredSyncShape(body) {
-  return Boolean(
-    body.campaign_id && body.runner_host && body.repo_summary?.framework && body.runtime_summary?.app_url && Array.isArray(body.test_cards) && Array.isArray(body.artifact_refs)
-  );
-}
+// server/api-src/campaigns.ts
 async function handler(request, response) {
-  if (request.method !== "POST") {
-    response.status(405).json({ accepted: false, error: "Method not allowed." });
-    return;
-  }
-  const body = request.body ?? {};
-  if (!hasRequiredSyncShape(body)) {
-    response.status(400).json({
-      accepted: false,
-      error: "Runner sync payload must include campaign_id, runner_host, repo_summary, runtime_summary, test_cards, and artifact_refs."
+  const sql = await getSqlClient();
+  if (!sql) {
+    response.status(503).json({
+      error: "Campaign management requires Postgres.",
+      hint: "Set POSTGRES_URL in the deployment environment; seeded demo mode cannot create campaigns.",
+      persistence: { mode: "seeded" }
     });
     return;
   }
-  let persistence = {
-    mode: "seeded",
-    detail: "POSTGRES_URL is not configured; sync accepted but not durably stored."
-  };
-  const sql = await getSqlClient();
-  if (sql) {
-    try {
-      await ensureCampaignReady(sql);
-      const result = await recordRunnerSync(sql, body);
-      persistence = {
-        mode: "postgres",
-        session_id: result.sessionId,
-        cards_updated: result.cardsUpdated,
-        cards_inserted: result.cardsInserted,
-        readiness: result.readiness
-      };
-    } catch (error) {
-      persistence = {
-        mode: "postgres",
-        error: error instanceof Error ? error.message : "Unknown persistence failure."
-      };
+  try {
+    await ensureCampaignReady(sql);
+    if (request.method === "GET") {
+      response.status(200).json({ campaigns: await listCampaigns(sql), persistence: { mode: "postgres" } });
+      return;
     }
+    if (request.method === "POST") {
+      const { name, app_url, repo_path_hint } = request.body ?? {};
+      if (!name || !app_url) {
+        response.status(400).json({ error: "name and app_url are required." });
+        return;
+      }
+      try {
+        new URL(app_url);
+      } catch {
+        response.status(400).json({ error: `app_url is not a valid URL: ${app_url}` });
+        return;
+      }
+      const created = await createCampaign(sql, { name, appUrl: app_url, repoPathHint: repo_path_hint });
+      response.status(201).json({ id: created.id, persistence: { mode: "postgres" } });
+      return;
+    }
+    response.status(405).json({ error: "Method not allowed." });
+  } catch (error) {
+    response.status(500).json({ error: error instanceof Error ? error.message : "Unknown failure." });
   }
-  response.status(200).json({
-    accepted: true,
-    campaign_id: body.campaign_id,
-    synced_at: (/* @__PURE__ */ new Date()).toISOString(),
-    scan_mode: body.scan_mode ?? "seeded_simulation",
-    normalized: {
-      framework: body.repo_summary.framework,
-      app_url: body.runtime_summary.app_url,
-      cards_received: body.test_cards.length,
-      artifacts_received: body.artifact_refs.length
-    },
-    persistence
-  });
 }
 export {
   handler as default

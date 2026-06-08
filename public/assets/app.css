@@ -1647,3 +1647,104 @@ h1 {
   font-size: 12.5px;
   line-height: 1.55;
 }
+
+/* ============================================================
+   CAMPAIGN SWITCHER + FORMS + EMPTY STATES
+   ============================================================ */
+
+.campaign-switcher {
+  min-height: 36px;
+  max-width: 230px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface-muted);
+  box-shadow: inset 0 1px 0 var(--edge-light);
+  color: var(--text);
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.form-field span {
+  color: var(--soft);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.form-field input {
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--code-chip-bg);
+  box-shadow: inset 0 1px 0 var(--edge-light);
+  color: var(--text);
+  padding: 11px 12px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.form-field input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.form-error {
+  margin-top: 12px;
+  border: 1px solid var(--badge-high-border);
+  border-radius: 8px;
+  background: var(--badge-high-bg);
+  color: var(--badge-high-text);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.form-submit {
+  margin-top: 18px;
+  width: 100%;
+  justify-content: center;
+}
+
+.empty-state {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-muted) 55%, transparent);
+  padding: 22px;
+}
+
+.empty-state h3 {
+  font-size: 15px;
+}
+
+.empty-state p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.empty-state code {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--code-chip-bg);
+  box-shadow: inset 0 1px 0 var(--edge-light);
+  color: var(--code-text);
+  padding: 10px 12px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@media print {
+  .sidebar, .topbar .actions, .modal-backdrop { display: none !important; }
+}

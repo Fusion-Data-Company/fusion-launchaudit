@@ -7,7 +7,9 @@
 import { PGlite } from "@electric-sql/pglite";
 import { campaign as seededCampaign, testCards as seededTestCards } from "../src/lib/campaign-data.ts";
 import {
+  createCampaign,
   ensureSchema,
+  listCampaigns,
   loadCampaignBundle,
   recordRunnerSync,
   registerArtifactRecord,
@@ -159,6 +161,39 @@ async function main() {
     "campaigns/x/runs/run_verify_002/trace/trace.zip",
   );
   check("artifact: unknown test card rejected with reason", badArtifact.persisted === false && "reason" in badArtifact);
+
+  // 8. Multi-campaign: create, list, exec round-trip, auto repair packet
+  const created = await createCampaign(sql, { name: "Verify Co Launch", appUrl: "https://verify.example.com", repoPathHint: "/tmp/verify" });
+  check("campaign: created with generated id", created.id.startsWith("cmp_verify-co-launch"));
+  const list = await listCampaigns(sql);
+  check("campaign: listed alongside seeded", list.length === 2 && list.some((c) => c.id === created.id));
+
+  await recordRunnerSync(sql, {
+    campaign_id: created.id,
+    runner_host: "verify-host",
+    repo_summary: { framework: "Next.js", package_manager: "npm", scripts: [], route_count: 1, api_route_count: 0, env_keys_present: [], env_keys_missing: [] },
+    runtime_summary: { app_url: "https://verify.example.com", reachable: true, console_errors: 0, failed_requests: 0, auth_state: "missing" },
+    scan_detail: { route_files_sampled: ["app/page.tsx", "app/api/route.ts"] },
+    test_cards: [
+      { id: "TC-V-1", title: "exec card", category: "core_workflow", status: "failed", risk: "high", goal: "g", steps: ["open", "check"], expectedEvidence: ["screenshot"], acceptanceCriteria: "passes", exec: [{ action: "goto", url: "https://verify.example.com" }] } as never,
+    ],
+    findings: [
+      { id: "FD-V-1", test_card_id: "TC-V-1", type: "product_bug", severity: "high", title: "exec card — failed", summary: "broke", evidence_refs: ["blob://x"] },
+    ],
+    run_results: [
+      { run_id: "run_v_1", test_card_id: "TC-V-1", status: "failed", started_at: new Date().toISOString(), ended_at: new Date().toISOString(), artifact_refs: [] },
+    ],
+    artifact_refs: [],
+  });
+
+  const newBundle = await loadCampaignBundle(sql, created.id);
+  check("campaign: new campaign bundle loads with its own cards", newBundle?.testCards.length === 1);
+  check("campaign: exec steps round-trip", Array.isArray((newBundle?.testCards[0] as { exec?: unknown[] })?.exec) && ((newBundle?.testCards[0] as { exec?: unknown[] }).exec?.length ?? 0) === 1);
+  check("campaign: readiness computed for new campaign (0 passed / 1 failed)", newBundle?.campaign.readinessScore === 0);
+  check("repair: auto-generated from product_bug finding", newBundle?.repairTasks.length === 1 && newBundle.repairTasks[0].likely_files.includes("app/page.tsx"));
+  const seededBundle = await loadCampaignBundle(sql);
+  check("isolation: seeded campaign untouched by new campaign", seededBundle?.testCards.every((c) => c.id !== "TC-V-1") === true);
+  check("isolation: repair packets campaign-scoped", seededBundle?.repairTasks.every((r) => r.finding_id !== "FD-V-1") === true);
 
   await pg.close();
 

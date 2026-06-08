@@ -30,6 +30,7 @@ import { getSqlClient } from "../../src/lib/db.ts";
 
 type VercelRequest = {
   method?: string;
+  query?: Record<string, string | string[]>;
 };
 
 type VercelResponse = {
@@ -42,8 +43,10 @@ const SEEDED_PERSISTENCE = {
   detail: "POSTGRES_URL is not configured; serving build-time seeded campaign data.",
 };
 
-export default async function handler(_request: VercelRequest, response: VercelResponse) {
+export default async function handler(request: VercelRequest, response: VercelResponse) {
   const sql = await getSqlClient();
+  const rawId = request.query?.id;
+  const campaignId = typeof rawId === "string" && rawId.trim() ? rawId.trim() : undefined;
 
   if (!sql) {
     response.status(200).json({ ...campaignPayload, persistence: SEEDED_PERSISTENCE });
@@ -52,12 +55,12 @@ export default async function handler(_request: VercelRequest, response: VercelR
 
   try {
     await ensureCampaignReady(sql);
-    const bundle = await loadCampaignBundle(sql);
+    const bundle = await loadCampaignBundle(sql, campaignId);
 
     if (!bundle) {
-      response.status(200).json({
+      response.status(campaignId ? 404 : 200).json({
         ...campaignPayload,
-        persistence: { mode: "seeded", detail: "Postgres reachable but campaign row missing; serving seeded data." },
+        persistence: { mode: "seeded", detail: campaignId ? `Campaign ${campaignId} not found.` : "Postgres reachable but campaign row missing; serving seeded data." },
       });
       return;
     }

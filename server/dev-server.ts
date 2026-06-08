@@ -16,7 +16,9 @@ import {
 } from "../src/lib/storage-contract.ts";
 import { getSqlClient } from "../src/lib/db.ts";
 import {
+  createCampaign,
   ensureCampaignReady,
+  listCampaigns,
   loadCampaignBundle,
   recordRunnerSync,
   registerArtifactRecord,
@@ -306,6 +308,20 @@ async function main() {
       return;
     }
 
+    if (request.method === "GET" && request.url?.startsWith("/report.html")) {
+      const html = await fs.readFile(path.join(rootDir, "public/report.html"), "utf8");
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(html);
+      return;
+    }
+
+    if (request.method === "GET" && request.url === "/assets/report.js") {
+      const js = await fs.readFile(path.join(rootDir, "public/assets/report.js"), "utf8");
+      response.writeHead(200, { "content-type": "text/javascript" });
+      response.end(js);
+      return;
+    }
+
     if (request.method === "GET" && request.url === "/assets/app.js") {
       const js = await fs.readFile(path.join(rootDir, "public/assets/app.js"), "utf8");
       response.writeHead(200, { "content-type": "text/javascript" });
@@ -313,7 +329,42 @@ async function main() {
       return;
     }
 
-    if (request.method === "GET" && request.url === "/api/campaign") {
+    if (request.method === "GET" && request.url === "/api/campaigns") {
+      const sqlList = await getSqlClient();
+      if (!sqlList) {
+        json(response, 503, { error: "Campaign management requires Postgres.", persistence: { mode: "seeded" } });
+        return;
+      }
+      await ensureCampaignReady(sqlList);
+      json(response, 200, { campaigns: await listCampaigns(sqlList), persistence: { mode: "postgres" } });
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/api/campaigns") {
+      const sqlCreate = await getSqlClient();
+      if (!sqlCreate) {
+        json(response, 503, { error: "Campaign management requires Postgres.", persistence: { mode: "seeded" } });
+        return;
+      }
+      await ensureCampaignReady(sqlCreate);
+      const body = await readJsonBody<{ name?: string; app_url?: string; repo_path_hint?: string }>(request);
+      if (!body.name || !body.app_url) {
+        json(response, 400, { error: "name and app_url are required." });
+        return;
+      }
+      try {
+        new URL(body.app_url);
+      } catch {
+        json(response, 400, { error: `app_url is not a valid URL: ${body.app_url}` });
+        return;
+      }
+      const created = await createCampaign(sqlCreate, { name: body.name, appUrl: body.app_url, repoPathHint: body.repo_path_hint });
+      json(response, 201, { id: created.id, persistence: { mode: "postgres" } });
+      return;
+    }
+
+    if (request.method === "GET" && request.url?.startsWith("/api/campaign")) {
+      const requestedId = new URL(request.url, "http://localhost").searchParams.get("id") ?? undefined;
       let liveCampaign = campaign;
       let liveTestCards = testCards;
       let liveFindings = findings;
@@ -328,7 +379,7 @@ async function main() {
       if (sql) {
         try {
           await ensureCampaignReady(sql);
-          const bundle = await loadCampaignBundle(sql);
+          const bundle = await loadCampaignBundle(sql, requestedId);
           if (bundle) {
             liveCampaign = bundle.campaign;
             liveTestCards = bundle.testCards;

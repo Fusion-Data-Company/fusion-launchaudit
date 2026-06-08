@@ -1,8 +1,33 @@
 # Fusion LaunchAudit
 
-Fusion LaunchAudit is a launch-audit campaign platform: web command center plus local MCP runner.
+Evidence-gated launch QA. Point it at a running app and a repo; it scans the code,
+crawls the live DOM, generates executable test cards specific to that app, runs them
+in a real browser, captures screenshot/console/network evidence, turns failures into
+findings with coding-agent-ready repair packets, computes an earned readiness score,
+and renders a client-ready report. Private code never leaves the machine that runs
+the audit — only sanitized summaries and evidence references sync.
 
-The first production-shaped slice is static frontend assets, Vercel-compatible API functions, typed campaign data, a local runner sync simulator, Fusion branding, dark mode, and a competitive proof harness.
+## The one command
+
+```bash
+LAUNCHAUDIT_API_URL=https://launch-audit-platform.vercel.app \
+node --experimental-strip-types runner/audit.ts \
+  --name "Client App — launch audit" \
+  --app-url https://staging.client.app \
+  --repo ~/projects/client-app
+```
+
+scan → crawl → generate → create campaign → execute → evidence → findings →
+repair packets → computed readiness → report at `/report.html?campaign=<id>`.
+
+## Through your coding agent (the TestSprite pattern)
+
+```bash
+claude mcp add launchaudit -- node --experimental-strip-types ./runner/mcp-server.ts
+```
+
+9 MCP tools including `launchaudit_run_audit` (full pipeline in one tool call).
+Your agent does the reasoning on your subscription; the platform stores evidence.
 
 ## Run Locally
 

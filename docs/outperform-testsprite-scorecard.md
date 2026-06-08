@@ -4,12 +4,12 @@ This product wins only if evidence proves it is better in the categories below.
 
 | Category | Required Fusion Behavior | Current Status |
 |---|---|---|
-| Codebase context | Local runner inspects repo, scripts, routes, API handlers, env expectations, and existing tests before planning. | Real scanner implemented (`runner/repo-scanner.ts`): framework, package manager, routes, env keys, test tooling. Verified against a Next.js fixture. |
-| Runtime truth | Campaign crawls the live/local URL, captures console/network failures, screenshots, traces, and route reachability. | HTTP reachability probe implemented; console/network/trace capture ships with the Playwright layer. |
-| Test specificity | Every test card includes goal, risk, steps, data needs, expected evidence, and acceptance criteria. | Implemented in seeded test-card model. |
+| Codebase context | Local runner inspects repo, scripts, routes, API handlers, env expectations, and existing tests before planning. | SHIPPED: scanner + runtime DOM crawler feed the card generator; cards reference real routes, real env gaps, real forms. |
+| Runtime truth | Campaign crawls the live/local URL, captures console/network failures, screenshots, traces, and route reachability. | SHIPPED: real Playwright execution with per-card screenshots, console + 5xx capture, route reachability. Traces/video next. |
+| Test specificity | Every test card includes goal, risk, steps, data needs, expected evidence, and acceptance criteria. | SHIPPED: generator emits fully-specified executable cards grounded in scan + crawl; agent-authored cards ride the MCP path. |
 | Auth handling | User-guided auth state is captured locally; production credentials are not pasted into the web app. | Contract implemented; browser-state capture next. |
 | Failure classification | Failures are classified as product bug, test bug, environment issue, missing context, flaky behavior, or unclear requirement. | Implemented in finding model. |
-| Repair packets | Product bugs generate coding-agent-ready tasks with likely files, repro steps, expected behavior, verification command, and agent prompt. | Implemented in seeded repair tasks. |
+| Repair packets | Product bugs generate coding-agent-ready tasks with likely files, repro steps, expected behavior, verification command, and agent prompt. | SHIPPED: auto-generated on sync from every product-bug finding, campaign-scoped, evidence-linked. |
 | Blocked-gap honesty | Missing sandbox keys and unsupported integrations are reported as blocked, not silently skipped or counted as passed. | Implemented in seeded campaign and scorecard. |
 | Model flexibility | Planning, repo analysis, runtime crawl, test generation, classification, repair writing, visual review, and traffic analysis can route to different models/providers. | Seed contract implemented with 5 provider slots, 7 routes, fallbacks, and quality gates; live invocation adapters next. |
 | Deployment ownership | Web reporting deploys to Vercel while private code execution stays local through MCP. | Static/serverless structure implemented. |

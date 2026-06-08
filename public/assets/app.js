@@ -113,8 +113,27 @@ function renderContext(campaign, runnerTools) {
 }
 
 let executedCardIds = new Set();
+let currentCampaign = null;
+
+function emptyState(title, body, command) {
+  return `
+    <div class="empty-state">
+      <h3>${escapeHtml(title)}</h3>
+      <p>${escapeHtml(body)}</p>
+      ${command ? `<code>${escapeHtml(command)}</code>` : ""}
+    </div>`;
+}
 
 function renderTestCards(testCards) {
+  if (testCards.length === 0) {
+    const cmd = `node --experimental-strip-types runner/audit.ts --name "${currentCampaign?.name ?? "My audit"}" --app-url ${currentCampaign?.appUrl ?? "https://your.app"} --repo /path/to/repo`;
+    document.getElementById("test-cards").innerHTML = emptyState(
+      "No test cards yet — run the audit",
+      "From the fusion-launchaudit repo on your machine (with LAUNCHAUDIT_API_URL pointed here), one command scans, generates, executes, and syncs:",
+      cmd,
+    );
+    return;
+  }
   document.getElementById("test-cards").innerHTML = testCards
     .map(
       (card) => `
@@ -143,12 +162,18 @@ function renderTestCards(testCards) {
 }
 
 function renderInspector(campaign, findings, repairTasks) {
+  if (findings.length === 0) {
+    document.getElementById("findings").innerHTML = emptyState("No findings", "Failures from executed cards land here automatically with evidence attached.", null);
+  }
+  if (repairTasks.length === 0) {
+    document.getElementById("repair-panel").innerHTML = `<div class="panel-title-line"><h2>Repair packet</h2><span class="accent-dot cayenne"></span></div>` + emptyState("No repair packets", "Every product-bug finding generates a coding-agent-ready repair packet.", null);
+  }
   document.getElementById("runner-truth").innerHTML = `
     <div><span>Host</span><strong>${escapeHtml(campaign.runner.host)}</strong></div>
     <div><span>Version</span><strong>${escapeHtml(campaign.runner.version)}</strong></div>
     <div><span>Last sync</span><strong>${escapeHtml(campaign.runner.lastSync)}</strong></div>`;
 
-  document.getElementById("findings").innerHTML = findings
+  if (findings.length > 0) document.getElementById("findings").innerHTML = findings
     .map(
       (finding) => `
         <article class="finding-card">
@@ -367,10 +392,18 @@ function renderHealEvents(items) {
     .join("");
 }
 
-async function loadCampaign() {
-  const response = await fetch("/api/campaign");
-  if (!response.ok) throw new Error(`Campaign API failed: ${response.status}`);
+function selectedCampaignId() {
+  return localStorage.getItem("launch-audit-campaign") || "";
+}
+
+async function loadCampaign(campaignId = selectedCampaignId()) {
+  const response = await fetch(`/api/campaign${campaignId ? `?id=${encodeURIComponent(campaignId)}` : ""}`);
+  if (!response.ok && response.status !== 404) throw new Error(`Campaign API failed: ${response.status}`);
   const data = await response.json();
+  currentCampaign = data.campaign;
+  const title = document.getElementById("campaign-title");
+  if (title) title.textContent = data.campaign.name;
+  document.title = `${data.campaign.name} — Fusion LaunchAudit`;
   executedCardIds = new Set(data.run_stats?.executedCardIds ?? []);
   renderMetrics(data.campaign, data.test_cards, data.findings, data.run_stats);
   renderStages(data.stages);
@@ -385,6 +418,7 @@ async function loadCampaign() {
   renderTrafficInsights(data.traffic_insights);
   renderHealEvents(data.heal_events);
   renderPersistence(data.persistence);
+  return data;
 }
 
 const savedTheme = localStorage.getItem("launch-audit-theme");
@@ -531,6 +565,87 @@ function renderPersistence(persistence) {
 }
 
 
+
+/* ============================================================
+   CAMPAIGN SWITCHER + CREATION
+   ============================================================ */
+
+async function initCampaignSwitcher(data) {
+  const switcher = document.getElementById("campaign-switcher");
+  if (data.persistence?.mode !== "postgres") {
+    switcher.hidden = true;
+    return;
+  }
+  try {
+    const response = await fetch("/api/campaigns");
+    if (!response.ok) return;
+    const { campaigns } = await response.json();
+    if (!campaigns || campaigns.length === 0) return;
+    const current = currentCampaign?.id;
+    switcher.innerHTML = campaigns
+      .map((c) => `<option value="${escapeHtml(c.id)}" ${c.id === current ? "selected" : ""}>${escapeHtml(c.name)} · ${escapeHtml(String(c.readinessScore))}/100</option>`)
+      .join("");
+    switcher.hidden = false;
+    switcher.onchange = async () => {
+      localStorage.setItem("launch-audit-campaign", switcher.value);
+      await reloadCampaignData(switcher.value);
+    };
+  } catch {
+    switcher.hidden = true;
+  }
+}
+
+async function reloadCampaignData(campaignId) {
+  await loadCampaign(campaignId);
+  initMotion();
+  applyView();
+}
+
+function initNewCampaign() {
+  const backdrop = document.getElementById("new-campaign-backdrop");
+  document.getElementById("new-campaign-btn").addEventListener("click", () => backdrop.classList.add("open"));
+  document.getElementById("new-campaign-close").addEventListener("click", () => backdrop.classList.remove("open"));
+  backdrop.addEventListener("click", (event) => {
+    if (event.target === backdrop) backdrop.classList.remove("open");
+  });
+
+  document.getElementById("new-campaign-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const errorBox = document.getElementById("nc-error");
+    errorBox.hidden = true;
+    const payload = {
+      name: document.getElementById("nc-name").value.trim(),
+      app_url: document.getElementById("nc-url").value.trim(),
+      repo_path_hint: document.getElementById("nc-repo").value.trim() || undefined,
+    };
+    try {
+      const response = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        errorBox.textContent = result.error || `Creation failed (${response.status})${result.hint ? ` — ${result.hint}` : ""}`;
+        errorBox.hidden = false;
+        return;
+      }
+      localStorage.setItem("launch-audit-campaign", result.id);
+      backdrop.classList.remove("open");
+      window.location.hash = "#/campaigns";
+      await reloadCampaignData(result.id);
+    } catch (submitError) {
+      errorBox.textContent = String(submitError);
+      errorBox.hidden = false;
+    }
+  });
+
+  document.getElementById("export-report-btn").addEventListener("click", () => {
+    const id = currentCampaign?.id ?? "";
+    window.open(`/report.html${id ? `?campaign=${encodeURIComponent(id)}` : ""}`, "_blank");
+  });
+}
+
 /* ============================================================
    TOPBAR ACTIONS — honest quickstart modals. No fake spinners:
    these show the real commands until Playwright execution lands.
@@ -552,9 +667,13 @@ const MODALS = {
         code: "Scan ~/my-app with launchaudit_scan_repo, then write evidence-gated test cards per launchaudit_get_test_card_contract and sync them.",
       },
       {
-        h: "Or sync directly with the local runner",
-        p: "One command, no agent:",
-        code: "node --experimental-strip-types runner/local-runner.ts --repo ~/my-app",
+        h: "Or run the full audit in one command",
+        p: "Scan, generate, create campaign, execute in a real browser, sync evidence:",
+        code: 'node --experimental-strip-types runner/audit.ts --name "My app" --app-url https://my.app --repo ~/my-app',
+      },
+      {
+        h: "Auth-gated flows",
+        p: "Login flows need locally captured auth state (qa.capture_auth_state) — credentials never touch this web app. Capture ships with the auth layer and is declared blocked until then.",
       },
     ],
     note: "Honest status: test cards sync and persist today. Playwright execution of approved cards is the next production layer — nothing here pretends to run tests it didn't run.",
@@ -605,8 +724,7 @@ function closeModal() {
 }
 
 function initModals() {
-  document.getElementById("start-campaign-btn")?.addEventListener("click", () => openModal("start-campaign"));
-  document.getElementById("capture-auth-btn")?.addEventListener("click", () => openModal("capture-auth"));
+  document.getElementById("run-audit-btn")?.addEventListener("click", () => openModal("start-campaign"));
   document.getElementById("modal-close").addEventListener("click", closeModal);
   document.getElementById("modal-backdrop").addEventListener("click", (event) => {
     if (event.target === document.getElementById("modal-backdrop")) closeModal();
@@ -628,10 +746,12 @@ function initModals() {
 }
 
 loadCampaign()
-  .then(() => {
+  .then((data) => {
     initMotion();
     initRouter();
     initModals();
+    initNewCampaign();
+    initCampaignSwitcher(data);
   })
   .catch((error) => {
     document.getElementById("metrics").innerHTML = `<article class="metric-card"><strong>Load failed</strong><p>${escapeHtml(error.message)}</p></article>`;

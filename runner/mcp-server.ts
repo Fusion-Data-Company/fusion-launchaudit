@@ -186,6 +186,75 @@ server.tool(
   },
 );
 
+
+server.tool(
+  "launchaudit_list_campaigns",
+  "List all campaigns on the platform with status, readiness, and card counts.",
+  {},
+  async () => {
+    const response = await fetch(`${API_URL}/api/campaigns`);
+    const data = await response.json();
+    if (!response.ok) return fail(`Campaign list failed (${response.status})`, JSON.stringify(data));
+    return ok(data);
+  },
+);
+
+server.tool(
+  "launchaudit_create_campaign",
+  "Create a new audit campaign for a target app. Returns the campaign id to use for sync and reporting.",
+  {
+    name: z.string().describe("Human-readable campaign name, e.g. 'Acme Storefront Launch'"),
+    app_url: z.string().url().describe("URL of the app under audit"),
+    repo_path_hint: z.string().optional().describe("Local repo path, recorded as metadata"),
+  },
+  async ({ name, app_url, repo_path_hint }) => {
+    const response = await fetch(`${API_URL}/api/campaigns`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, app_url, repo_path_hint }),
+    });
+    const data = await response.json();
+    if (!response.ok) return fail(`Campaign creation failed (${response.status})`, JSON.stringify(data));
+    return ok(data);
+  },
+);
+
+server.tool(
+  "launchaudit_run_audit",
+  "THE one-shot audit: scan repo, crawl the live app, auto-generate executable test cards, create a campaign, execute everything in a real browser, capture evidence, sync results + findings. Returns the summary with campaign id and report URL. Takes a few minutes for real apps.",
+  {
+    name: z.string().describe("Campaign name"),
+    app_url: z.string().url().describe("URL of the running app under audit"),
+    repo_path: z.string().optional().describe("Absolute path to the app's repository for repo-aware cards"),
+  },
+  async ({ name, app_url, repo_path }) => {
+    const { spawn } = await import("node:child_process");
+    const { fileURLToPath } = await import("node:url");
+    const path = await import("node:path");
+    const auditScript = path.join(path.dirname(fileURLToPath(import.meta.url)), "audit.ts");
+    const cliArgs = ["--experimental-strip-types", "--no-warnings", auditScript, "--name", name, "--app-url", app_url];
+    if (repo_path) cliArgs.push("--repo", repo_path);
+
+    return await new Promise((resolve) => {
+      const child = spawn("node", cliArgs, {
+        env: { ...process.env, LAUNCHAUDIT_API_URL: API_URL },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", (chunk) => (stdout += chunk));
+      child.stderr.on("data", (chunk) => (stderr += chunk));
+      child.on("close", (code) => {
+        if (code === 0) {
+          resolve(ok({ summary: JSON.parse(stdout || "{}"), log: stderr.split("\n").slice(-14).join("\n") }));
+        } else {
+          resolve(fail(`Audit exited ${code}`, stderr.slice(-600)));
+        }
+      });
+    });
+  },
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
 console.error(`LaunchAudit MCP server ready — platform: ${API_URL}, campaign: ${CAMPAIGN_ID}`);

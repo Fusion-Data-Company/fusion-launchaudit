@@ -55,10 +55,10 @@ export async function seedCampaignData(sql: SqlClient): Promise<void> {
   );
 
   await sql(
-    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score)
-     values ($1, $2, $3, $4, $5, $6)
+    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score, name, repo_path_hint)
+     values ($1, $2, $3, $4, $5, $6, $7, $8)
      on conflict (id) do nothing`,
-    [seededCampaign.id, SEED_PROJECT_ID, seededCampaign.status, seededCampaign.appUrl, seededCampaign.depth, seededCampaign.readinessScore],
+    [seededCampaign.id, SEED_PROJECT_ID, seededCampaign.status, seededCampaign.appUrl, seededCampaign.depth, seededCampaign.readinessScore, seededCampaign.name, seededCampaign.repoPath],
   );
 
   for (const card of seededTestCards) {
@@ -154,7 +154,7 @@ export type CampaignBundle = {
 
 export async function loadCampaignBundle(sql: SqlClient, campaignId: string = seededCampaign.id): Promise<CampaignBundle | null> {
   const campaignRows = await sql(
-    `select id, status, app_url, depth, readiness_score, updated_at from campaigns where id = $1`,
+    `select id, status, app_url, depth, readiness_score, updated_at, name, repo_path_hint from campaigns where id = $1`,
     [campaignId],
   );
 
@@ -170,7 +170,7 @@ export async function loadCampaignBundle(sql: SqlClient, campaignId: string = se
   );
 
   const cardRows = await sql(
-    `select id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria
+    `select id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria, exec
      from test_cards where campaign_id = $1 order by id`,
     [campaignId],
   );
@@ -181,8 +181,10 @@ export async function loadCampaignBundle(sql: SqlClient, campaignId: string = se
   );
 
   const repairRows = await sql(
-    `select finding_id, severity, title, why_it_matters, evidence_refs, likely_files, reproduction_steps, expected_behavior, verification_command, agent_prompt
-     from repair_tasks order by id`,
+    `select r.finding_id, r.severity, r.title, r.why_it_matters, r.evidence_refs, r.likely_files, r.reproduction_steps, r.expected_behavior, r.verification_command, r.agent_prompt
+     from repair_tasks r join findings f on f.id = r.finding_id
+     where f.campaign_id = $1 order by r.id`,
+    [campaignId],
   );
 
   const session = sessionRows[0];
@@ -190,6 +192,8 @@ export async function loadCampaignBundle(sql: SqlClient, campaignId: string = se
   const campaign: Campaign = {
     ...seededCampaign,
     id: String(row.id),
+    name: String(row.name ?? seededCampaign.name),
+    repoPath: String(row.repo_path_hint ?? seededCampaign.repoPath),
     status: String(row.status) as Campaign["status"],
     appUrl: String(row.app_url),
     readinessScore: Number(row.readiness_score),
@@ -213,7 +217,8 @@ export async function loadCampaignBundle(sql: SqlClient, campaignId: string = se
     expectedEvidence: asStringArray(card.expected_evidence),
     dataNeeds: asStringArray(card.data_needs),
     acceptanceCriteria: String(card.acceptance_criteria),
-  }));
+    exec: typeof card.exec === "string" ? JSON.parse(card.exec) : (card.exec ?? []),
+  }) as TestCard & { exec: unknown[] });
 
   const findings: Finding[] = findingRows.map((finding) => ({
     id: String(finding.id),
@@ -265,6 +270,56 @@ export async function loadCampaignBundle(sql: SqlClient, campaignId: string = se
   };
 }
 
+
+export type NewCampaign = {
+  name: string;
+  appUrl: string;
+  repoPathHint?: string;
+};
+
+export async function createCampaign(sql: SqlClient, input: NewCampaign): Promise<{ id: string }> {
+  const slug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "campaign";
+  const id = `cmp_${slug}_${Date.now().toString(36)}`;
+  await sql(
+    `insert into projects (id, owner_id, repo_path_hint, framework, support_tier)
+     values ($1, $2, $3, $4, $5) on conflict (id) do nothing`,
+    [`proj_${slug}`, SEED_OWNER_ID, input.repoPathHint ?? null, "pending scan", "generic"],
+  );
+  await sql(
+    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score, name, repo_path_hint)
+     values ($1, $2, 'planning', $3, 'Full launch audit', 0, $4, $5)`,
+    [id, `proj_${slug}`, input.appUrl, input.name, input.repoPathHint ?? null],
+  );
+  return { id };
+}
+
+export type CampaignListItem = {
+  id: string;
+  name: string;
+  status: string;
+  appUrl: string;
+  readinessScore: number;
+  cardCount: number;
+  updatedAt: string;
+};
+
+export async function listCampaigns(sql: SqlClient): Promise<CampaignListItem[]> {
+  const rows = await sql(
+    `select c.id, c.name, c.status, c.app_url, c.readiness_score, c.updated_at,
+            (select count(*)::int from test_cards t where t.campaign_id = c.id) as card_count
+     from campaigns c order by c.updated_at desc`,
+  );
+  return rows.map((row) => ({
+    id: String(row.id),
+    name: String(row.name),
+    status: String(row.status),
+    appUrl: String(row.app_url),
+    readinessScore: Number(row.readiness_score),
+    cardCount: Number(row.card_count),
+    updatedAt: String(row.updated_at),
+  }));
+}
+
 export type RunnerSyncResult = {
   sessionId: string;
   cardsUpdated: number;
@@ -287,8 +342,8 @@ export async function recordRunnerSync(sql: SqlClient, payload: RunnerSyncPayloa
 
   for (const card of payload.test_cards) {
     const inserted = await sql(
-      `insert into test_cards (id, campaign_id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `insert into test_cards (id, campaign_id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria, exec)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        on conflict (id) do update set
          status = excluded.status,
          title = excluded.title,
@@ -296,7 +351,8 @@ export async function recordRunnerSync(sql: SqlClient, payload: RunnerSyncPayloa
          goal = case when excluded.goal <> '' then excluded.goal else test_cards.goal end,
          steps = case when excluded.steps <> '[]'::jsonb then excluded.steps else test_cards.steps end,
          expected_evidence = case when excluded.expected_evidence <> '[]'::jsonb then excluded.expected_evidence else test_cards.expected_evidence end,
-         acceptance_criteria = case when excluded.acceptance_criteria <> '' then excluded.acceptance_criteria else test_cards.acceptance_criteria end
+         acceptance_criteria = case when excluded.acceptance_criteria <> '' then excluded.acceptance_criteria else test_cards.acceptance_criteria end,
+         exec = case when excluded.exec <> '[]'::jsonb then excluded.exec else test_cards.exec end
        returning (xmax = 0) as inserted`,
       [
         card.id,
@@ -310,6 +366,7 @@ export async function recordRunnerSync(sql: SqlClient, payload: RunnerSyncPayloa
         JSON.stringify(card.expectedEvidence ?? []),
         JSON.stringify(card.dataNeeds ?? []),
         card.acceptanceCriteria ?? "",
+        JSON.stringify((card as { exec?: unknown[] }).exec ?? []),
       ],
     );
     if (inserted[0]?.inserted) cardsInserted += 1;
@@ -332,6 +389,45 @@ export async function recordRunnerSync(sql: SqlClient, payload: RunnerSyncPayloa
        on conflict (id) do update set summary = excluded.summary, severity = excluded.severity, evidence_refs = excluded.evidence_refs`,
       [finding.id, payload.campaign_id, finding.test_card_id, finding.type, finding.severity, finding.title, finding.summary, JSON.stringify(finding.evidence_refs)],
     );
+
+    // Auto-generate a coding-agent-ready repair packet for every product bug.
+    if (finding.type === "product_bug") {
+      const card = payload.test_cards.find((c) => c.id === finding.test_card_id);
+      const scanDetail = (payload.scan_detail ?? {}) as { route_files_sampled?: string[]; repo_path?: string };
+      const likelyFiles = (scanDetail.route_files_sampled ?? []).slice(0, 4);
+      const reproSteps = card?.steps?.length ? card.steps : [`Re-run test card ${finding.test_card_id} against ${payload.runtime_summary.app_url}`];
+      const agentPrompt = [
+        `Fix the following launch-blocking issue in this codebase.`,
+        `Failure: ${finding.title}.`,
+        `Details: ${finding.summary}`,
+        `Reproduction: ${reproSteps.join(" -> ")}`,
+        `Acceptance: ${card?.acceptanceCriteria ?? "the failed check passes on re-run"}.`,
+        `Do not weaken the test; fix the behavior. Evidence refs: ${finding.evidence_refs.join(", ") || "screenshot on file"}.`,
+      ].join(" ");
+
+      await sql(
+        `insert into repair_tasks (id, finding_id, severity, title, why_it_matters, evidence_refs, likely_files, reproduction_steps, expected_behavior, verification_command, agent_prompt)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         on conflict (id) do update set
+           severity = excluded.severity,
+           why_it_matters = excluded.why_it_matters,
+           evidence_refs = excluded.evidence_refs,
+           agent_prompt = excluded.agent_prompt`,
+        [
+          `rt_${finding.id}`,
+          finding.id,
+          finding.severity,
+          `Repair: ${finding.title.replace(/ — failed$/, "")}`,
+          `This check is part of the launch gate for ${payload.runtime_summary.app_url}; it failed with evidence attached and blocks the readiness score.`,
+          JSON.stringify(finding.evidence_refs),
+          JSON.stringify(likelyFiles),
+          JSON.stringify(reproSteps),
+          card?.acceptanceCriteria ?? "The failed check passes on re-run with evidence.",
+          `node --experimental-strip-types runner/audit.ts --name "verify-fix" --app-url ${payload.runtime_summary.app_url}`,
+          agentPrompt,
+        ],
+      );
+    }
   }
 
   // Readiness score: computed from real card statuses, transparent formula.

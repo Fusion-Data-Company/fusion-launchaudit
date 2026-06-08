@@ -5658,7 +5658,13 @@ create table if not exists model_tasks (
   latency_ms integer,
   cost_micros integer,
   created_at timestamptz not null default now()
-);`;
+);
+
+alter table campaigns add column if not exists name text not null default 'Launch Audit Campaign';
+
+alter table campaigns add column if not exists repo_path_hint text;
+
+alter table test_cards add column if not exists exec jsonb not null default '[]'::jsonb;`;
 
 // src/lib/campaign-store.ts
 var SEED_PROJECT_ID = "proj_local_001";
@@ -5690,10 +5696,10 @@ async function seedCampaignData(sql) {
     [SEED_PROJECT_ID, SEED_OWNER_ID, campaign.repoPath, campaign.environment.framework, campaign.environment.supportTier]
   );
   await sql(
-    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score)
-     values ($1, $2, $3, $4, $5, $6)
+    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score, name, repo_path_hint)
+     values ($1, $2, $3, $4, $5, $6, $7, $8)
      on conflict (id) do nothing`,
-    [campaign.id, SEED_PROJECT_ID, campaign.status, campaign.appUrl, campaign.depth, campaign.readinessScore]
+    [campaign.id, SEED_PROJECT_ID, campaign.status, campaign.appUrl, campaign.depth, campaign.readinessScore, campaign.name, campaign.repoPath]
   );
   for (const card of testCards) {
     await sql(
@@ -5769,7 +5775,7 @@ function asStringArray(value) {
 }
 async function loadCampaignBundle(sql, campaignId = campaign.id) {
   const campaignRows = await sql(
-    `select id, status, app_url, depth, readiness_score, updated_at from campaigns where id = $1`,
+    `select id, status, app_url, depth, readiness_score, updated_at, name, repo_path_hint from campaigns where id = $1`,
     [campaignId]
   );
   if (campaignRows.length === 0) {
@@ -5781,7 +5787,7 @@ async function loadCampaignBundle(sql, campaignId = campaign.id) {
     [campaignId]
   );
   const cardRows = await sql(
-    `select id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria
+    `select id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria, exec
      from test_cards where campaign_id = $1 order by id`,
     [campaignId]
   );
@@ -5790,13 +5796,17 @@ async function loadCampaignBundle(sql, campaignId = campaign.id) {
     [campaignId]
   );
   const repairRows = await sql(
-    `select finding_id, severity, title, why_it_matters, evidence_refs, likely_files, reproduction_steps, expected_behavior, verification_command, agent_prompt
-     from repair_tasks order by id`
+    `select r.finding_id, r.severity, r.title, r.why_it_matters, r.evidence_refs, r.likely_files, r.reproduction_steps, r.expected_behavior, r.verification_command, r.agent_prompt
+     from repair_tasks r join findings f on f.id = r.finding_id
+     where f.campaign_id = $1 order by r.id`,
+    [campaignId]
   );
   const session = sessionRows[0];
   const campaign2 = {
     ...campaign,
     id: String(row.id),
+    name: String(row.name ?? campaign.name),
+    repoPath: String(row.repo_path_hint ?? campaign.repoPath),
     status: String(row.status),
     appUrl: String(row.app_url),
     readinessScore: Number(row.readiness_score),
@@ -5818,7 +5828,8 @@ async function loadCampaignBundle(sql, campaignId = campaign.id) {
     steps: asStringArray(card.steps),
     expectedEvidence: asStringArray(card.expected_evidence),
     dataNeeds: asStringArray(card.data_needs),
-    acceptanceCriteria: String(card.acceptance_criteria)
+    acceptanceCriteria: String(card.acceptance_criteria),
+    exec: typeof card.exec === "string" ? JSON.parse(card.exec) : card.exec ?? []
   }));
   const findings2 = findingRows.map((finding) => ({
     id: String(finding.id),
@@ -6228,19 +6239,21 @@ var SEEDED_PERSISTENCE = {
   mode: "seeded",
   detail: "POSTGRES_URL is not configured; serving build-time seeded campaign data."
 };
-async function handler(_request, response) {
+async function handler(request, response) {
   const sql = await getSqlClient();
+  const rawId = request.query?.id;
+  const campaignId = typeof rawId === "string" && rawId.trim() ? rawId.trim() : void 0;
   if (!sql) {
     response.status(200).json({ ...campaignPayload, persistence: SEEDED_PERSISTENCE });
     return;
   }
   try {
     await ensureCampaignReady(sql);
-    const bundle = await loadCampaignBundle(sql);
+    const bundle = await loadCampaignBundle(sql, campaignId);
     if (!bundle) {
-      response.status(200).json({
+      response.status(campaignId ? 404 : 200).json({
         ...campaignPayload,
-        persistence: { mode: "seeded", detail: "Postgres reachable but campaign row missing; serving seeded data." }
+        persistence: { mode: "seeded", detail: campaignId ? `Campaign ${campaignId} not found.` : "Postgres reachable but campaign row missing; serving seeded data." }
       });
       return;
     }

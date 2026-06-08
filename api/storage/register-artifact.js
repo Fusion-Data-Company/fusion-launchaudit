@@ -5524,7 +5524,13 @@ create table if not exists model_tasks (
   latency_ms integer,
   cost_micros integer,
   created_at timestamptz not null default now()
-);`;
+);
+
+alter table campaigns add column if not exists name text not null default 'Launch Audit Campaign';
+
+alter table campaigns add column if not exists repo_path_hint text;
+
+alter table test_cards add column if not exists exec jsonb not null default '[]'::jsonb;`;
 
 // src/lib/campaign-store.ts
 var SEED_PROJECT_ID = "proj_local_001";
@@ -5559,10 +5565,10 @@ async function seedCampaignData(sql) {
     [SEED_PROJECT_ID, SEED_OWNER_ID, campaign.repoPath, campaign.environment.framework, campaign.environment.supportTier]
   );
   await sql(
-    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score)
-     values ($1, $2, $3, $4, $5, $6)
+    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score, name, repo_path_hint)
+     values ($1, $2, $3, $4, $5, $6, $7, $8)
      on conflict (id) do nothing`,
-    [campaign.id, SEED_PROJECT_ID, campaign.status, campaign.appUrl, campaign.depth, campaign.readinessScore]
+    [campaign.id, SEED_PROJECT_ID, campaign.status, campaign.appUrl, campaign.depth, campaign.readinessScore, campaign.name, campaign.repoPath]
   );
   for (const card of testCards) {
     await sql(
