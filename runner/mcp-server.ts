@@ -17,7 +17,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
 
-const API_URL = (process.env.LAUNCHAUDIT_API_URL ?? "https://launch-audit-platform.vercel.app").replace(/\/$/, "");
+// Standalone by default. Set LAUNCHAUDIT_API_URL only if you ALSO want to sync to the hosted command center.
+const API_URL = (process.env.LAUNCHAUDIT_API_URL ?? "").replace(/\/$/, "");
 const CAMPAIGN_ID = process.env.LAUNCHAUDIT_CAMPAIGN_ID ?? "cmp_launch_001";
 
 const server = new McpServer({ name: "launchaudit", version: "0.1.0" });
@@ -252,6 +253,26 @@ server.tool(
         }
       });
     });
+  },
+);
+
+
+server.tool(
+  "launchaudit_read_report",
+  "Read the most recent audit's results from the local report file — findings to fix and checks that need the customer's input. Use after launchaudit_run_audit to see what to repair, or to re-check status after a fix.",
+  { out_dir: z.string().optional().describe("Report directory (default: launchaudit-report)") },
+  async ({ out_dir }) => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const dir = out_dir ?? "launchaudit-report";
+    try {
+      const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json")).sort();
+      if (files.length === 0) return fail("No report found.", `Run launchaudit_run_audit first; nothing in ${dir}.`);
+      const data = JSON.parse(await fs.readFile(path.join(dir, files[files.length - 1]), "utf8"));
+      return ok(data);
+    } catch (e) {
+      return fail(`Could not read report: ${e instanceof Error ? e.message : "unknown"}`, `Check ${dir} exists.`);
+    }
   },
 );
 
