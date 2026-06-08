@@ -1,16 +1,22 @@
+/* ============================================================================
+   LaunchAudit — control surface client
+   Vanilla ES module. Renders the seeded /api/campaign payload into a dense
+   developer-tool dashboard with real data-viz. No framework, no emoji.
+   ============================================================================ */
+
 const categoryLabels = {
   auth: "Auth",
   core_workflow: "Core workflow",
-  roles_permissions: "Roles",
-  forms_validation: "Forms",
-  state_persistence: "Persistence",
-  responsive_visual: "Responsive",
-  accessibility: "A11y",
+  roles_permissions: "Roles & permissions",
+  forms_validation: "Forms & validation",
+  state_persistence: "State persistence",
+  responsive_visual: "Responsive & visual",
+  accessibility: "Accessibility",
   performance: "Performance",
-  api_contract: "API",
-  console_network: "Console/network",
-  error_empty_states: "Error states",
-  integration_side_effects: "Integrations",
+  api_contract: "API contract",
+  console_network: "Console & network",
+  error_empty_states: "Error & empty states",
+  integration_side_effects: "Integration side-effects",
 };
 
 const severityTone = {
@@ -34,303 +40,421 @@ const statusTone = {
   next: "badge-medium",
   missing_secret: "badge-medium",
   seeded_only: "badge-muted",
+  ready_to_configure: "badge-info",
 };
 
-const escapeHtml = (value) =>
+const esc = (value) =>
   String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
-const badge = (label, tone = "badge-muted") => `<span class="badge ${tone}">${escapeHtml(label)}</span>`;
+const icon = (id, attrs = "") => `<svg ${attrs}><use href="#${id}"/></svg>`;
+const badge = (label, tone = "badge-muted") => `<span class="badge ${tone}">${esc(label)}</span>`;
+const badgeFlat = (label, tone = "badge-muted") => `<span class="badge no-dot ${tone}">${esc(label)}</span>`;
+const titleCase = (v) => String(v).replaceAll("_", " ");
 
+/* ---------------------------------------------------------------- theming */
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("launch-audit-theme", theme);
+  const useEl = document.querySelector("#theme-icon use");
+  if (useEl) useEl.setAttribute("href", theme === "dark" ? "#i-sun" : "#i-moon");
   const toggle = document.getElementById("theme-toggle");
-  if (toggle) toggle.textContent = theme === "dark" ? "Light" : "Dark";
+  if (toggle) toggle.title = theme === "dark" ? "Switch to light" : "Switch to dark";
 }
 
+/* ---------------------------------------------------- state across renders */
+let executedCardIds = new Set();
+let currentCampaign = null;
+
+/* ============================================================================
+   HERO — gauge + journey + run summary
+   ============================================================================ */
+function renderHero(campaign, testCards, runStats) {
+  const score = Number(campaign.readinessScore) || 0;
+  const counts = countByStatus(testCards);
+  const total = testCards.length || 1;
+  const live = Boolean(runStats);
+
+  // gauge geometry
+  const R = 70, C = 2 * Math.PI * R;
+  const start = 80, target = 100;
+  const gap = Math.max(0, target - score);
+  const pct = Math.max(0, Math.min(100, ((score - start) / (target - start)) * 100));
+
+  const segOrder = [["passed", counts.passed], ["failed", counts.failed], ["blocked", counts.blocked], ["ready", counts.ready]];
+  const segHtml = segOrder
+    .filter(([, n]) => n > 0)
+    .map(([k, n]) => `<span class="seg-${k}" style="flex-grow:${n}"></span>`)
+    .join("");
+
+  const legend = [
+    ["passed", "var(--ok)", counts.passed],
+    ["failed", "var(--bad)", counts.failed],
+    ["blocked", "var(--warn)", counts.blocked],
+    ["ready", "var(--fg-4)", counts.ready],
+  ]
+    .map(([label, color, n]) => `<span><i style="background:${color}"></i>${label} <b>${n}</b></span>`)
+    .join("");
+
+  document.getElementById("hero").innerHTML = `
+    <div class="hero-gauge">
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 168 168">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--accent-2)"/>
+              <stop offset="1" stop-color="var(--accent)"/>
+            </linearGradient>
+          </defs>
+          <circle class="gauge-track" cx="84" cy="84" r="${R}"/>
+          <circle class="gauge-arc" id="gauge-arc" cx="84" cy="84" r="${R}"
+            stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-num" id="gauge-num" data-target="${score}">0</div>
+          <div class="gauge-denom">/ 100</div>
+        </div>
+      </div>
+      <div class="gauge-cap">launch readiness</div>
+    </div>
+    <div class="hero-body">
+      <div class="journey-block">
+        <div class="hero-journey-head">
+          <h3>Road to hand-to-client</h3>
+          <div class="gap-to-go">${gap === 0 ? "<b>ship-ready</b>" : `<b>${gap} pts</b> to 100`}</div>
+        </div>
+        <div class="journey">
+          <div class="journey-track">
+            <div class="journey-fill" id="journey-fill"></div>
+            <div class="journey-now" id="journey-now" style="left:${pct.toFixed(1)}%"><span class="journey-now-dot"></span></div>
+          </div>
+          <div class="journey-scale">
+            <span class="js-anchor">${start} · seeded start</span>
+            <span class="js-anchor js-end">handoff · 100</span>
+          </div>
+        </div>
+      </div>
+      <div class="run-summary">
+        <div class="run-summary-head">
+          <div class="section-label">Run outcome</div>
+          <div class="runtotal">${testCards.length} cards${live ? ` · ${runStats.runs} runs` : ""}</div>
+        </div>
+        <div class="segbar" id="run-segbar">${segHtml || '<span class="seg-ready" style="flex-grow:1"></span>'}</div>
+        <div class="seg-legend">${legend}</div>
+      </div>
+    </div>`;
+
+  requestAnimationFrame(() => {
+    const fill = document.getElementById("journey-fill");
+    if (fill) fill.style.width = `${pct}%`;
+    animateGauge(score, C, R);
+  });
+}
+
+function animateGauge(score, C, R) {
+  const arc = document.getElementById("gauge-arc");
+  const num = document.getElementById("gauge-num");
+  if (!arc || !num) return;
+  const targetOffset = C * (1 - score / 100);
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) {
+    arc.style.strokeDashoffset = targetOffset.toFixed(1);
+    num.textContent = String(score);
+    return;
+  }
+  const dur = 1100, t0 = performance.now();
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  const tick = (now) => {
+    const p = Math.min((now - t0) / dur, 1);
+    const e = ease(p);
+    arc.style.strokeDashoffset = (C * (1 - (score * e) / 100)).toFixed(1);
+    num.textContent = String(Math.round(score * e));
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function countByStatus(cards) {
+  const c = { passed: 0, failed: 0, blocked: 0, ready: 0, running: 0 };
+  for (const card of cards) if (card.status in c) c[card.status]++;
+  return c;
+}
+
+/* ============================================================================
+   METRICS
+   ============================================================================ */
 function renderMetrics(campaign, testCards, findings, runStats) {
-  const passed = testCards.filter((card) => card.status === "passed").length;
-  const failed = testCards.filter((card) => card.status === "failed").length;
-  const blocked = testCards.filter((card) => card.status === "blocked").length;
-  const ready = testCards.filter((card) => card.status === "ready").length;
+  const counts = countByStatus(testCards);
   const critical = findings.filter((f) => f.severity === "critical" || f.severity === "high").length;
   const live = Boolean(runStats);
+
   const metrics = [
-    ["Readiness", `${campaign.readinessScore}/100`, "Score", live ? `Computed from ${runStats.executedCardIds.length} executed cards` : "Seeded demo value"],
-    ["Tests", `${passed} pass / ${failed} fail`, "Cards", `${blocked} blocked · ${ready} awaiting execution`],
-    ["Findings", String(findings.length), "Risk", findings.length === 0 ? "No open findings" : `${critical} high/critical severity`],
-    ["Artifacts", live ? String(runStats.artifacts) : "0", "Proof", live ? `${runStats.runs} recorded runs with evidence` : "No runs executed yet"],
+    {
+      ic: "i-gauge", label: "Readiness", value: `${campaign.readinessScore}<span class="unit">/100</span>`,
+      tag: live ? badge("live", "badge-success") : badge("seeded", "badge-muted"),
+      foot: live ? `from ${runStats.executedCardIds.length} executed cards` : "seeded demo baseline",
+    },
+    {
+      ic: "i-check", label: "Tests", value: `${counts.passed}<span class="unit"> / ${testCards.length}</span>`,
+      tag: counts.failed > 0 ? badge(`${counts.failed} failing`, "badge-high") : badge("clean", "badge-success"),
+      foot: `${counts.passed} pass · ${counts.failed} fail · ${counts.blocked} blocked`,
+    },
+    {
+      ic: "i-findings", label: "Findings", value: String(findings.length),
+      tag: critical > 0 ? badge(`${critical} high+`, "badge-high") : badge("none", "badge-muted"),
+      foot: findings.length === 0 ? "no open findings" : "evidence-linked, classified",
+    },
+    {
+      ic: "i-evidence", label: "Artifacts", value: live ? String(runStats.artifacts) : "0",
+      tag: live ? badge("captured", "badge-info") : badge("pending", "badge-muted"),
+      foot: live ? `${runStats.runs} recorded runs` : "no runs executed yet",
+    },
   ];
 
   document.getElementById("metrics").innerHTML = metrics
     .map(
-      ([label, value, meta, detail]) => `
+      (m) => `
         <article class="metric-card">
-          <div class="metric-top"><span>${escapeHtml(label)}</span><b>${escapeHtml(meta)}</b></div>
-          <strong>${escapeHtml(value)}</strong>
-          <p>${escapeHtml(detail)}</p>
+          <div class="metric-top">${icon(m.ic, 'class="mi"')}<span>${m.label}</span>${m.tag}</div>
+          <div class="metric-value">${m.value}</div>
+          <p>${esc(m.foot)}</p>
         </article>`,
     )
     .join("");
 }
 
-function renderStages(stages) {
-  document.getElementById("stages").innerHTML = stages
-    .map(
-      (stage, index) => `
-        <div class="stage">
-          <div class="stage-line">
-            <div class="stage-dot stage-${stage.status}">${stage.status === "complete" ? "✓" : index + 1}</div>
-            <div class="stage-rule"></div>
+/* ============================================================================
+   CATEGORY COVERAGE — the centerpiece
+   ============================================================================ */
+const COVERAGE_GROUPS = [
+  {
+    key: "frontend", title: "Frontend", icon: "i-frontend",
+    scope: "UI · flows · a11y · perf",
+    categories: ["core_workflow", "responsive_visual", "console_network", "forms_validation", "accessibility", "performance", "state_persistence", "error_empty_states"],
+  },
+  {
+    key: "backend", title: "Backend", icon: "i-backend",
+    scope: "api_contract · side-effects",
+    categories: ["api_contract"],
+  },
+  {
+    key: "rbac", title: "Admin & RBAC", icon: "i-rbac",
+    scope: "roles · auth · access",
+    categories: ["roles_permissions", "auth"],
+  },
+  {
+    key: "middleware", title: "Middleware", icon: "i-middleware",
+    scope: "integrations · security",
+    categories: ["integration_side_effects"],
+  },
+];
+
+function renderCoverage(testCards) {
+  const html = COVERAGE_GROUPS.map((group) => {
+    const cards = testCards.filter((c) => group.categories.includes(c.category));
+    const counts = countByStatus(cards);
+    const total = cards.length;
+    const empty = total === 0;
+
+    const segs = empty
+      ? '<span class="b-empty"></span>'
+      : [["passed", counts.passed], ["failed", counts.failed], ["blocked", counts.blocked]]
+          .filter(([, n]) => n > 0)
+          .map(([k, n]) => `<span class="b-${k}" style="flex-grow:${n}"></span>`)
+          .join("") + (counts.passed + counts.failed + counts.blocked < total ? `<span class="b-empty" style="flex-grow:${total - counts.passed - counts.failed - counts.blocked}"></span>` : "");
+
+    const stats = empty
+      ? `<span class="cov-empty">no cards generated yet</span>`
+      : [
+          counts.passed ? `<span class="cov-tag t-pass"><i></i>${counts.passed} pass</span>` : "",
+          counts.failed ? `<span class="cov-tag t-fail"><i></i>${counts.failed} fail</span>` : "",
+          counts.blocked ? `<span class="cov-tag t-block"><i></i>${counts.blocked} blocked</span>` : "",
+        ].filter(Boolean).join("");
+
+    return `
+      <article class="cov-card${empty ? " is-empty" : ""}">
+        <div class="cov-head">
+          <div class="cov-icon">${icon(group.icon)}</div>
+          <div>
+            <div class="cov-title">${group.title}</div>
+            <div class="cov-scope">${esc(group.scope)}</div>
           </div>
-          <div class="stage-label">${escapeHtml(stage.label)}</div>
-          <div class="stage-detail">${escapeHtml(stage.detail)}</div>
-        </div>`,
-    )
-    .join("");
+          <div class="cov-count"><b>${total}</b><span>card${total === 1 ? "" : "s"}</span></div>
+        </div>
+        <div class="cov-bar">${segs}</div>
+        <div class="cov-stats">${stats}</div>
+      </article>`;
+  }).join("");
+
+  document.getElementById("coverage").innerHTML = html;
 }
 
-function renderContext(campaign, runnerTools) {
-  document.getElementById("context-contract").innerHTML = `
-    <div class="code-box"><span>Runtime URL</span><code>${escapeHtml(campaign.appUrl)}</code></div>
-    <div class="code-box"><span>Repo path</span><code>${escapeHtml(campaign.repoPath)}</code></div>
-    <div class="mini-grid">
-      <div><span>Support tier</span><strong>${escapeHtml(campaign.environment.supportTier)}</strong></div>
-      <div><span>Auth</span><strong>${escapeHtml(campaign.environment.auth)}</strong></div>
-    </div>
-    <div>
-      <div class="section-label">MCP tool surface</div>
-      <div class="tool-grid">${runnerTools.map((tool) => `<code>${escapeHtml(tool.name)}</code>`).join("")}</div>
-    </div>
-    <div>
-      <div class="section-label">Unsupported gaps declared</div>
-      <div class="tool-grid">${campaign.environment.unsupportedGaps.map((gap) => `<code>${escapeHtml(gap)}</code>`).join("")}</div>
-    </div>`;
-}
-
-let executedCardIds = new Set();
-let currentCampaign = null;
-
-function emptyState(title, body, command) {
-  return `
-    <div class="empty-state">
-      <h3>${escapeHtml(title)}</h3>
-      <p>${escapeHtml(body)}</p>
-      ${command ? `<code>${escapeHtml(command)}</code>` : ""}
-    </div>`;
-}
-
+/* ============================================================================
+   TEST RESULTS — dense list grouped by category
+   ============================================================================ */
 function renderTestCards(testCards) {
+  const root = document.getElementById("test-cards");
   if (testCards.length === 0) {
     const cmd = `node --experimental-strip-types runner/audit.ts --name "${currentCampaign?.name ?? "My audit"}" --app-url ${currentCampaign?.appUrl ?? "https://your.app"} --repo /path/to/repo`;
-    document.getElementById("test-cards").innerHTML = emptyState(
-      "No test cards yet — run the audit",
-      "From the fusion-launchaudit repo on your machine (with LAUNCHAUDIT_API_URL pointed here), one command scans, generates, executes, and syncs:",
+    root.innerHTML = emptyState(
+      "i-play", "No test cards yet",
+      "From the fusion-launchaudit repo on your machine (LAUNCHAUDIT_API_URL pointed here), one command scans, generates, executes, and syncs:",
       cmd,
     );
     return;
   }
-  document.getElementById("test-cards").innerHTML = testCards
-    .map(
-      (card) => `
-        <article class="test-card">
-          <div class="test-card-top">
-            <div>
-              <div class="badge-row">
-                <span class="mono-id">${escapeHtml(card.id)}</span>
-                ${badge(categoryLabels[card.category] || card.category)}
-                ${badge(card.risk, severityTone[card.risk])}
-                ${badge(card.status, statusTone[card.status])}
-                ${executedCardIds.has(card.id) ? badge("executed · live", "badge-success") : badge("not yet run", "badge-muted")}
-              </div>
-              <h3>${escapeHtml(card.title)}</h3>
-            </div>
-            <span class="arrow">→</span>
-          </div>
-          <p>${escapeHtml(card.goal)}</p>
-          <div class="test-detail-grid">
-            <div><span>Evidence gate</span><p>${escapeHtml(card.expectedEvidence.join(", "))}</p></div>
-            <div><span>Acceptance</span><p>${escapeHtml(card.acceptanceCriteria)}</p></div>
-          </div>
-        </article>`,
-    )
-    .join("");
-}
 
-function renderInspector(campaign, findings, repairTasks) {
-  if (findings.length === 0) {
-    document.getElementById("findings").innerHTML = emptyState("No findings", "Failures from executed cards land here automatically with evidence attached.", null);
+  // group by category, preserving first-seen order
+  const order = [];
+  const groups = new Map();
+  for (const card of testCards) {
+    if (!groups.has(card.category)) { groups.set(card.category, []); order.push(card.category); }
+    groups.get(card.category).push(card);
   }
-  if (repairTasks.length === 0) {
-    document.getElementById("repair-panel").innerHTML = `<div class="panel-title-line"><h2>Repair packet</h2><span class="accent-dot cayenne"></span></div>` + emptyState("No repair packets", "Every product-bug finding generates a coding-agent-ready repair packet.", null);
-  }
-  document.getElementById("runner-truth").innerHTML = `
-    <div><span>Host</span><strong>${escapeHtml(campaign.runner.host)}</strong></div>
-    <div><span>Version</span><strong>${escapeHtml(campaign.runner.version)}</strong></div>
-    <div><span>Last sync</span><strong>${escapeHtml(campaign.runner.lastSync)}</strong></div>`;
 
-  if (findings.length > 0) document.getElementById("findings").innerHTML = findings
-    .map(
-      (finding) => `
-        <article class="finding-card">
-          <div class="badge-row">${badge(finding.severity, severityTone[finding.severity])}${badge(finding.type.replaceAll("_", " "))}</div>
-          <h3>${escapeHtml(finding.title)}</h3>
-          <p>${escapeHtml(finding.summary)}</p>
-        </article>`,
-    )
-    .join("");
-
-  const task = repairTasks[0];
-  document.getElementById("repair-panel").innerHTML = `
-    <div class="panel-title-line"><h2>Repair packet</h2><span class="accent-dot cayenne"></span></div>
-    <h3>${escapeHtml(task.title)}</h3>
-    <p>${escapeHtml(task.why_it_matters)}</p>
-    <div class="repair-box"><span>Likely files</span>${task.likely_files.map((file) => `<code>${escapeHtml(file)}</code>`).join("")}</div>
-    <div class="verify-box"><span>Verification</span><code>${escapeHtml(task.verification_command)}</code></div>`;
-}
-
-function renderScorecard(scorecard) {
-  document.getElementById("scorecard").innerHTML = scorecard
-    .map(
-      (item) => `
-        <article class="scorecard-card">
-          <div class="scorecard-top">
-            <h3>${escapeHtml(item.category)}</h3>
-            ${badge(item.status, statusTone[item.status] || "badge-muted")}
-          </div>
-          <div class="scorecard-row">
-            <span>Baseline</span>
-            <p>${escapeHtml(item.testspriteBaseline)}</p>
-          </div>
-          <div class="scorecard-row">
-            <span>Fusion advantage</span>
-            <p>${escapeHtml(item.fusionAdvantage)}</p>
-          </div>
-          <div class="scorecard-row">
-            <span>Proof gate</span>
-            <p>${escapeHtml(item.proofGate)}</p>
-          </div>
-        </article>`,
-    )
-    .join("");
-}
-
-function renderModelRouting(routes, providers) {
-  const providerById = Object.fromEntries(providers.map((provider) => [provider.id, provider]));
-
-  document.getElementById("model-routes").innerHTML = routes
-    .map((route) => {
-      const provider = providerById[route.providerSlotId];
-      const fallback = providerById[route.fallbackProviderSlotId];
-
+  root.innerHTML = order
+    .map((cat) => {
+      const cards = groups.get(cat);
+      const counts = countByStatus(cards);
+      const mini = [["passed", counts.passed], ["failed", counts.failed], ["blocked", counts.blocked]]
+        .filter(([, n]) => n > 0)
+        .map(([k, n]) => `<span class="seg-${k}" style="flex-grow:${n}"></span>`)
+        .join("");
       return `
-        <article class="model-route-card">
-          <div class="scorecard-top">
-            <div>
-              <span class="mono-id">${escapeHtml(route.task.replaceAll("_", " "))}</span>
-              <h3>${escapeHtml(route.label)}</h3>
-            </div>
-            ${badge(provider?.kind || "unknown", "badge-info")}
+        <div class="cat-group">
+          <div class="cat-group-head">
+            <span class="cat-name">${esc(categoryLabels[cat] || titleCase(cat))}</span>
+            <span class="cat-mini-bar">${mini}</span>
+            <span class="cat-meta">${cards.length} card${cards.length === 1 ? "" : "s"}</span>
           </div>
-          <div class="model-route-main">
-            <div>
-              <span>Primary</span>
-              <strong>${escapeHtml(provider?.label || route.providerSlotId)}</strong>
-              <code>${escapeHtml(route.model)}</code>
-            </div>
-            <div>
-              <span>Fallback</span>
-              <strong>${escapeHtml(fallback?.label || route.fallbackProviderSlotId)}</strong>
-              <code>${escapeHtml(`temp ${route.temperature} / ${route.maxTokens} tokens`)}</code>
-            </div>
-          </div>
-          <div class="scorecard-row">
-            <span>Quality gate</span>
-            <p>${escapeHtml(route.qualityGate)}</p>
-          </div>
-        </article>`;
+          ${cards.map(renderTestRow).join("")}
+        </div>`;
     })
     .join("");
 }
 
-function renderProviderSlots(providers) {
-  document.getElementById("provider-slots").innerHTML = providers
-    .map(
-      (provider) => `
-        <article class="provider-card">
-          <div class="scorecard-top">
-            <h3>${escapeHtml(provider.label)}</h3>
-            ${badge(provider.status.replaceAll("_", " "), statusTone[provider.status] || "badge-muted")}
-          </div>
-          <div class="provider-meta">
-            <div><span>Kind</span><strong>${escapeHtml(provider.kind.replaceAll("_", " "))}</strong></div>
-            <div><span>Secret</span><code>${escapeHtml(provider.secretEnv)}</code></div>
-          </div>
-          <div class="scorecard-row">
-            <span>Endpoint</span>
-            <p>${escapeHtml(provider.endpoint)}</p>
-          </div>
-          <div class="scorecard-row">
-            <span>Guardrail</span>
-            <p>${escapeHtml(provider.guardrail)}</p>
-          </div>
-          <div class="badge-row">${provider.bestFor.map((task) => badge(task.replaceAll("_", " "))).join("")}</div>
-        </article>`,
-    )
-    .join("");
+function renderTestRow(card) {
+  const live = executedCardIds.has(card.id);
+  return `
+    <div class="trow">
+      <div class="trow-status">
+        <span class="spill s-${card.status}"><span class="sdot"></span>${esc(card.status)}</span>
+      </div>
+      <div class="trow-main">
+        <div class="trow-idline">
+          <span class="mono-id">${esc(card.id)}</span>
+        </div>
+        <div class="trow-title">${esc(card.title)}</div>
+        <div class="trow-accept">
+          <span class="ac-label">accept</span>
+          <span>${esc(card.acceptanceCriteria)}</span>
+        </div>
+      </div>
+      <div class="trow-side">
+        <span class="risk-chip r-${card.risk}"><i></i>${esc(card.risk)}</span>
+        <span class="exec-tag${live ? " is-live" : ""}">${live ? icon("i-check", 'width="11" height="11"') : ""}${live ? "executed" : "not run"}</span>
+      </div>
+    </div>`;
 }
 
-function renderStorage(readiness, tables, artifacts) {
-  document.getElementById("storage-readiness").innerHTML = readiness
+/* ============================================================================
+   CONTEXT CONTRACT (runner view)
+   ============================================================================ */
+function renderContext(campaign, runnerTools) {
+  const env = campaign.environment || {};
+  document.getElementById("context-contract").innerHTML = `
+    <div class="code-box"><span>Runtime target</span><code>${esc(campaign.appUrl)}</code></div>
+    <div class="code-box"><span>Repo path (local)</span><code>${esc(campaign.repoPath || "—")}</code></div>
+    <div class="mini-grid">
+      <div><span>Framework</span><strong>${esc(env.framework || "—")}</strong></div>
+      <div><span>Support tier</span><strong>${esc(env.supportTier || "—")}</strong></div>
+      <div><span>Auth</span><strong>${esc(env.auth || "—")}</strong></div>
+      <div><span>Scripts</span><strong>${esc((env.scripts || []).length)} declared</strong></div>
+    </div>
+    <div>
+      <div class="section-label">MCP tool surface</div>
+      <div class="tool-grid">${(runnerTools || []).map((t) => `<code>${esc(t.name)}</code>`).join("")}</div>
+    </div>
+    ${(env.unsupportedGaps || []).length ? `
+    <div>
+      <div class="section-label">Declared gaps</div>
+      <div class="tool-grid">${env.unsupportedGaps.map((g) => `<code>${esc(g)}</code>`).join("")}</div>
+    </div>` : ""}`;
+}
+
+/* ============================================================================
+   INSPECTOR — runner truth, findings, repair packet
+   ============================================================================ */
+function renderInspector(campaign, findings, repairTasks) {
+  document.getElementById("runner-truth").innerHTML = `
+    <div><span>Host</span><strong>${esc(campaign.runner.host)}</strong></div>
+    <div><span>Version</span><strong>${esc(campaign.runner.version)}</strong></div>
+    <div><span>Status</span><strong class="kv-ok">${esc(campaign.runner.status)}</strong></div>
+    <div><span>Last sync</span><strong>${esc(campaign.runner.lastSync)}</strong></div>`;
+
+  const fc = document.getElementById("findings-count");
+  if (fc) {
+    fc.textContent = String(findings.length);
+    fc.className = "badge " + (findings.length === 0 ? "badge-muted" : "badge-high");
+  }
+
+  const findingsEl = document.getElementById("findings");
+  if (findings.length === 0) {
+    findingsEl.innerHTML = emptyStateInline("No open findings", "Failures from executed cards land here with evidence attached.");
+  } else {
+    findingsEl.innerHTML = findings
+      .map(
+        (f) => `
+        <article class="finding-card">
+          <div class="badge-row">${badge(f.severity, severityTone[f.severity])}${badgeFlat(titleCase(f.type))}</div>
+          <h3>${esc(f.title)}</h3>
+          <p>${esc(f.summary)}</p>
+          ${(f.evidenceRefs || []).length ? `<div class="evidence-refs">${f.evidenceRefs.map((r) => `<span class="eref">${icon("i-link")}${esc(r)}</span>`).join("")}</div>` : ""}
+        </article>`,
+      )
+      .join("");
+  }
+
+  const repairEl = document.getElementById("repair-panel");
+  const head = `<div class="panel-title-line">${icon("i-wrench")}<h2>Repair packet</h2><span class="spacer"></span>${repairTasks.length ? badge(`${repairTasks.length} queued`, "badge-accent") : ""}</div>`;
+  if (repairTasks.length === 0) {
+    repairEl.innerHTML = head + emptyStateInline("No repair packets", "Every product-bug finding generates a coding-agent-ready repair packet.");
+    return;
+  }
+  const task = repairTasks[0];
+  repairEl.innerHTML = head + `
+    <div class="repair-meta-row">${badge(task.severity, severityTone[task.severity])}${task.finding_id ? `<span class="mono-id">${esc(task.finding_id)}</span>` : ""}</div>
+    <h3>${esc(task.title)}</h3>
+    <p>${esc(task.why_it_matters)}</p>
+    <div class="repair-box">
+      <span>Likely files</span>
+      ${task.likely_files.map((f) => `<code>${esc(f)}</code>`).join("")}
+    </div>
+    <div class="verify-box">
+      <span>Verification</span>
+      <code><span class="vcaret">$</span> ${esc(task.verification_command)}</code>
+    </div>`;
+}
+
+/* ============================================================================
+   REPORTS — scorecard + flagship
+   ============================================================================ */
+function renderScorecard(scorecard) {
+  document.getElementById("scorecard").innerHTML = scorecard
     .map(
       (item) => `
-        <article class="storage-card">
-          <div class="scorecard-top">
-            <div>
-              <span class="mono-id">${escapeHtml(item.subsystem)}</span>
-              <h3>${escapeHtml(item.label)}</h3>
-            </div>
-            ${badge(item.status.replaceAll("_", " "), statusTone[item.status] || "badge-muted")}
+        <article class="tile">
+          <div class="tile-top">
+            <h3>${esc(item.category)}</h3>
+            ${badge(titleCase(item.status), statusTone[item.status] || "badge-muted")}
           </div>
-          <p>${escapeHtml(item.purpose)}</p>
-          <div class="scorecard-row">
-            <span>Required env</span>
-            <p>${escapeHtml(item.requiredEnv.join(", "))}</p>
-          </div>
-          <div class="scorecard-row">
-            <span>Production gate</span>
-            <p>${escapeHtml(item.productionGate)}</p>
-          </div>
-        </article>`,
-    )
-    .join("");
-
-  document.getElementById("database-tables").innerHTML = tables
-    .map(
-      (table) => `
-        <article class="contract-row">
-          <div>
-            <h3>${escapeHtml(table.table)}</h3>
-            <p>${escapeHtml(table.purpose)}</p>
-          </div>
-          ${badge(table.requiredForV1 ? "v1" : "later", table.requiredForV1 ? "badge-info" : "badge-muted")}
-        </article>`,
-    )
-    .join("");
-
-  document.getElementById("blob-artifacts").innerHTML = artifacts
-    .map(
-      (artifact) => `
-        <article class="contract-row">
-          <div>
-            <h3>${escapeHtml(artifact.artifactType.replaceAll("_", " "))}</h3>
-            <p>${escapeHtml(artifact.pathTemplate)}</p>
-          </div>
-          ${badge(artifact.access, artifact.access === "private" ? "badge-medium" : "badge-info")}
+          <div class="tile-row"><span>TestSprite baseline</span><p>${esc(item.testspriteBaseline)}</p></div>
+          <div class="tile-divider"></div>
+          <div class="tile-row"><span>Fusion advantage</span><p>${esc(item.fusionAdvantage)}</p></div>
+          <div class="tile-row"><span>Proof gate</span><p>${esc(item.proofGate)}</p></div>
         </article>`,
     )
     .join("");
@@ -339,181 +463,280 @@ function renderStorage(readiness, tables, artifacts) {
 function renderFlagshipFeatures(features) {
   document.getElementById("flagship-features").innerHTML = features
     .map(
-      (feature) => `
-        <article class="flagship-card">
-          <div class="scorecard-top">
-            <h3>${escapeHtml(feature.name)}</h3>
-            ${badge(feature.sourceInspiredBy, "badge-info")}
+      (f) => `
+        <article class="tile">
+          <div class="tile-top">
+            <h3>${esc(f.name)}</h3>
+            ${badgeFlat(f.sourceInspiredBy, "badge-info")}
           </div>
-          <p>${escapeHtml(feature.fusionVersion)}</p>
-          <div class="scorecard-row">
-            <span>Why it matters</span>
-            <p>${escapeHtml(feature.whyItMatters)}</p>
-          </div>
-          <div class="scorecard-row">
-            <span>Proof gate</span>
-            <p>${escapeHtml(feature.proofGate)}</p>
-          </div>
-          <div class="badge-row">${feature.evidence.map((item) => badge(item)).join("")}</div>
+          <p class="tile-lede">${esc(f.fusionVersion)}</p>
+          <div class="tile-row"><span>Why it matters</span><p>${esc(f.whyItMatters)}</p></div>
+          <div class="tile-row"><span>Proof gate</span><p>${esc(f.proofGate)}</p></div>
+          <div class="badge-row">${(f.evidence || []).map((e) => badgeFlat(e)).join("")}</div>
         </article>`,
     )
     .join("");
 }
 
-function renderTrafficInsights(items) {
-  document.getElementById("traffic-insights").innerHTML = items
+/* ============================================================================
+   MODELS — routes + provider slots
+   ============================================================================ */
+function renderModelRouting(routes, providers) {
+  const byId = Object.fromEntries(providers.map((p) => [p.id, p]));
+  document.getElementById("model-routes").innerHTML = routes
+    .map((route) => {
+      const provider = byId[route.providerSlotId];
+      const fallback = byId[route.fallbackProviderSlotId];
+      return `
+        <article class="tile">
+          <div class="tile-top">
+            <div><span class="mono-id">${esc(titleCase(route.task))}</span><h3>${esc(route.label)}</h3></div>
+            ${badge(titleCase(provider?.kind || "unknown"), "badge-info")}
+          </div>
+          <div class="tile-split">
+            <div class="tile-row">
+              <span>Primary</span>
+              <p>${esc(provider?.label || route.providerSlotId)}</p>
+              <code>${esc(route.model)}</code>
+            </div>
+            <div class="tile-row">
+              <span>Fallback</span>
+              <p>${esc(fallback?.label || route.fallbackProviderSlotId)}</p>
+              <code>temp ${esc(route.temperature)} · ${esc(route.maxTokens)} tok</code>
+            </div>
+          </div>
+          <div class="tile-row"><span>Quality gate</span><p>${esc(route.qualityGate)}</p></div>
+        </article>`;
+    })
+    .join("");
+}
+
+function renderProviderSlots(providers) {
+  document.getElementById("provider-slots").innerHTML = providers
+    .map(
+      (p) => `
+        <article class="finding-card">
+          <div class="badge-row">
+            <span class="mono-id">${esc(p.id)}</span>
+            ${badge(titleCase(p.status), statusTone[p.status] || "badge-muted")}
+          </div>
+          <h3>${esc(p.label)}</h3>
+          <div class="badge-row" style="margin-top:2px">
+            ${badgeFlat(titleCase(p.kind), "badge-muted")}
+            <code class="codechip" style="font-size:10px;color:var(--fg-3)">${esc(p.secretEnv)}</code>
+          </div>
+          <p>${esc(p.guardrail)}</p>
+          <div class="badge-row">${(p.bestFor || []).map((t) => badgeFlat(titleCase(t))).join("")}</div>
+        </article>`,
+    )
+    .join("");
+}
+
+/* ============================================================================
+   PROJECTS — storage readiness + data contracts
+   ============================================================================ */
+function renderStorage(readiness, tables, artifacts) {
+  document.getElementById("storage-readiness").innerHTML = readiness
     .map(
       (item) => `
-        <article class="traffic-row">
-          <div>
-            <div class="badge-row">${badge(item.method, "badge-info")}${badge(item.risk, item.risk === "clean" ? "badge-success" : item.risk === "slow" ? "badge-medium" : "badge-high")}</div>
-            <code>${escapeHtml(item.url)}</code>
+        <article class="tile">
+          <div class="tile-top">
+            <div><span class="mono-id">${esc(item.subsystem)}</span><h3>${esc(item.label)}</h3></div>
+            ${badge(titleCase(item.status), statusTone[item.status] || "badge-muted")}
           </div>
-          <strong>${escapeHtml(item.status || "blocked")}</strong>
-          <span>${escapeHtml(item.durationMs)}ms</span>
+          <p class="tile-lede">${esc(item.purpose)}</p>
+          <div class="tile-row"><span>Required env</span><p><code>${(item.requiredEnv || []).map(esc).join("</code> <code>")}</code></p></div>
+          <div class="tile-row"><span>Production gate</span><p>${esc(item.productionGate)}</p></div>
         </article>`,
+    )
+    .join("");
+
+  document.getElementById("database-tables").innerHTML = tables
+    .map(
+      (t) => `
+        <article class="contract-row">
+          <div class="contract-row-main"><h3>${esc(t.table)}</h3><p>${esc(t.purpose)}</p></div>
+          ${badgeFlat(t.requiredForV1 ? "v1" : "later", t.requiredForV1 ? "badge-info" : "badge-muted")}
+        </article>`,
+    )
+    .join("");
+
+  document.getElementById("blob-artifacts").innerHTML = artifacts
+    .map(
+      (a) => `
+        <article class="contract-row">
+          <div class="contract-row-main"><h3>${esc(titleCase(a.artifactType))}</h3><p>${esc(a.pathTemplate)}</p></div>
+          ${badgeFlat(a.access, a.access === "private" ? "badge-medium" : "badge-info")}
+        </article>`,
+    )
+    .join("");
+}
+
+/* ============================================================================
+   EVIDENCE — traffic + RUNNER — heal
+   ============================================================================ */
+function renderTrafficInsights(items) {
+  const statusClass = (s) => (s == null ? "warn" : s >= 400 ? "bad" : s >= 300 ? "warn" : "ok");
+  document.getElementById("traffic-insights").innerHTML = (items || [])
+    .map(
+      (item) => `
+        <div class="traffic-row">
+          <div>
+            <div class="badge-row">${badge(item.method, "badge-info")}${badge(item.risk, item.risk === "clean" ? "badge-success" : item.risk === "slow" ? "badge-medium" : "badge-high")}${item.attachedFindingId ? `<span class="mono-id">${esc(item.attachedFindingId)}</span>` : ""}</div>
+            <div class="t-url">${esc(item.url)}</div>
+          </div>
+          <div class="t-status ${statusClass(item.status)}">${esc(item.status ?? "—")}</div>
+          <div class="t-dur">${esc(item.durationMs)}ms</div>
+        </div>`,
     )
     .join("");
 }
 
 function renderHealEvents(items) {
-  document.getElementById("heal-events").innerHTML = items
+  document.getElementById("heal-events").innerHTML = (items || [])
     .map(
       (item) => `
-        <article class="traffic-row heal-row">
+        <div class="traffic-row heal-row">
           <div>
-            <div class="badge-row">${badge(item.testCardId, "badge-info")}${badge(item.disposition, item.disposition === "approved" ? "badge-success" : "badge-medium")}</div>
-            <p>${escapeHtml(item.event)}</p>
-            <small>${escapeHtml(item.auditNote)}</small>
+            <div class="badge-row">${badge(item.testCardId, "badge-info")}${badge(titleCase(item.disposition), item.disposition === "approved" ? "badge-success" : "badge-medium")}</div>
+            <div class="h-event">${esc(item.event)}</div>
+            <small>${esc(item.auditNote)}</small>
           </div>
-          <strong>${Math.round(item.confidence * 100)}%</strong>
-        </article>`,
+          <div class="h-conf">${Math.round(item.confidence * 100)}%</div>
+        </div>`,
     )
     .join("");
 }
 
-function selectedCampaignId() {
-  return localStorage.getItem("launch-audit-campaign") || "";
+/* ============================================================================
+   PERSISTENCE banner
+   ============================================================================ */
+function renderPersistence(persistence) {
+  const el = document.getElementById("persistence-status");
+  if (!el || !persistence) return;
+  const live = persistence.mode === "postgres";
+  el.textContent = live ? "postgres live" : "seeded mode";
+  el.className = "badge " + (live ? "badge-success" : "badge-medium");
+  el.title = persistence.detail || "";
 }
 
+/* ============================================================================
+   NAV COUNTS
+   ============================================================================ */
+function renderNavCounts(data) {
+  const counts = countByStatus(data.test_cards || []);
+  const map = {
+    campaigns: (data.test_cards || []).length,
+    projects: (data.database_tables || []).length,
+    runner: (data.runner_tools || []).length,
+    evidence: (data.traffic_insights || []).length,
+    reports: (data.competitive_scorecard || []).length,
+    models: (data.model_routes || []).length,
+  };
+  for (const [view, n] of Object.entries(map)) {
+    const el = document.querySelector(`[data-nav-count="${view}"]`);
+    if (el) el.textContent = n ? String(n) : "";
+  }
+}
+
+/* ============================================================================
+   EMPTY STATES
+   ============================================================================ */
+function emptyState(iconId, title, body, command) {
+  return `
+    <div class="empty-state">
+      <div class="es-icon">${icon(iconId)}</div>
+      <h3>${esc(title)}</h3>
+      <p>${esc(body)}</p>
+      ${command ? `<code>${esc(command)}</code>` : ""}
+    </div>`;
+}
+function emptyStateInline(title, body) {
+  return `<div class="empty-state" style="margin:14px;padding:18px"><h3>${esc(title)}</h3><p>${esc(body)}</p></div>`;
+}
+
+/* ============================================================================
+   DATA LOAD
+   ============================================================================ */
 async function loadCampaign(campaignId = selectedCampaignId()) {
   const response = await fetch(`/api/campaign${campaignId ? `?id=${encodeURIComponent(campaignId)}` : ""}`);
   if (!response.ok && response.status !== 404) throw new Error(`Campaign API failed: ${response.status}`);
   const data = await response.json();
+
   currentCampaign = data.campaign;
-  const title = document.getElementById("campaign-title");
-  if (title) title.textContent = data.campaign.name;
-  document.title = `${data.campaign.name} — Fusion LaunchAudit`;
   executedCardIds = new Set(data.run_stats?.executedCardIds ?? []);
+
+  // topbar
+  document.getElementById("campaign-title").textContent = data.campaign.name;
+  document.title = `${data.campaign.name} — LaunchAudit`;
+  const idChip = document.getElementById("campaign-id-chip");
+  if (idChip) idChip.textContent = data.campaign.id;
+  const appUrlEl = document.getElementById("campaign-appurl");
+  if (appUrlEl) appUrlEl.textContent = String(data.campaign.appUrl).replace(/^https?:\/\//, "");
+  const meta = document.getElementById("runner-note-meta");
+  if (meta) meta.textContent = `${data.campaign.runner.version} · ${data.campaign.runner.status}`;
+
+  renderHero(data.campaign, data.test_cards, data.run_stats);
   renderMetrics(data.campaign, data.test_cards, data.findings, data.run_stats);
-  renderStages(data.stages);
-  renderContext(data.campaign, data.runner_tools);
+  renderCoverage(data.test_cards);
   renderTestCards(data.test_cards);
+  renderContext(data.campaign, data.runner_tools);
   renderInspector(data.campaign, data.findings, data.repair_tasks);
-  renderScorecard(data.competitive_scorecard);
-  renderFlagshipFeatures(data.flagship_features);
+  renderScorecard(data.competitive_scorecard || []);
+  renderFlagshipFeatures(data.flagship_features || []);
   renderModelRouting(data.model_routes || [], data.model_provider_slots || []);
   renderProviderSlots(data.model_provider_slots || []);
   renderStorage(data.storage_readiness || [], data.database_tables || [], data.blob_artifacts || []);
   renderTrafficInsights(data.traffic_insights);
   renderHealEvents(data.heal_events);
   renderPersistence(data.persistence);
+  renderNavCounts(data);
   return data;
 }
 
-const savedTheme = localStorage.getItem("launch-audit-theme");
-setTheme(savedTheme === "light" ? "light" : "dark");
+function selectedCampaignId() {
+  return localStorage.getItem("launch-audit-campaign") || "";
+}
 
+/* ---- theme boot ---- */
+setTheme(localStorage.getItem("launch-audit-theme") === "light" ? "light" : "dark");
 document.getElementById("theme-toggle").addEventListener("click", () => {
   setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 });
 
-
-/* ============================================================
-   MOTION LAYER — staggered reveals + animated counters.
-   GPU-only (transform/opacity). Skips everything when the
-   user prefers reduced motion.
-   ============================================================ */
-
+/* ============================================================================
+   MOTION — staggered reveals (GPU only). Counters handled by the gauge.
+   ============================================================================ */
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function initReveals() {
   if (prefersReducedMotion) return;
-
-  const groups = [
-    ".metric-card",
-    ".stage",
-    ".test-card",
-    ".finding-card",
-    ".score-card, .scorecard-grid > *",
-    ".feature-card",
-    ".slot-card",
-    ".route-row",
-    ".storage-row",
-    ".traffic-row",
-    ".panel, .repair-panel",
-  ];
-
+  const groups = [".metric-card", ".cov-card", ".cat-group", ".tile", ".finding-card", ".contract-row", ".traffic-row", ".panel"];
   const seen = new Set();
   for (const selector of groups) {
-    const nodes = [...document.querySelectorAll(selector)].filter((node) => !seen.has(node));
-    nodes.forEach((node, index) => {
+    const nodes = [...document.querySelectorAll(selector)].filter((n) => !seen.has(n));
+    nodes.forEach((node, i) => {
       seen.add(node);
       node.classList.add("reveal");
-      node.style.setProperty("--reveal-delay", `${Math.min(index, 8) * 60}ms`);
+      node.style.setProperty("--reveal-delay", `${Math.min(i, 7) * 45}ms`);
     });
   }
-
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("in-view");
-          observer.unobserve(entry.target);
-        }
+        if (entry.isIntersecting) { entry.target.classList.add("in-view"); observer.unobserve(entry.target); }
       }
     },
-    { rootMargin: "0px 0px -40px 0px", threshold: 0.08 },
+    { rootMargin: "0px 0px -30px 0px", threshold: 0.05 },
   );
-
   for (const node of seen) observer.observe(node);
 }
 
-function initCounters() {
-  if (prefersReducedMotion) return;
+function initMotion() { initReveals(); }
 
-  for (const node of document.querySelectorAll(".metric-card strong")) {
-    const original = node.textContent;
-    const match = original.match(/^(\d+)/);
-    if (!match) continue;
-    const target = Number(match[1]);
-    if (target === 0) continue;
-
-    const start = performance.now();
-    const duration = 1100;
-    const ease = (t) => 1 - Math.pow(1 - t, 3);
-
-    const tick = (now) => {
-      const progress = Math.min((now - start) / duration, 1);
-      const value = Math.round(ease(progress) * target);
-      node.textContent = original.replace(/^(\d+)/, String(value));
-      if (progress < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }
-}
-
-function initMotion() {
-  initReveals();
-  initCounters();
-}
-
-
-/* ============================================================
-   VIEW ROUTER — hash-based navigation. Six real destinations:
-   #/campaigns #/projects #/runner #/evidence #/reports #/models
-   ============================================================ */
-
+/* ============================================================================
+   VIEW ROUTER
+   ============================================================================ */
 const VIEW_NAMES = ["campaigns", "projects", "runner", "evidence", "reports", "models"];
 
 function currentView() {
@@ -523,30 +746,25 @@ function currentView() {
 
 function applyView() {
   const view = currentView();
-
   for (const node of document.querySelectorAll("[data-view]")) {
-    const views = node.dataset.view.split(" ");
-    const show = views.includes(view);
+    const show = node.dataset.view.split(" ").includes(view);
     node.hidden = !show;
     if (show) {
       node.classList.remove("view-enter");
-      void node.offsetWidth; // restart entrance animation
+      void node.offsetWidth;
       node.classList.add("view-enter");
       for (const child of node.querySelectorAll(".reveal")) child.classList.add("in-view");
       if (node.classList.contains("reveal")) node.classList.add("in-view");
     }
   }
-
   for (const link of document.querySelectorAll("#main-nav .nav-item")) {
     link.classList.toggle("nav-active", link.dataset.nav === view);
   }
-
   const inspector = document.querySelector(".inspector");
-  const inspectorVisible = [...inspector.querySelectorAll("[data-view]")].some((node) => !node.hidden);
+  const inspectorVisible = [...inspector.querySelectorAll("[data-view]")].some((n) => !n.hidden);
   inspector.hidden = !inspectorVisible;
   document.querySelector(".content-grid").classList.toggle("no-inspector", !inspectorVisible);
-
-  window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+  window.scrollTo({ top: 0, behavior: "auto" });
 }
 
 function initRouter() {
@@ -554,28 +772,12 @@ function initRouter() {
   applyView();
 }
 
-function renderPersistence(persistence) {
-  const badge = document.getElementById("persistence-status");
-  if (!badge || !persistence) return;
-  const live = persistence.mode === "postgres";
-  badge.textContent = live ? "postgres live" : "seeded mode";
-  badge.classList.remove("badge-medium", "badge-success", "badge-muted");
-  badge.classList.add(live ? "badge-success" : "badge-medium");
-  badge.title = persistence.detail || "";
-}
-
-
-
-/* ============================================================
+/* ============================================================================
    CAMPAIGN SWITCHER + CREATION
-   ============================================================ */
-
+   ============================================================================ */
 async function initCampaignSwitcher(data) {
   const switcher = document.getElementById("campaign-switcher");
-  if (data.persistence?.mode !== "postgres") {
-    switcher.hidden = true;
-    return;
-  }
+  if (data.persistence?.mode !== "postgres") { switcher.hidden = true; return; }
   try {
     const response = await fetch("/api/campaigns");
     if (!response.ok) return;
@@ -583,16 +785,14 @@ async function initCampaignSwitcher(data) {
     if (!campaigns || campaigns.length === 0) return;
     const current = currentCampaign?.id;
     switcher.innerHTML = campaigns
-      .map((c) => `<option value="${escapeHtml(c.id)}" ${c.id === current ? "selected" : ""}>${escapeHtml(c.name)} · ${escapeHtml(String(c.readinessScore))}/100</option>`)
+      .map((c) => `<option value="${esc(c.id)}" ${c.id === current ? "selected" : ""}>${esc(c.name)} · ${esc(String(c.readinessScore))}/100</option>`)
       .join("");
     switcher.hidden = false;
     switcher.onchange = async () => {
       localStorage.setItem("launch-audit-campaign", switcher.value);
       await reloadCampaignData(switcher.value);
     };
-  } catch {
-    switcher.hidden = true;
-  }
+  } catch { switcher.hidden = true; }
 }
 
 async function reloadCampaignData(campaignId) {
@@ -605,12 +805,10 @@ function initNewCampaign() {
   const backdrop = document.getElementById("new-campaign-backdrop");
   document.getElementById("new-campaign-btn").addEventListener("click", () => backdrop.classList.add("open"));
   document.getElementById("new-campaign-close").addEventListener("click", () => backdrop.classList.remove("open"));
-  backdrop.addEventListener("click", (event) => {
-    if (event.target === backdrop) backdrop.classList.remove("open");
-  });
+  backdrop.addEventListener("click", (e) => { if (e.target === backdrop) backdrop.classList.remove("open"); });
 
-  document.getElementById("new-campaign-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
+  document.getElementById("new-campaign-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const errorBox = document.getElementById("nc-error");
     errorBox.hidden = true;
     const payload = {
@@ -634,8 +832,8 @@ function initNewCampaign() {
       backdrop.classList.remove("open");
       window.location.hash = "#/campaigns";
       await reloadCampaignData(result.id);
-    } catch (submitError) {
-      errorBox.textContent = String(submitError);
+    } catch (err) {
+      errorBox.textContent = String(err);
       errorBox.hidden = false;
     }
   });
@@ -646,56 +844,24 @@ function initNewCampaign() {
   });
 }
 
-/* ============================================================
-   TOPBAR ACTIONS — honest quickstart modals. No fake spinners:
-   these show the real commands until Playwright execution lands.
-   ============================================================ */
-
+/* ============================================================================
+   QUICKSTART MODALS — honest commands, no fake spinners
+   ============================================================================ */
 const MODALS = {
   "start-campaign": {
     title: "Start a campaign",
     sub: "LaunchAudit runs through your own coding agent — your Claude does the planning, the local runner keeps your code private, this command center stores the evidence.",
     steps: [
-      {
-        h: "Add the LaunchAudit MCP server to Claude Code",
-        p: "From the fusion-launchaudit repo folder (after npm install):",
-        code: "claude mcp add launchaudit -- node --experimental-strip-types ./runner/mcp-server.ts",
-      },
-      {
-        h: "Ask your agent to plan the audit",
-        p: "In Claude Code, point it at your project:",
-        code: "Scan ~/my-app with launchaudit_scan_repo, then write evidence-gated test cards per launchaudit_get_test_card_contract and sync them.",
-      },
-      {
-        h: "Or run the full audit in one command",
-        p: "Scan, generate, create campaign, execute in a real browser, sync evidence:",
-        code: 'node --experimental-strip-types runner/audit.ts --name "My app" --app-url https://my.app --repo ~/my-app',
-      },
-      {
-        h: "Auth-gated flows",
-        p: "Login flows need locally captured auth state (qa.capture_auth_state) — credentials never touch this web app. Capture ships with the auth layer and is declared blocked until then.",
-      },
+      { h: "Add the LaunchAudit MCP server to Claude Code", p: "From the fusion-launchaudit repo folder (after npm install):", code: "claude mcp add launchaudit -- node --experimental-strip-types ./runner/mcp-server.ts" },
+      { h: "Ask your agent to plan the audit", p: "In Claude Code, point it at your project:", code: "Scan ~/my-app with launchaudit_scan_repo, then write evidence-gated test cards per launchaudit_get_test_card_contract and sync them." },
+      { h: "Or run the full audit in one command", p: "Scan, generate, create campaign, execute in a real browser, sync evidence:", code: 'node --experimental-strip-types runner/audit.ts --name "My app" --app-url https://my.app --repo ~/my-app' },
+      { h: "Auth-gated flows", p: "Login flows need locally captured auth state (qa.capture_auth_state) — credentials never touch this web app. Capture ships with the auth layer and is declared blocked until then." },
     ],
     note: "Honest status: test cards sync and persist today. Playwright execution of approved cards is the next production layer — nothing here pretends to run tests it didn't run.",
   },
-  "capture-auth": {
-    title: "Capture auth state",
-    sub: "Production credentials never get pasted into this web app. Auth capture happens on your machine through the local runner.",
-    steps: [
-      {
-        h: "How it works",
-        p: "The runner opens a controlled browser session on your machine; you log into your app; encrypted Playwright storage state is saved locally and referenced by ID — the platform only ever sees the reference.",
-      },
-      {
-        h: "Contract",
-        p: "qa.capture_auth_state — input { campaign_id, app_url }, output { auth_state_ref, expires_at, roles_detected[] }.",
-      },
-    ],
-    note: "Honest status: browser-state capture ships with the Playwright execution layer. The contract and storage path are final; this button will run it the day it lands.",
-  },
 };
 
-function escapeAttr(v) { return escapeHtml(String(v)); }
+function escapeAttr(v) { return esc(String(v)); }
 
 function openModal(kind) {
   const def = MODALS[kind];
@@ -709,42 +875,41 @@ function openModal(kind) {
         <div class="modal-step">
           <div class="modal-step-num">${i + 1}</div>
           <div>
-            <h3>${escapeHtml(s.h)}</h3>
-            <p>${escapeHtml(s.p)}</p>
-            ${s.code ? `<code class="modal-code">${escapeHtml(s.code)}<button class="modal-copy" data-copy="${escapeAttr(s.code)}" type="button">Copy</button></code>` : ""}
+            <h3>${esc(s.h)}</h3>
+            <p>${esc(s.p)}</p>
+            ${s.code ? `<code class="modal-code">${esc(s.code)}<button class="modal-copy" data-copy="${escapeAttr(s.code)}" type="button">Copy</button></code>` : ""}
           </div>
         </div>`,
       )
-      .join("") + `<div class="modal-note">${escapeHtml(def.note)}</div>`;
+      .join("") + `<div class="modal-note">${esc(def.note)}</div>`;
   document.getElementById("modal-backdrop").classList.add("open");
 }
 
-function closeModal() {
-  document.getElementById("modal-backdrop").classList.remove("open");
-}
+function closeModal() { document.getElementById("modal-backdrop").classList.remove("open"); }
 
 function initModals() {
   document.getElementById("run-audit-btn")?.addEventListener("click", () => openModal("start-campaign"));
   document.getElementById("modal-close").addEventListener("click", closeModal);
-  document.getElementById("modal-backdrop").addEventListener("click", (event) => {
-    if (event.target === document.getElementById("modal-backdrop")) closeModal();
+  document.getElementById("modal-backdrop").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("modal-backdrop")) closeModal();
   });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeModal();
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { closeModal(); document.getElementById("new-campaign-backdrop").classList.remove("open"); }
   });
-  document.getElementById("modal-body").addEventListener("click", async (event) => {
-    const btn = event.target.closest(".modal-copy");
+  document.getElementById("modal-body").addEventListener("click", async (e) => {
+    const btn = e.target.closest(".modal-copy");
     if (!btn) return;
     try {
       await navigator.clipboard.writeText(btn.dataset.copy);
       btn.textContent = "Copied";
       setTimeout(() => { btn.textContent = "Copy"; }, 1400);
-    } catch {
-      btn.textContent = "Select + copy manually";
-    }
+    } catch { btn.textContent = "Select + copy"; }
   });
 }
 
+/* ============================================================================
+   BOOT
+   ============================================================================ */
 loadCampaign()
   .then((data) => {
     initMotion();
@@ -754,5 +919,6 @@ loadCampaign()
     initCampaignSwitcher(data);
   })
   .catch((error) => {
-    document.getElementById("metrics").innerHTML = `<article class="metric-card"><strong>Load failed</strong><p>${escapeHtml(error.message)}</p></article>`;
+    document.getElementById("metrics").innerHTML =
+      `<article class="metric-card"><div class="metric-value">Load failed</div><p>${esc(error.message)}</p></article>`;
   });
