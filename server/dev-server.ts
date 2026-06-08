@@ -322,6 +322,7 @@ async function main() {
         mode: "seeded",
         detail: "POSTGRES_URL is not configured; serving seeded campaign data.",
       };
+      let runStats: Record<string, unknown> | null = null;
 
       const sql = await getSqlClient();
       if (sql) {
@@ -334,6 +335,7 @@ async function main() {
             liveFindings = bundle.findings;
             liveRepairTasks = bundle.repairTasks;
             persistence = bundle.persistence;
+            runStats = bundle.runStats;
           }
         } catch (error) {
           persistence = {
@@ -362,6 +364,7 @@ async function main() {
         blob_artifacts: blobArtifacts,
         storage_schema_sql: storageSchemaSql,
         persistence,
+        run_stats: runStats,
       });
       return;
     }
@@ -470,7 +473,8 @@ async function main() {
             mode: "postgres",
             session_id: result.sessionId,
             cards_updated: result.cardsUpdated,
-            cards_unknown: result.cardsUnknown,
+            cards_inserted: result.cardsInserted,
+            readiness: result.readiness,
           };
         } catch (error) {
           persistence = {

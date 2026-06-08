@@ -5841,11 +5841,25 @@ async function loadCampaignBundle(sql, campaignId = campaign.id) {
     verification_command: String(task.verification_command),
     agent_prompt: String(task.agent_prompt)
   }));
+  const runRows = await sql(
+    `select count(*)::int as runs, count(distinct test_card_id)::int as executed from runs where campaign_id = $1`,
+    [campaignId]
+  );
+  const executedRows = await sql(
+    `select distinct test_card_id from runs where campaign_id = $1`,
+    [campaignId]
+  );
+  const artifactRows = await sql(`select count(*)::int as n from artifacts`);
   return {
     campaign: campaign2,
     testCards: testCards2,
     findings: findings2,
     repairTasks: repairTasks2,
+    runStats: {
+      runs: Number(runRows[0]?.runs ?? 0),
+      artifacts: Number(artifactRows[0]?.n ?? 0),
+      executedCardIds: executedRows.map((row2) => String(row2.test_card_id))
+    },
     persistence: {
       mode: "postgres",
       detail: "Campaign state loaded from Postgres. Presentation-only fields (name, stages, environment metadata) remain seed-configured until campaign creation UI ships."
@@ -6236,7 +6250,8 @@ async function handler(_request, response) {
       test_cards: bundle.testCards,
       findings: bundle.findings,
       repair_tasks: bundle.repairTasks,
-      persistence: bundle.persistence
+      persistence: bundle.persistence,
+      run_stats: bundle.runStats
     });
   } catch (error) {
     response.status(200).json({

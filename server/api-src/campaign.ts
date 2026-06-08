@@ -69,6 +69,7 @@ export default async function handler(_request: VercelRequest, response: VercelR
       findings: bundle.findings,
       repair_tasks: bundle.repairTasks,
       persistence: bundle.persistence,
+      run_stats: bundle.runStats,
     });
   } catch (error) {
     response.status(200).json({

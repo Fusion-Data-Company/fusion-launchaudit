@@ -55,7 +55,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
         mode: "postgres",
         session_id: result.sessionId,
         cards_updated: result.cardsUpdated,
-        cards_unknown: result.cardsUnknown,
+        cards_inserted: result.cardsInserted,
+        readiness: result.readiness,
       };
     } catch (error) {
       persistence = {

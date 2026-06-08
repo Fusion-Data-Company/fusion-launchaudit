@@ -52,15 +52,18 @@ function setTheme(theme) {
   if (toggle) toggle.textContent = theme === "dark" ? "Light" : "Dark";
 }
 
-function renderMetrics(campaign, testCards, findings) {
+function renderMetrics(campaign, testCards, findings, runStats) {
   const passed = testCards.filter((card) => card.status === "passed").length;
   const failed = testCards.filter((card) => card.status === "failed").length;
   const blocked = testCards.filter((card) => card.status === "blocked").length;
+  const ready = testCards.filter((card) => card.status === "ready").length;
+  const critical = findings.filter((f) => f.severity === "critical" || f.severity === "high").length;
+  const live = Boolean(runStats);
   const metrics = [
-    ["Readiness", `${campaign.readinessScore}/100`, "Score", "Blocked by 2 launch issues"],
-    ["Tests", `${passed} pass / ${failed} fail`, "Cards", `${blocked} blocked check declared`],
-    ["Findings", String(findings.length), "Risk", "2 product bugs, 1 environment issue"],
-    ["Artifacts", "18", "Proof", "Screenshots, traces, network logs"],
+    ["Readiness", `${campaign.readinessScore}/100`, "Score", live ? `Computed from ${runStats.executedCardIds.length} executed cards` : "Seeded demo value"],
+    ["Tests", `${passed} pass / ${failed} fail`, "Cards", `${blocked} blocked · ${ready} awaiting execution`],
+    ["Findings", String(findings.length), "Risk", findings.length === 0 ? "No open findings" : `${critical} high/critical severity`],
+    ["Artifacts", live ? String(runStats.artifacts) : "0", "Proof", live ? `${runStats.runs} recorded runs with evidence` : "No runs executed yet"],
   ];
 
   document.getElementById("metrics").innerHTML = metrics
@@ -109,6 +112,8 @@ function renderContext(campaign, runnerTools) {
     </div>`;
 }
 
+let executedCardIds = new Set();
+
 function renderTestCards(testCards) {
   document.getElementById("test-cards").innerHTML = testCards
     .map(
@@ -121,6 +126,7 @@ function renderTestCards(testCards) {
                 ${badge(categoryLabels[card.category] || card.category)}
                 ${badge(card.risk, severityTone[card.risk])}
                 ${badge(card.status, statusTone[card.status])}
+                ${executedCardIds.has(card.id) ? badge("executed · live", "badge-success") : badge("not yet run", "badge-muted")}
               </div>
               <h3>${escapeHtml(card.title)}</h3>
             </div>
@@ -365,7 +371,8 @@ async function loadCampaign() {
   const response = await fetch("/api/campaign");
   if (!response.ok) throw new Error(`Campaign API failed: ${response.status}`);
   const data = await response.json();
-  renderMetrics(data.campaign, data.test_cards, data.findings);
+  executedCardIds = new Set(data.run_stats?.executedCardIds ?? []);
+  renderMetrics(data.campaign, data.test_cards, data.findings, data.run_stats);
   renderStages(data.stages);
   renderContext(data.campaign, data.runner_tools);
   renderTestCards(data.test_cards);

@@ -98,18 +98,30 @@ async function main() {
     },
     test_cards: [
       { id: seededTestCards[0].id, title: seededTestCards[0].title, category: seededTestCards[0].category, status: "running", risk: seededTestCards[0].risk },
-      { id: "TC-UNKNOWN-999", title: "ghost card", category: "auth", status: "ready", risk: "low" },
+      { id: "TC-NEW-100", title: "brand new real card", category: "api_contract", status: "passed", risk: "high", goal: "prove inserts work", steps: ["step one"], expectedEvidence: ["screenshot"], acceptanceCriteria: "insert succeeds" },
+    ],
+    findings: [
+      { id: "FD-NEW-1", test_card_id: "TC-NEW-100", type: "product_bug", severity: "high", title: "real finding", summary: "synced from runner", evidence_refs: ["screenshot://x"] },
+    ],
+    run_results: [
+      { run_id: "run_sync_1", test_card_id: "TC-NEW-100", status: "passed", started_at: new Date().toISOString(), ended_at: new Date().toISOString(), artifact_refs: [] },
     ],
     artifact_refs: ["repo-scan://verify"],
   };
 
   const syncResult = await recordRunnerSync(sql, syncPayload);
   check("sync: known card status updated", syncResult.cardsUpdated === 1, `updated ${syncResult.cardsUpdated}`);
-  check("sync: unknown card reported, not silently dropped", syncResult.cardsUnknown.includes("TC-UNKNOWN-999"));
+  check("sync: NEW card inserted (loop closes)", syncResult.cardsInserted === 1, `inserted ${syncResult.cardsInserted}`);
+  check("sync: readiness computed from real statuses", typeof syncResult.readiness === "number");
 
   const bundleAfterSync = await loadCampaignBundle(sql);
   const updatedCard = bundleAfterSync?.testCards.find((card) => card.id === seededTestCards[0].id);
   check("sync: status change survives reload", updatedCard?.status === "running", `got ${updatedCard?.status}`);
+  const newCard = bundleAfterSync?.testCards.find((card) => card.id === "TC-NEW-100");
+  check("sync: inserted card loads with full fields", newCard?.goal === "prove inserts work");
+  check("sync: synced finding loads", bundleAfterSync?.findings.some((f) => f.id === "FD-NEW-1") === true);
+  const runRowsAfterSync = await sql(`select id from runs where id = 'run_sync_1'`);
+  check("sync: run result recorded", runRowsAfterSync.length === 1);
   check("sync: runner session recorded", bundleAfterSync?.campaign.runner.host === "verify-host.local");
   check("sync: last sync timestamp set", bundleAfterSync?.campaign.runner.lastSync !== "never");
 

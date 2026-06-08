@@ -18,12 +18,46 @@ export type RunnerTool = {
 
 export type RunnerScanMode = "seeded_simulation" | "live_scan";
 
+export type SyncTestCard = {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+  risk: string;
+  goal?: string;
+  steps?: string[];
+  expectedEvidence?: string[];
+  dataNeeds?: string[];
+  acceptanceCriteria?: string;
+};
+
+export type SyncFinding = {
+  id: string;
+  test_card_id: string;
+  type: string;
+  severity: string;
+  title: string;
+  summary: string;
+  evidence_refs: string[];
+};
+
+export type SyncRunResult = {
+  run_id: string;
+  test_card_id: string;
+  status: "passed" | "failed" | "blocked";
+  started_at: string;
+  ended_at: string;
+  artifact_refs: string[];
+};
+
 export type RunnerSyncPayload = {
   campaign_id: string;
   runner_host: string;
   build_sha?: string;
   scan_mode?: RunnerScanMode;
   scan_detail?: Record<string, unknown>;
+  findings?: SyncFinding[];
+  run_results?: SyncRunResult[];
   repo_summary: {
     framework: string;
     package_manager: string;
@@ -40,7 +74,7 @@ export type RunnerSyncPayload = {
     failed_requests: number;
     auth_state: "captured" | "missing";
   };
-  test_cards: Pick<TestCard, "id" | "title" | "category" | "status" | "risk">[];
+  test_cards: SyncTestCard[];
   artifact_refs: string[];
 };
 

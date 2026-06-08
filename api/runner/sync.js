@@ -5631,20 +5631,70 @@ async function recordRunnerSync(sql, payload) {
     [sessionId, payload.campaign_id, payload.runner_host, payload.build_sha ?? "unknown"]
   );
   let cardsUpdated = 0;
-  const cardsUnknown = [];
+  let cardsInserted = 0;
   for (const card of payload.test_cards) {
-    const updated = await sql(
-      `update test_cards set status = $1 where id = $2 and campaign_id = $3 returning id`,
-      [card.status, card.id, payload.campaign_id]
+    const inserted = await sql(
+      `insert into test_cards (id, campaign_id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       on conflict (id) do update set
+         status = excluded.status,
+         title = excluded.title,
+         risk = excluded.risk,
+         goal = case when excluded.goal <> '' then excluded.goal else test_cards.goal end,
+         steps = case when excluded.steps <> '[]'::jsonb then excluded.steps else test_cards.steps end,
+         expected_evidence = case when excluded.expected_evidence <> '[]'::jsonb then excluded.expected_evidence else test_cards.expected_evidence end,
+         acceptance_criteria = case when excluded.acceptance_criteria <> '' then excluded.acceptance_criteria else test_cards.acceptance_criteria end
+       returning (xmax = 0) as inserted`,
+      [
+        card.id,
+        payload.campaign_id,
+        card.category,
+        card.risk,
+        card.status,
+        card.title,
+        card.goal ?? "",
+        JSON.stringify(card.steps ?? []),
+        JSON.stringify(card.expectedEvidence ?? []),
+        JSON.stringify(card.dataNeeds ?? []),
+        card.acceptanceCriteria ?? ""
+      ]
     );
-    if (updated.length > 0) {
-      cardsUpdated += 1;
-    } else {
-      cardsUnknown.push(card.id);
-    }
+    if (inserted[0]?.inserted) cardsInserted += 1;
+    else cardsUpdated += 1;
   }
-  await sql(`update campaigns set updated_at = now() where id = $1`, [payload.campaign_id]);
-  return { sessionId, cardsUpdated, cardsUnknown };
+  for (const run of payload.run_results ?? []) {
+    await sql(
+      `insert into runs (id, campaign_id, test_card_id, status, started_at, ended_at)
+       values ($1, $2, $3, $4, $5, $6)
+       on conflict (id) do update set status = excluded.status, ended_at = excluded.ended_at`,
+      [run.run_id, payload.campaign_id, run.test_card_id, run.status, run.started_at, run.ended_at]
+    );
+  }
+  for (const finding of payload.findings ?? []) {
+    await sql(
+      `insert into findings (id, campaign_id, test_card_id, type, severity, title, summary, evidence_refs)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       on conflict (id) do update set summary = excluded.summary, severity = excluded.severity, evidence_refs = excluded.evidence_refs`,
+      [finding.id, payload.campaign_id, finding.test_card_id, finding.type, finding.severity, finding.title, finding.summary, JSON.stringify(finding.evidence_refs)]
+    );
+  }
+  const scoreRows = await sql(
+    `select
+       count(*) filter (where status = 'passed')::int as passed,
+       count(*) filter (where status = 'failed')::int as failed,
+       count(*) filter (where status = 'blocked')::int as blocked
+     from test_cards where campaign_id = $1`,
+    [payload.campaign_id]
+  );
+  const { passed = 0, failed = 0, blocked = 0 } = scoreRows[0] ?? {};
+  const denominator = Number(passed) + Number(failed) + Number(blocked);
+  const readiness = denominator === 0 ? 0 : Math.round(Number(passed) / denominator * 100);
+  const status = Number(failed) > 0 ? "analyzing" : denominator > 0 ? "report_ready" : "planning";
+  await sql(
+    `update campaigns set updated_at = now(), readiness_score = $2, status = $3 where id = $1`,
+    [payload.campaign_id, readiness, status]
+  );
+  return { sessionId, cardsUpdated, cardsInserted, readiness };
 }
 
 // src/lib/db.ts
@@ -5700,7 +5750,8 @@ async function handler(request, response) {
         mode: "postgres",
         session_id: result.sessionId,
         cards_updated: result.cardsUpdated,
-        cards_unknown: result.cardsUnknown
+        cards_inserted: result.cardsInserted,
+        readiness: result.readiness
       };
     } catch (error) {
       persistence = {
