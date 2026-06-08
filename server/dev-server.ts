@@ -308,7 +308,7 @@ async function main() {
       return;
     }
 
-    if (request.method === "GET" && request.url?.startsWith("/report.html")) {
+    if (request.method === "GET" && (request.url?.startsWith("/report.html") || request.url?.startsWith("/report"))) {
       const html = await fs.readFile(path.join(rootDir, "public/report.html"), "utf8");
       response.writeHead(200, { "content-type": "text/html" });
       response.end(html);

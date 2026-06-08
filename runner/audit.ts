@@ -138,7 +138,7 @@ async function main() {
   console.error(`Executed: ${passed}/${results.length} passed | Blocked (declared): ${blocked.length} | Findings: ${findings.length}`);
   console.error(`Readiness: ${sync.persistence?.readiness ?? "n/a"}/100 (computed)`);
   console.error(`Command center: ${PLATFORM_URL}/#/campaigns (campaign ${campaignId})`);
-  console.error(`Report: ${PLATFORM_URL}/report.html?campaign=${campaignId}`);
+  console.error(`Report: ${PLATFORM_URL}/report?campaign=${campaignId}`);
   console.log(JSON.stringify({ campaign_id: campaignId, passed, executed: results.length, blocked: blocked.length, findings: findings.length, readiness: sync.persistence?.readiness }, null, 2));
 }
 

@@ -642,7 +642,7 @@ function initNewCampaign() {
 
   document.getElementById("export-report-btn").addEventListener("click", () => {
     const id = currentCampaign?.id ?? "";
-    window.open(`/report.html${id ? `?campaign=${encodeURIComponent(id)}` : ""}`, "_blank");
+    window.open(`/report${id ? `?campaign=${encodeURIComponent(id)}` : ""}`, "_blank");
   });
 }
 
