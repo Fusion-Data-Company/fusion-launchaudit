@@ -1,0 +1,11 @@
+{
+  "name": "buggy-shop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deliberately buggy test-target web app for the launch-audit tool. CommonJS, zero deps, Node built-in http only.",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

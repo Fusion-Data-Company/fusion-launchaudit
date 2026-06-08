@@ -1,0 +1,7 @@
+{
+  "protected_routes": ["/admin", "/admin/users/:id"],
+  "protected_apis": [{ "path": "/api/admin/delete-user", "method": "POST" }],
+  "post_endpoints": [{ "path": "/api/orders" }],
+  "security_paths": ["/"],
+  "login_path": "/login"
+}

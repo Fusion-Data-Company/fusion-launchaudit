@@ -133,6 +133,7 @@ export function humanize(card: { category: string; title: string; status: string
     api_contract: { t: "Behind-the-scenes services respond", d: "The data your site depends on is reachable." },
     integration_side_effects: { t: "Connected services", d: "Third-party tools (payments, email) are wired up." },
     state_persistence: { t: "Your settings stick", d: "Choices are remembered after reloading." },
+    roles_permissions: { t: "Admin access is locked down", d: "Only admins can reach admin pages and actions — not regular users or the public." },
   };
   const m = map[card.category] ?? { t: card.title, d: "" };
   return { plainTitle: m.t, plainDetail: m.d };

@@ -227,14 +227,16 @@ server.tool(
     name: z.string().describe("Campaign name"),
     app_url: z.string().url().describe("URL of the running app under audit"),
     repo_path: z.string().optional().describe("Absolute path to the app's repository for repo-aware cards"),
+    hints_file: z.string().optional().describe("Path to a JSON hints file (protected_routes, protected_apis, post_endpoints, login_path, admin_creds, user_creds) — supply this after reading the repo so admin/RBAC/middleware checks are precise."),
   },
-  async ({ name, app_url, repo_path }) => {
+  async ({ name, app_url, repo_path, hints_file }) => {
     const { spawn } = await import("node:child_process");
     const { fileURLToPath } = await import("node:url");
     const path = await import("node:path");
     const auditScript = path.join(path.dirname(fileURLToPath(import.meta.url)), "audit.ts");
     const cliArgs = ["--experimental-strip-types", "--no-warnings", auditScript, "--name", name, "--app-url", app_url];
     if (repo_path) cliArgs.push("--repo", repo_path);
+    if (hints_file) cliArgs.push("--hints", hints_file);
 
     return await new Promise((resolve) => {
       const child = spawn("node", cliArgs, {

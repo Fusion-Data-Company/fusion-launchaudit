@@ -32,9 +32,24 @@ export type ExecStep =
   | { action: "expect_http_ok"; url?: string; path?: string; jsonKeys?: string[] }
   | { action: "expect_no_horizontal_overflow" }
   | { action: "expect_console_clean" }
-  | { action: "expect_network_clean" };
+  | { action: "expect_network_clean" }
+  | {
+      action: "http";
+      method?: string;
+      url?: string;
+      path?: string;
+      cookie?: string;
+      headers?: Record<string, string>;
+      body?: unknown;
+      expectStatusOneOf?: number[];
+      expectStatusNot?: number[];
+      expectBlocked?: boolean;
+      expectHeaderPresent?: string[];
+      expectJsonKeys?: string[];
+      expectBodyExcludes?: string[];
+    };
 
-export type ExecutableTestCard = SyncTestCard & { exec: ExecStep[] };
+export type ExecutableTestCard = SyncTestCard & { exec: ExecStep[]; authState?: string };
 
 type CardResult = {
   card: ExecutableTestCard;

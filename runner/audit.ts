@@ -13,6 +13,9 @@
 import os from "node:os";
 import path from "node:path";
 import { generateTestCards } from "../src/lib/card-generator.ts";
+import type { AuditHints } from "../src/lib/generators/types.ts";
+import { captureAuth } from "./capture-auth.ts";
+import fsp from "node:fs/promises";
 import { crawlRuntime } from "./crawler.ts";
 import { executeCards, registerArtifact } from "./execute-core.ts";
 import { humanize, renderReport, type ReportCard } from "./render-report.ts";
@@ -23,6 +26,43 @@ const arg = (n: string) => { const i = args.indexOf(`--${n}`); return i !== -1 ?
 
 const PLATFORM_URL = (process.env.LAUNCHAUDIT_API_URL ?? "").replace(/\/$/, "");
 const OUT_DIR = arg("out") ?? "launchaudit-report";
+
+
+async function buildHints(appUrl: string, crawl: { links: Array<{ href: string }>; has_password_field: boolean }, hintsFile?: string): Promise<AuditHints> {
+  const hints: AuditHints = { securityPaths: ["/"], protectedRoutes: [], protectedApis: [], postEndpoints: [], roles: {} };
+  const origin = new URL(appUrl).origin;
+  const sample = (route: string) => route.replace(/:(\w+)|\[(\w+)\]|\*/g, "42");
+
+  // From an explicit hints file (what the dev's agent passes after reading the repo).
+  if (hintsFile) {
+    try {
+      const raw = JSON.parse(await fsp.readFile(hintsFile, "utf8"));
+      for (const r of raw.protected_routes ?? []) hints.protectedRoutes!.push(sample(r));
+      for (const a of raw.protected_apis ?? []) hints.protectedApis!.push(typeof a === "string" ? { path: a, method: "POST" } : a);
+      for (const e of raw.post_endpoints ?? []) hints.postEndpoints!.push(typeof e === "string" ? { path: e } : e);
+      if (raw.security_paths) hints.securityPaths = raw.security_paths;
+      if (raw.login_path) hints.loginPath = raw.login_path;
+      // Capture auth for provided roles (locally; creds never leave the machine).
+      for (const [role, creds] of [["admin", raw.admin_creds], ["user", raw.user_creds]] as const) {
+        if (creds?.username && creds?.password) {
+          try {
+            const cap = await captureAuth({ appUrl, loginPath: raw.login_path, username: creds.username, password: creds.password, role, outDir: ".launchaudit/auth" });
+            hints.roles![role] = { cookie: cap.cookieHeader, storageState: cap.storageStatePath };
+            console.error(`      captured ${role} session`);
+          } catch (e) { console.error(`      (auth capture failed for ${role}: ${e instanceof Error ? e.message : "?"})`); }
+        }
+      }
+    } catch (e) { console.error(`      (hints file unreadable: ${e instanceof Error ? e.message : "?"})`); }
+  }
+
+  // From the live crawl: admin-looking links + login page.
+  for (const l of crawl.links) {
+    const pathOnly = l.href.startsWith(origin) ? l.href.slice(origin.length) : l.href;
+    if (/\/admin(\/|$)/.test(pathOnly) && !hints.protectedRoutes!.includes(sample(pathOnly))) hints.protectedRoutes!.push(sample(pathOnly));
+    if (/\/login(\/|$)/.test(pathOnly) && !hints.loginPath) hints.loginPath = pathOnly;
+  }
+  return hints;
+}
 
 async function main() {
   const name = arg("name");
@@ -47,7 +87,8 @@ async function main() {
   console.error(`      ${scan ? scan.repo_summary.framework + " · " : ""}${crawl.links.length} pages · ${crawl.form_count} forms · "${crawl.title}"`);
 
   console.error("[2/4] Building the checks…");
-  const cards = generateTestCards(scan, crawl);
+  const hints = await buildHints(appUrl, crawl, arg("hints"));
+  const cards = generateTestCards(scan, crawl, hints);
   const blocked = cards.filter((c) => c.status === "blocked");
   console.error(`      ${cards.length} checks (${blocked.length} need your input)`);
 
