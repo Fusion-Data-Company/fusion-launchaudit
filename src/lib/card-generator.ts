@@ -5,17 +5,62 @@ import { generateFrontend } from "./generators/frontend.ts";
 import { generateBackend } from "./generators/backend.ts";
 import { generateAdminRbac } from "./generators/admin-rbac.ts";
 import { generateMiddleware } from "./generators/middleware.ts";
+import { generateSecurity } from "./generators/security.ts";
 
 export type { GeneratedCard, AuditHints } from "./generators/types.ts";
 
+/**
+ * Turn the repo scan's discovered routes into audit hints so `--repo` ALONE
+ * fires admin/RBAC + backend checks — no hand-authored hints file required.
+ * This is what makes the engine's repo-awareness real instead of a claim.
+ */
+function deriveHintsFromScan(scan: RepoScan | null, hints: AuditHints): AuditHints {
+  const routes = scan?.detail?.routes;
+  if (!routes || routes.length === 0) return hints;
+
+  const merged: AuditHints = {
+    ...hints,
+    protectedRoutes: [...(hints.protectedRoutes ?? [])],
+    protectedApis: [...(hints.protectedApis ?? [])],
+    postEndpoints: [...(hints.postEndpoints ?? [])],
+  };
+  const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+  const apiSeen = new Set(merged.protectedApis!.map((a) => `${a.method ?? "POST"} ${a.path}`));
+  const postSeen = new Set(merged.postEndpoints!.map((e) => e.path));
+
+  for (const r of routes) {
+    if (r.kind === "page" && r.privileged && !merged.protectedRoutes!.includes(r.url_path)) {
+      merged.protectedRoutes!.push(r.url_path);
+    }
+    if (r.kind === "api") {
+      const methods = r.methods.length ? r.methods : ["POST"];
+      // Privileged APIs: every method must reject anonymous callers (server-side guard).
+      if (r.privileged) {
+        for (const method of methods) {
+          const key = `${method} ${r.url_path}`;
+          if (!apiSeen.has(key)) { merged.protectedApis!.push({ path: r.url_path, method }); apiSeen.add(key); }
+        }
+      }
+      // Any mutating endpoint: malformed input must 4xx (not 5xx) and not leak a stack trace.
+      if (methods.some((m) => MUTATING.has(m)) && !postSeen.has(r.url_path)) {
+        merged.postEndpoints!.push({ path: r.url_path });
+        postSeen.add(r.url_path);
+      }
+    }
+  }
+  return merged;
+}
+
 /** Compose the deep taxonomy: front end, back end, admin/RBAC, middleware. */
 export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hints: AuditHints = {}): GeneratedCard[] {
+  hints = deriveHintsFromScan(scan, hints);
   const c = new Counter();
   const cards: GeneratedCard[] = [
     ...generateFrontend(scan, crawl, hints, c),
     ...generateBackend(scan, crawl, hints, c),
     ...generateAdminRbac(scan, crawl, hints, c),
     ...generateMiddleware(scan, crawl, hints, c),
+    ...generateSecurity(scan, crawl, hints, c),
   ];
 
   if (crawl.has_password_field && !(hints.roles?.admin || hints.roles?.user)) {

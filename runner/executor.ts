@@ -45,6 +45,8 @@ export type ExecStep =
       expectStatusNot?: number[];
       expectBlocked?: boolean;
       expectHeaderPresent?: string[];
+      expectHeaderValueOneOf?: Record<string, string[]>;
+      expectHeaderAbsent?: string[];
       expectJsonKeys?: string[];
       expectBodyExcludes?: string[];
     };

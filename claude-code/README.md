@@ -10,7 +10,7 @@ From the `fusion-launchaudit` repo:
 
 ```bash
 # 1. install deps + the browser the audit drives
-npm install && npx playwright install chromium
+npm install && npx playwright install chromium chromium-headless-shell
 
 # 2. register the audit tools with your Claude Code
 claude mcp add launchaudit -- node --experimental-strip-types ./runner/mcp-server.ts

@@ -6,7 +6,8 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { type Browser, type BrowserContext, type Page } from "playwright";
+import { launchBrowser } from "./browser.ts";
 import type { ExecStep, ExecutableTestCard } from "./executor.ts";
 
 export type CardResult = {
@@ -19,6 +20,8 @@ export type CardResult = {
   screenshotPath: string;
   startedAt: string;
   endedAt: string;
+  attempts: number;
+  flaky?: boolean;
 };
 
 type ExecOptions = { appUrl: string; artifactDir: string };
@@ -57,6 +60,21 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
       if (!res.headers.get(h)) throw new Error(`${target}: missing required header "${h}"`);
     }
   }
+  if (step.expectHeaderValueOneOf) {
+    for (const [h, allowed] of Object.entries(step.expectHeaderValueOneOf)) {
+      const val = (res.headers.get(h) ?? "").toLowerCase();
+      if (!val) throw new Error(`${target}: missing required header "${h}"`);
+      if (!allowed.some((a) => val.includes(a.toLowerCase()))) {
+        throw new Error(`${target}: header "${h}" is "${val}", expected one of [${allowed.join(", ")}]`);
+      }
+    }
+  }
+  if (step.expectHeaderAbsent) {
+    for (const h of step.expectHeaderAbsent) {
+      const leaked = res.headers.get(h);
+      if (leaked) throw new Error(`${target}: header "${h}" should not be exposed (leaks "${leaked}")`);
+    }
+  }
   if (step.expectJsonKeys) {
     let json: Record<string, unknown>;
     try { json = JSON.parse(text); } catch { throw new Error(`${target}: expected JSON body, got non-JSON`); }
@@ -71,8 +89,16 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
 
 async function runStep(page: Page, step: ExecStep, state: { consoleErrors: string[]; failedRequests: string[] }, appUrl: string): Promise<void> {
   switch (step.action) {
-    case "goto": await page.goto(step.url ?? `${appUrl}${step.path ?? "/"}`, { waitUntil: "networkidle", timeout: 30000 }); return;
-    case "reload": await page.reload({ waitUntil: "networkidle" }); return;
+    case "goto": {
+      await page.goto(step.url ?? `${appUrl}${step.path ?? "/"}`, { waitUntil: "domcontentloaded", timeout: 30000 });
+      try { await page.waitForLoadState("networkidle", { timeout: 6000 }); } catch { /* busy app — fine */ }
+      return;
+    }
+    case "reload": {
+      await page.reload({ waitUntil: "domcontentloaded" });
+      try { await page.waitForLoadState("networkidle", { timeout: 6000 }); } catch { /* busy app — fine */ }
+      return;
+    }
     case "click": await page.click(step.selector, { timeout: 8000 }); return;
     case "fill": await page.fill(step.selector, step.value, { timeout: 8000 }); return;
     case "press": await page.keyboard.press(step.key); return;
@@ -106,22 +132,11 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
 
 const isHttpOnly = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => s.action === "http");
 
-async function executeOne(browser: Browser, card: ExecutableTestCard, options: ExecOptions): Promise<CardResult> {
-  const startedAt = new Date().toISOString();
+async function runBrowserAttempt(browser: Browser, card: ExecutableTestCard, options: ExecOptions) {
   const state = { consoleErrors: [] as string[], failedRequests: [] as string[] };
   let status: "passed" | "failed" = "passed";
   let failedStep: string | undefined;
   let error: string | undefined;
-  let screenshotPath = "";
-
-  // Pure-HTTP cards (admin/RBAC/backend/middleware) skip the browser entirely.
-  if (isHttpOnly(card)) {
-    for (const step of card.exec) {
-      try { await runHttp(step as Extract<ExecStep, { action: "http" }>, options.appUrl); }
-      catch (e) { status = "failed"; failedStep = describeStep(step); error = e instanceof Error ? e.message : String(e); break; }
-    }
-    return { card, status, failedStep, error, consoleErrors: [], failedRequests: [], screenshotPath: "", startedAt, endedAt: new Date().toISOString() };
-  }
 
   const context: BrowserContext = await browser.newContext({
     viewport: { width: 1440, height: 900 },
@@ -138,19 +153,53 @@ async function executeOne(browser: Browser, card: ExecutableTestCard, options: E
   }
 
   await fs.mkdir(options.artifactDir, { recursive: true });
-  screenshotPath = path.join(options.artifactDir, `${card.id}.png`);
+  const screenshotPath = path.join(options.artifactDir, `${card.id}.png`);
   await page.screenshot({ path: screenshotPath, fullPage: false }).catch(() => {});
   await context.close();
-  return { card, status, failedStep, error, consoleErrors: state.consoleErrors, failedRequests: state.failedRequests, screenshotPath, startedAt, endedAt: new Date().toISOString() };
+  return { status, failedStep, error, consoleErrors: state.consoleErrors, failedRequests: state.failedRequests, screenshotPath };
+}
+
+async function executeOne(browser: Browser, card: ExecutableTestCard, options: ExecOptions): Promise<CardResult> {
+  const startedAt = new Date().toISOString();
+
+  // Pure-HTTP cards (admin/RBAC/backend/middleware/security) are deterministic — no browser, no retry.
+  if (isHttpOnly(card)) {
+    let status: "passed" | "failed" = "passed";
+    let failedStep: string | undefined;
+    let error: string | undefined;
+    for (const step of card.exec) {
+      try { await runHttp(step as Extract<ExecStep, { action: "http" }>, options.appUrl); }
+      catch (e) { status = "failed"; failedStep = describeStep(step); error = e instanceof Error ? e.message : String(e); break; }
+    }
+    return { card, status, failedStep, error, consoleErrors: [], failedRequests: [], screenshotPath: "", startedAt, endedAt: new Date().toISOString(), attempts: 1 };
+  }
+
+  // Browser cards: bounded retry separates a real failure from a one-off timing flake
+  // (e.g. an assertion that fired before an intro animation revealed the nav).
+  const MAX_ATTEMPTS = 3;
+  let attempt = 1;
+  let last = await runBrowserAttempt(browser, card, options);
+  while (last.status === "failed" && attempt < MAX_ATTEMPTS) {
+    attempt += 1;
+    last = await runBrowserAttempt(browser, card, options);
+  }
+  const flaky = last.status === "passed" && attempt > 1;
+  return {
+    card, status: last.status, failedStep: last.failedStep, error: last.error,
+    consoleErrors: last.consoleErrors, failedRequests: last.failedRequests, screenshotPath: last.screenshotPath,
+    startedAt, endedAt: new Date().toISOString(), attempts: attempt, flaky,
+  };
 }
 
 export async function executeCards(cards: ExecutableTestCard[], options: ExecOptions): Promise<CardResult[]> {
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   const results: CardResult[] = [];
   for (const card of cards) {
     const r = await executeOne(browser, card, options);
     results.push(r);
-    console.error(`      ${r.status === "passed" ? "PASS" : "FAIL"}  ${card.id}  ${card.title}${r.error ? ` — ${r.error.slice(0, 100)}` : ""}`);
+    const tag = r.status === "passed" ? (r.flaky ? "FLAKY" : "PASS") : "FAIL";
+    const note = r.flaky ? ` (recovered on attempt ${r.attempts})` : r.status === "failed" && r.error ? ` — ${r.error.slice(0, 100)}` : "";
+    console.error(`      ${tag}  ${card.id}  ${card.title}${note}`);
   }
   await browser.close();
   return results;

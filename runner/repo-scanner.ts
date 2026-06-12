@@ -2,6 +2,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { RunnerSyncPayload } from "../src/lib/mcp-runner-contract.ts";
 
+export type ScannedRoute = {
+  file: string; // repo-relative path
+  url_path: string; // concrete URL, dynamic segments sampled (e.g. /api/users/42)
+  kind: "page" | "api";
+  methods: string[]; // API: exported HTTP methods; page: ["GET"]
+  privileged: boolean; // admin / superadmin / internal surface
+};
+
 export type RepoScanDetail = {
   repo_path: string;
   scanned_at: string;
@@ -9,6 +17,7 @@ export type RepoScanDetail = {
   test_tooling: string[];
   test_file_count: number;
   route_files_sampled: string[];
+  routes: ScannedRoute[];
   env_sources: string[];
   files_walked: number;
   truncated: boolean;
@@ -285,6 +294,90 @@ function detectTestTooling(pkg: PackageJson | null, files: string[], repoPath: s
   return { tooling: [...new Set(tooling)], testFileCount };
 }
 
+const MAX_ROUTES_EXTRACTED = 250;
+
+/** Replace Next.js dynamic segments with a concrete sample so the route is callable. */
+function sampleDynamic(url: string): string {
+  return url
+    .replace(/\[\[?\.\.\.[^\]]+\]\]?/g, "42") // [...slug] / [[...slug]]
+    .replace(/\[[^\]]+\]/g, "42"); // [id]
+}
+
+/** Map a route source file (App Router, Pages Router, or bare api/) to its URL path. */
+function routeFileToUrl(rel: string): { url: string; kind: "page" | "api" } | null {
+  const r = rel.replace(/\\/g, "/");
+
+  // App Router: app/(group)/admin/page.tsx → /admin ; app/api/x/route.ts → /api/x
+  let m = r.match(/(?:^|\/)(?:src\/)?app\/(.*)\/(page|route)\.(?:t|j)sx?$/);
+  if (m) {
+    const kind = m[2] === "route" ? "api" : "page";
+    const seg = m[1]
+      .split("/")
+      .filter((s) => s && !/^\(.*\)$/.test(s) && !s.startsWith("@")) // drop route groups + parallel slots
+      .join("/");
+    const url = (sampleDynamic("/" + seg).replace(/\/+$/, "") || "/");
+    return { url, kind };
+  }
+  // App Router root: app/page.tsx → / ; app/route.ts → /
+  m = r.match(/(?:^|\/)(?:src\/)?app\/(page|route)\.(?:t|j)sx?$/);
+  if (m) return { url: "/", kind: m[1] === "route" ? "api" : "page" };
+
+  // Pages Router API: pages/api/x.ts → /api/x
+  m = r.match(/(?:^|\/)(?:src\/)?pages\/api\/(.*)\.(?:t|j)sx?$/);
+  if (m) return { url: sampleDynamic("/api/" + m[1].replace(/\/index$/, "")), kind: "api" };
+
+  // Pages Router page: pages/about.tsx → /about
+  m = r.match(/(?:^|\/)(?:src\/)?pages\/(.*)\.(?:t|j)sx?$/);
+  if (m && !/^api\//.test(m[1]) && !path.basename(m[1]).startsWith("_")) {
+    const url = sampleDynamic("/" + m[1].replace(/\/index$/, "").replace(/^index$/, "")).replace(/\/+$/, "") || "/";
+    return { url, kind: "page" };
+  }
+
+  // Bare serverless functions: api/x.ts → /api/x
+  m = r.match(/^api\/(.*)\.(?:t|j)sx?$/);
+  if (m) return { url: sampleDynamic("/api/" + m[1].replace(/\/index$/, "")), kind: "api" };
+
+  return null;
+}
+
+function isPrivilegedUrl(url: string): boolean {
+  return /(^|\/)(admin|superadmin|internal)(\/|$)/.test(url);
+}
+
+/** Read an API route file to learn which HTTP methods it actually exports. */
+async function extractApiMethods(absFile: string): Promise<string[]> {
+  try {
+    const src = await fs.readFile(absFile, "utf8");
+    const methods = new Set<string>();
+    for (const m of src.matchAll(/export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g)) methods.add(m[1]);
+    for (const m of src.matchAll(/export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s*[:=]/g)) methods.add(m[1]);
+    // Pages Router default handler accepts any method.
+    if (methods.size === 0 && /export\s+default\b/.test(src)) return ["GET", "POST"];
+    return [...methods];
+  } catch {
+    return [];
+  }
+}
+
+/** Turn discovered route files into concrete, callable routes with methods + privilege flags. */
+async function extractRoutes(repoPath: string, files: string[]): Promise<ScannedRoute[]> {
+  const routes: ScannedRoute[] = [];
+  const seen = new Set<string>();
+  for (const file of files) {
+    if (routes.length >= MAX_ROUTES_EXTRACTED) break;
+    if (!SOURCE_EXTENSIONS.has(path.extname(file))) continue;
+    const rel = path.relative(repoPath, file).replaceAll(path.sep, "/");
+    const mapped = routeFileToUrl(rel);
+    if (!mapped) continue;
+    const key = `${mapped.kind} ${mapped.url}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const methods = mapped.kind === "api" ? await extractApiMethods(file) : ["GET"];
+    routes.push({ file: rel, url_path: mapped.url, kind: mapped.kind, methods, privileged: isPrivilegedUrl(mapped.url) });
+  }
+  return routes;
+}
+
 export async function scanRepo(repoPath: string): Promise<RepoScan> {
   const resolved = path.resolve(repoPath);
   const stat = await fs.stat(resolved);
@@ -314,6 +407,7 @@ export async function scanRepo(repoPath: string): Promise<RepoScan> {
 
   const sampledRoutes: string[] = [];
   const { routeCount, apiRouteCount } = countRoutes(resolved, files, sampledRoutes);
+  const routes = await extractRoutes(resolved, files);
 
   const expectedEnv = await collectEnvExpectations(files);
   const envSources: string[] = [];
@@ -343,6 +437,7 @@ export async function scanRepo(repoPath: string): Promise<RepoScan> {
       test_tooling: tooling,
       test_file_count: testFileCount,
       route_files_sampled: sampledRoutes,
+      routes,
       env_sources: envSources,
       files_walked: files.length,
       truncated,

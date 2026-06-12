@@ -29,7 +29,7 @@
 
 ## Install (developer, on their own subscription)
 ```bash
-npm install && npx playwright install chromium
+npm install && npx playwright install chromium chromium-headless-shell
 claude mcp add launchaudit -- node --experimental-strip-types ./runner/mcp-server.ts
 cp -r claude-code/skills/launchaudit ~/.claude/skills/ && cp claude-code/commands/launch-audit.md ~/.claude/commands/
 ```

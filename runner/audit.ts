@@ -20,6 +20,7 @@ import { crawlRuntime } from "./crawler.ts";
 import { executeCards, registerArtifact } from "./execute-core.ts";
 import { humanize, renderReport, type ReportCard } from "./render-report.ts";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
+import { classifyFailure } from "./classify.ts";
 
 const args = process.argv.slice(2);
 const arg = (n: string) => { const i = args.indexOf(`--${n}`); return i !== -1 ? args[i + 1] : undefined; };
@@ -96,23 +97,43 @@ async function main() {
   const executable = cards.filter((c) => c.status !== "blocked");
   const results = await executeCards(executable as never, { appUrl, artifactDir: path.join(OUT_DIR, "evidence") });
 
+  // Detect a stubbed/bypassed-auth environment so RBAC exposure isn't over-claimed as a vuln.
+  const DEV_BYPASS_ENV = ["DEV_ORG_ID", "SUPERADMIN_DEV", "AUTH_BYPASS", "SKIP_AUTH", "NEXT_PUBLIC_DEV"];
+  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(appUrl);
+  const devStubAuth = isLocal && (scan?.repo_summary.env_keys_present ?? []).some((k) => DEV_BYPASS_ENV.includes(k));
+  if (devStubAuth) console.error("      note: auth looks stubbed here (local + dev-bypass key) — RBAC exposures flagged 'needs verification', not vulnerabilities");
+
+  const classified = results.map((r) => ({ r, cls: r.status === "failed" ? classifyFailure(r, { appUrl, devStubAuth }) : null }));
+  const clsById = new Map(classified.filter((x) => x.cls).map((x) => [x.r.card.id, x.cls!]));
+
   const passed = results.filter((r) => r.status === "passed").length;
-  const failed = results.filter((r) => r.status === "failed").length;
-  const executedDenom = passed + failed + blocked.length;
+  const flaky = results.filter((r) => r.flaky).length;
+  const productBugs = classified.filter((x) => x.cls && (x.cls.type === "product_bug" || x.cls.type === "test_bug"));
+  const needsVerify = classified.filter((x) => x.cls && x.cls.type === "needs_verification");
+  const failed = productBugs.length;
+  const needAttention = blocked.length + needsVerify.length;
+  const executedDenom = passed + failed + needAttention;
   const readiness = executedDenom === 0 ? 0 : Math.round((passed / executedDenom) * 100);
 
   const reportCards: ReportCard[] = [
-    ...results.map((r) => ({ ...r.card, status: r.status, ...humanize({ category: r.card.category, title: r.card.title, status: r.status }) })),
-    ...blocked.map((c) => ({ ...c, plainTitle: c.title, plainDetail: c.acceptanceCriteria })),
+    ...results.map((r) => {
+      const cls = clsById.get(r.card.id);
+      const status = r.flaky ? "passed" : cls?.type === "needs_verification" ? "needs_verification" : r.status;
+      return { ...r.card, status, ...humanize({ category: r.card.category, title: r.card.title, status }) };
+    }),
+    ...blocked.map((c) => ({ ...c, status: "blocked", plainTitle: c.title, plainDetail: c.acceptanceCriteria })),
   ] as ReportCard[];
 
-  const findings = results
-    .filter((r) => r.status === "failed")
-    .map((r) => ({ title: r.card.title, summary: `Failed: ${r.error}`.slice(0, 360), severity: r.card.risk }));
+  // Findings carry the classification + a plain reason. Product bugs first, then needs-verification.
+  const findings = [...productBugs, ...needsVerify].map(({ r, cls }) => ({
+    title: r.card.title,
+    summary: `${cls!.reason}${r.error ? ` [${r.error.slice(0, 160)}]` : ""}`.slice(0, 400),
+    severity: cls!.type === "needs_verification" ? "needs verification" : cls!.type === "product_bug" ? r.card.risk : cls!.type,
+  }));
 
   console.error("[4/4] Writing your report…");
   const reportFile = await renderReport(
-    { name, appUrl, readiness, passed, failed, blocked: blocked.length, cards: reportCards, findings, generatedAt: new Date().toISOString() },
+    { name, appUrl, readiness, passed, failed, blocked: needAttention, cards: reportCards, findings, generatedAt: new Date().toISOString() },
     OUT_DIR,
   );
 
@@ -148,12 +169,16 @@ async function main() {
   }
 
   console.error(`\n==== DONE ====`);
-  console.error(`Readiness: ${readiness}/100  ·  ${passed} passed, ${failed} failed, ${blocked.length} need input`);
+  console.error(
+    `Readiness: ${readiness}/100  ·  ${passed} passed${flaky ? ` (${flaky} flaky-recovered)` : ""}, ${failed} to fix, ${needsVerify.length} need verification, ${blocked.length} need input`,
+  );
   console.error(`Report:  ${path.resolve(reportFile)}`);
   console.log(JSON.stringify({
-    readiness, passed, failed, blocked: blocked.length, report: path.resolve(reportFile),
-    findings: findings.map((f) => f.title),
-    needs_input: blocked.map((c) => ({ id: c.id, title: c.title, why: c.acceptanceCriteria })),
+    readiness, passed, flaky, to_fix: failed, needs_verification: needsVerify.length, needs_input: blocked.length,
+    report: path.resolve(reportFile),
+    product_bugs: productBugs.map((x) => ({ id: x.r.card.id, title: x.r.card.title, confidence: x.cls!.confidence, why: x.cls!.reason })),
+    needs_verification_items: needsVerify.map((x) => ({ id: x.r.card.id, title: x.r.card.title, why: x.cls!.reason })),
+    needs_input_items: blocked.map((c) => ({ id: c.id, title: c.title, why: c.acceptanceCriteria })),
   }, null, 2));
 }
 

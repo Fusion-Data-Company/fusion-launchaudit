@@ -3,7 +3,7 @@
  * actually exists: same-origin links, forms, buttons, title. This is what
  * makes generated test cards specific to THE app instead of generic.
  */
-import { chromium } from "playwright";
+import { launchBrowser } from "./browser.ts";
 
 export type RuntimeCrawl = {
   app_url: string;
@@ -19,7 +19,7 @@ export type RuntimeCrawl = {
 
 export async function crawlRuntime(appUrl: string): Promise<RuntimeCrawl> {
   const base = appUrl.replace(/\/$/, "");
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
   const page = await context.newPage();
   let consoleErrors = 0;
@@ -40,8 +40,12 @@ export async function crawlRuntime(appUrl: string): Promise<RuntimeCrawl> {
   };
 
   try {
-    const response = await page.goto(base, { waitUntil: "networkidle", timeout: 25000 });
+    const response = await page.goto(base, { waitUntil: "domcontentloaded", timeout: 30000 });
     result.reachable = Boolean(response && response.status() < 500);
+    // Best-effort settle for SPA hydration / async content. Real apps with
+    // websockets, animation loops, or analytics beacons never reach "networkidle";
+    // we wait softly and move on instead of hard-failing a reachable site.
+    try { await page.waitForLoadState("networkidle", { timeout: 6000 }); } catch { /* busy app — fine */ }
     await page.waitForTimeout(800);
     result.title = await page.title();
 

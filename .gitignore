@@ -43,3 +43,6 @@ next-env.d.ts
 runner-artifacts/
 
 launchaudit-report/
+
+# generated audit reports
+launchaudit-report-*/
