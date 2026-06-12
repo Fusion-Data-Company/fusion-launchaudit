@@ -2,6 +2,7 @@ import os from "node:os";
 import { campaign, testCards } from "../src/lib/campaign-data.ts";
 import type { RunnerSyncPayload } from "../src/lib/mcp-runner-contract.ts";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
+import { runnerAuthHeaders } from "./blob-store.ts";
 
 const syncUrl = process.env.LAUNCH_AUDIT_SYNC_URL ?? "http://127.0.0.1:3010/api/runner/sync";
 
@@ -87,7 +88,7 @@ async function main() {
 
   const response = await fetch(syncUrl, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...runnerAuthHeaders() },
     body: JSON.stringify(payload),
   });
 

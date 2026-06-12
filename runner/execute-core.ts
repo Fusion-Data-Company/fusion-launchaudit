@@ -8,6 +8,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { type Browser, type BrowserContext, type Page } from "playwright";
 import { launchBrowser } from "./browser.ts";
+import { runnerAuthHeaders } from "./blob-store.ts";
+import { runElevenLabsAssertion } from "./elevenlabs-audit.ts";
 import type { ExecStep, ExecutableTestCard } from "./executor.ts";
 
 export type CardResult = {
@@ -129,10 +131,19 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
     case "expect_console_clean": if (state.consoleErrors.length) throw new Error(`Console errors: ${state.consoleErrors.slice(0, 3).join(" | ").slice(0, 300)}`); return;
     case "expect_network_clean": if (state.failedRequests.length) throw new Error(`Failed requests: ${state.failedRequests.slice(0, 3).join(" | ").slice(0, 300)}`); return;
     case "http": await runHttp(step, appUrl); return;
+    case "elevenlabs": await runElevenLabsAssertion(step.agentId, step.apiKeyEnv, step.assert); return;
   }
 }
 
-const isHttpOnly = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => s.action === "http");
+/** Deterministic, no-browser cards: raw HTTP (BE/RBAC/middleware/security/write-authz) and ElevenLabs API checks. */
+const NO_BROWSER_ACTIONS = new Set(["http", "elevenlabs"]);
+const isNoBrowser = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => NO_BROWSER_ACTIONS.has(s.action));
+
+async function runNoBrowserStep(step: ExecStep, appUrl: string): Promise<void> {
+  if (step.action === "http") return runHttp(step, appUrl);
+  if (step.action === "elevenlabs") return runElevenLabsAssertion(step.agentId, step.apiKeyEnv, step.assert);
+  throw new Error(`runNoBrowserStep got a browser action: ${step.action}`);
+}
 
 async function runBrowserAttempt(browser: Browser, card: ExecutableTestCard, options: ExecOptions) {
   const state = { consoleErrors: [] as string[], failedRequests: [] as string[] };
@@ -177,13 +188,13 @@ async function runBrowserAttempt(browser: Browser, card: ExecutableTestCard, opt
 async function executeOne(browser: Browser, card: ExecutableTestCard, options: ExecOptions): Promise<CardResult> {
   const startedAt = new Date().toISOString();
 
-  // Pure-HTTP cards (admin/RBAC/backend/middleware/security) are deterministic — no browser, no retry.
-  if (isHttpOnly(card)) {
+  // No-browser cards (admin/RBAC/backend/middleware/security/write-authz/ElevenLabs) are deterministic — no browser, no retry.
+  if (isNoBrowser(card)) {
     let status: "passed" | "failed" = "passed";
     let failedStep: string | undefined;
     let error: string | undefined;
     for (const step of card.exec) {
-      try { await runHttp(step as Extract<ExecStep, { action: "http" }>, options.appUrl); }
+      try { await runNoBrowserStep(step, options.appUrl); }
       catch (e) { status = "failed"; failedStep = describeStep(step); error = e instanceof Error ? e.message : String(e); break; }
     }
     return { card, status, failedStep, error, consoleErrors: [], failedRequests: [], screenshotPath: "", tracePath: "", startedAt, endedAt: new Date().toISOString(), attempts: 1 };
@@ -232,7 +243,7 @@ export async function registerArtifact(platformUrl: string, campaignId: string, 
     const content = await fs.readFile(filePath);
     const sha256 = crypto.createHash("sha256").update(content).digest("hex");
     const r = await fetch(`${platformUrl}/api/storage/register-artifact`, {
-      method: "POST", headers: { "content-type": "application/json" },
+      method: "POST", headers: { "content-type": "application/json", ...runnerAuthHeaders() },
       body: JSON.stringify({ campaign_id: campaignId, run_id: runId, test_card_id: testCardId, artifact_type: artifactType, filename: path.basename(filePath), sha256 }),
     });
     const d = await r.json();

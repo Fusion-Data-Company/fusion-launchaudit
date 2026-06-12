@@ -1,9 +1,11 @@
 import type { ArtifactRegistration } from "../../../src/lib/campaign-store.ts";
 import { ensureCampaignReady, registerArtifactRecord } from "../../../src/lib/campaign-store.ts";
 import { getSqlClient } from "../../../src/lib/db.ts";
+import { authorizeRunnerWrite } from "../runner-auth.ts";
 
 type VercelRequest = {
   method?: string;
+  headers?: Record<string, string | string[] | undefined>;
   body?: Partial<ArtifactRegistration>;
 };
 
@@ -29,6 +31,12 @@ function artifactPath(body: ArtifactRegistration) {
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== "POST") {
     response.status(405).json({ accepted: false, error: "Method not allowed." });
+    return;
+  }
+
+  const auth = authorizeRunnerWrite(request.headers);
+  if (!auth.ok) {
+    response.status(auth.status).json({ accepted: false, error: auth.error });
     return;
   }
 

@@ -15,6 +15,8 @@ import {
   storageSchemaSql,
 } from "../src/lib/storage-contract.ts";
 import { getSqlClient } from "../src/lib/db.ts";
+import { authorizeRunnerWrite } from "./api-src/runner-auth.ts";
+import { loadLocalEnv } from "../runner/blob-store.ts";
 import {
   createCampaign,
   ensureCampaignReady,
@@ -288,6 +290,10 @@ function renderPage() {
 }
 
 async function main() {
+  // Load .env.local (POSTGRES_URL, RUNNER_SYNC_SECRET, etc.) so the dev server
+  // mirrors production: when a secret is present, runner writes are enforced.
+  loadLocalEnv();
+
   const server = http.createServer(async (request, response) => {
     if (!request.url) {
       json(response, 400, { error: "Missing request URL." });
@@ -296,8 +302,22 @@ async function main() {
 
     if (request.method === "GET" && (request.url === "/" || request.url === "/index.html")) {
       const html = await fs.readFile(path.join(rootDir, "public/index.html"), "utf8");
-      response.writeHead(200, { "content-type": "text/html" });
+      const headers: Record<string, string> = { "content-type": "text/html" };
+      // Opt-in: mirror the production CSP locally to verify it doesn't break the
+      // app (CSP is normally applied by vercel.json on the platform, not here).
+      if (process.env.LAUNCHAUDIT_CSP_TEST === "1") {
+        headers["content-security-policy"] =
+          "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'";
+      }
+      response.writeHead(200, headers);
       response.end(html);
+      return;
+    }
+
+    if (request.method === "GET" && (request.url === "/favicon.svg" || request.url === "/favicon.ico")) {
+      const svg = await fs.readFile(path.join(rootDir, "public/favicon.svg"), "utf8");
+      response.writeHead(200, { "content-type": "image/svg+xml" });
+      response.end(svg);
       return;
     }
 
@@ -447,6 +467,11 @@ async function main() {
     }
 
     if (request.method === "POST" && request.url === "/api/storage/register-artifact") {
+      const auth = authorizeRunnerWrite(request.headers);
+      if (!auth.ok) {
+        json(response, auth.status, { accepted: false, error: auth.error });
+        return;
+      }
       const body = await readJsonBody<ArtifactRegistrationPayload>(request);
       const requiredFields = ["campaign_id", "run_id", "test_card_id", "artifact_type", "filename", "sha256"] as const;
       const missing = requiredFields.filter((field) => !body[field]);
@@ -499,6 +524,11 @@ async function main() {
     }
 
     if (request.method === "POST" && request.url === "/api/runner/sync") {
+      const auth = authorizeRunnerWrite(request.headers);
+      if (!auth.ok) {
+        json(response, auth.status, { accepted: false, error: auth.error });
+        return;
+      }
       const body = await readJsonBody<RunnerSyncPayload>(request);
 
       if (!hasRequiredSyncShape(body)) {

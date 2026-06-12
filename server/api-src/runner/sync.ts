@@ -1,9 +1,11 @@
 import type { RunnerSyncPayload } from "../../../src/lib/mcp-runner-contract.ts";
 import { ensureCampaignReady, recordRunnerSync } from "../../../src/lib/campaign-store.ts";
 import { getSqlClient } from "../../../src/lib/db.ts";
+import { authorizeRunnerWrite } from "../runner-auth.ts";
 
 type VercelRequest = {
   method?: string;
+  headers?: Record<string, string | string[] | undefined>;
   body?: Partial<RunnerSyncPayload>;
 };
 
@@ -26,6 +28,12 @@ function hasRequiredSyncShape(body: Partial<RunnerSyncPayload>): body is RunnerS
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== "POST") {
     response.status(405).json({ accepted: false, error: "Method not allowed." });
+    return;
+  }
+
+  const auth = authorizeRunnerWrite(request.headers);
+  if (!auth.ok) {
+    response.status(auth.status).json({ accepted: false, error: auth.error });
     return;
   }
 

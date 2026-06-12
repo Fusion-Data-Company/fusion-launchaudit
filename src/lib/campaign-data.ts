@@ -102,17 +102,17 @@ export type CampaignStage = {
 
 export const campaign: Campaign = {
   id: "cmp_launch_001",
-  name: "Launch Audit Campaign",
+  name: "Demo: Sample Campaign",
   status: "report_ready",
   readinessScore: 82,
-  appUrl: "http://localhost:3000",
-  repoPath: "~/client-app",
+  appUrl: "https://demo.example/sample-app",
+  repoPath: "~/demo/sample-app",
   depth: "Full launch audit",
   runner: {
     status: "connected",
-    host: "Rob-MacBook-Pro.local",
+    host: "demo-runner (sample)",
     version: "mcp-runner 0.1.0",
-    lastSync: "2 min ago",
+    lastSync: "sample data",
   },
   environment: {
     framework: "Next.js / TypeScript / Playwright candidate",

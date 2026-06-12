@@ -6,6 +6,8 @@ import { generateBackend } from "./generators/backend.ts";
 import { generateAdminRbac } from "./generators/admin-rbac.ts";
 import { generateMiddleware } from "./generators/middleware.ts";
 import { generateSecurity } from "./generators/security.ts";
+import { generateWriteAuthz } from "./generators/write-authz.ts";
+import { generateElevenLabs } from "./generators/elevenlabs.ts";
 
 export type { GeneratedCard, AuditHints } from "./generators/types.ts";
 
@@ -51,7 +53,7 @@ function deriveHintsFromScan(scan: RepoScan | null, hints: AuditHints): AuditHin
   return merged;
 }
 
-/** Compose the deep taxonomy: front end, back end, admin/RBAC, middleware. */
+/** Compose the deep taxonomy: front end, back end, admin/RBAC, middleware, write-authz, ElevenLabs. */
 export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hints: AuditHints = {}): GeneratedCard[] {
   hints = deriveHintsFromScan(scan, hints);
   const c = new Counter();
@@ -61,6 +63,8 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateAdminRbac(scan, crawl, hints, c),
     ...generateMiddleware(scan, crawl, hints, c),
     ...generateSecurity(scan, crawl, hints, c),
+    ...generateWriteAuthz(scan, crawl, hints, c),
+    ...generateElevenLabs(scan, crawl, hints, c),
   ];
 
   if (crawl.has_password_field && !(hints.roles?.admin || hints.roles?.user)) {

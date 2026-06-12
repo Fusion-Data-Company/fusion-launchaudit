@@ -5252,17 +5252,17 @@ var init_serverless = __esm({
 // src/lib/campaign-data.ts
 var campaign = {
   id: "cmp_launch_001",
-  name: "Launch Audit Campaign",
+  name: "Demo: Sample Campaign",
   status: "report_ready",
   readinessScore: 82,
-  appUrl: "http://localhost:3000",
-  repoPath: "~/client-app",
+  appUrl: "https://demo.example/sample-app",
+  repoPath: "~/demo/sample-app",
   depth: "Full launch audit",
   runner: {
     status: "connected",
-    host: "Rob-MacBook-Pro.local",
+    host: "demo-runner (sample)",
     version: "mcp-runner 0.1.0",
-    lastSync: "2 min ago"
+    lastSync: "sample data"
   },
   environment: {
     framework: "Next.js / TypeScript / Playwright candidate",
@@ -5673,6 +5673,56 @@ async function getSqlClient(env = process.env) {
   return cachedClient;
 }
 
+// server/api-src/runner-auth.ts
+import crypto2 from "node:crypto";
+function headerValue(headers, name) {
+  const raw = headers[name] ?? headers[name.toLowerCase()];
+  if (Array.isArray(raw)) return raw[0];
+  return raw;
+}
+function presentedSecret(headers) {
+  const bearer = headerValue(headers, "authorization");
+  if (bearer && /^Bearer\s+/i.test(bearer)) {
+    return bearer.replace(/^Bearer\s+/i, "").trim();
+  }
+  const direct = headerValue(headers, "x-runner-secret");
+  if (direct) return direct.trim();
+  return void 0;
+}
+function timingSafeEqual(a2, b2) {
+  const aBuf = Buffer.from(a2, "utf8");
+  const bBuf = Buffer.from(b2, "utf8");
+  const aHash = crypto2.createHash("sha256").update(aBuf).digest();
+  const bHash = crypto2.createHash("sha256").update(bBuf).digest();
+  return crypto2.timingSafeEqual(aHash, bHash);
+}
+function authorizeRunnerWrite(headers) {
+  const configured = (process.env.RUNNER_SYNC_SECRET ?? "").trim();
+  const isProduction = process.env.VERCEL_ENV === "production";
+  const presented = presentedSecret(headers ?? {});
+  if (!configured) {
+    if (isProduction) {
+      return {
+        ok: false,
+        status: 503,
+        error: "Runner write endpoint is not configured (RUNNER_SYNC_SECRET unset). Writes are rejected."
+      };
+    }
+    return { ok: true };
+  }
+  if (!presented) {
+    return {
+      ok: false,
+      status: 401,
+      error: "Missing runner credential. Send the shared secret as 'authorization: Bearer <secret>' or 'x-runner-secret: <secret>'."
+    };
+  }
+  if (!timingSafeEqual(presented, configured)) {
+    return { ok: false, status: 401, error: "Invalid runner credential." };
+  }
+  return { ok: true };
+}
+
 // server/api-src/storage/register-artifact.ts
 var requiredFields = ["campaign_id", "run_id", "test_card_id", "artifact_type", "filename", "sha256"];
 function safeSegment2(value) {
@@ -5684,6 +5734,11 @@ function artifactPath(body) {
 async function handler(request, response) {
   if (request.method !== "POST") {
     response.status(405).json({ accepted: false, error: "Method not allowed." });
+    return;
+  }
+  const auth = authorizeRunnerWrite(request.headers);
+  if (!auth.ok) {
+    response.status(auth.status).json({ accepted: false, error: auth.error });
     return;
   }
   const body = request.body ?? {};

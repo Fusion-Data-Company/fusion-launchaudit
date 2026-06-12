@@ -16,6 +16,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
+import { runnerAuthHeaders } from "./blob-store.ts";
 
 // Standalone by default. Set LAUNCHAUDIT_API_URL only if you ALSO want to sync to the hosted command center.
 const API_URL = (process.env.LAUNCHAUDIT_API_URL ?? "").replace(/\/$/, "");
@@ -136,7 +137,7 @@ server.tool(
       const runtime = await probeRuntime(app_url ?? "http://localhost:3000");
       const response = await fetch(`${API_URL}/api/runner/sync`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...runnerAuthHeaders() },
         body: JSON.stringify({
           campaign_id: CAMPAIGN_ID,
           runner_host: os.hostname(),
@@ -176,7 +177,7 @@ server.tool(
   async ({ run_id, test_card_id, artifact_type, filename, sha256 }) => {
     const response = await fetch(`${API_URL}/api/storage/register-artifact`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...runnerAuthHeaders() },
       body: JSON.stringify({ campaign_id: CAMPAIGN_ID, run_id, test_card_id, artifact_type, filename, sha256 }),
     });
     const result = await response.json();

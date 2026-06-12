@@ -68,6 +68,9 @@ function setTheme(theme) {
 /* ---------------------------------------------------- state across renders */
 let executedCardIds = new Set();
 let currentCampaign = null;
+// True when the API served seed/demo data (no Postgres). Drives the "sample
+// data" labelling so placeholders are never presented as a real audit.
+let isSampleData = true;
 
 /* ============================================================================
    HERO — gauge + journey + run summary
@@ -366,6 +369,7 @@ function renderTestRow(card) {
 function renderContext(campaign, runnerTools) {
   const env = campaign.environment || {};
   document.getElementById("context-contract").innerHTML = `
+    ${isSampleData ? `<div class="sample-note">Sample data — these values are a demo placeholder, not a real target.</div>` : ""}
     <div class="code-box"><span>Runtime target</span><code>${esc(campaign.appUrl)}</code></div>
     <div class="code-box"><span>Repo path (local)</span><code>${esc(campaign.repoPath || "—")}</code></div>
     <div class="mini-grid">
@@ -390,6 +394,7 @@ function renderContext(campaign, runnerTools) {
    ============================================================================ */
 function renderInspector(campaign, findings, repairTasks) {
   document.getElementById("runner-truth").innerHTML = `
+    ${isSampleData ? `<div class="sample-note">Sample data — no live runner is connected. Create a campaign to see real runner truth.</div>` : ""}
     <div><span>Host</span><strong>${esc(campaign.runner.host)}</strong></div>
     <div><span>Version</span><strong>${esc(campaign.runner.version)}</strong></div>
     <div><span>Status</span><strong class="kv-ok">${esc(campaign.runner.status)}</strong></div>
@@ -632,6 +637,11 @@ async function loadCampaign(campaignId = selectedCampaignId()) {
   // topbar
   document.getElementById("campaign-title").textContent = data.campaign.name;
   document.title = `${data.campaign.name} — LaunchAudit`;
+  // Honesty: anything not durably stored in Postgres is seed/demo data. Flag it
+  // plainly so a public visitor never reads sample numbers as a real audit.
+  isSampleData = data.persistence?.mode !== "postgres";
+  const sampleBadge = document.getElementById("sample-data-badge");
+  if (sampleBadge) sampleBadge.hidden = !isSampleData;
   const idChip = document.getElementById("campaign-id-chip");
   if (idChip) idChip.textContent = data.campaign.id;
   const appUrlEl = document.getElementById("campaign-appurl");

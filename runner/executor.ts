@@ -17,6 +17,7 @@ import path from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import type { RunnerSyncPayload, SyncFinding, SyncRunResult, SyncTestCard } from "../src/lib/mcp-runner-contract.ts";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
+import { runnerAuthHeaders } from "./blob-store.ts";
 
 export type ExecStep =
   | { action: "goto"; url?: string; path?: string }
@@ -49,7 +50,24 @@ export type ExecStep =
       expectHeaderAbsent?: string[];
       expectJsonKeys?: string[];
       expectBodyExcludes?: string[];
+    }
+  | {
+      action: "elevenlabs";
+      agentId: string;
+      apiKeyEnv?: string;
+      assert: ElAssertion;
     };
+
+/** One assertion against a fetched ElevenLabs ConvAI agent config (dot-path into the agent JSON). */
+export type ElAssertion =
+  | { kind: "reachable"; label?: string }
+  | { kind: "field_present"; path: string; label?: string }
+  | { kind: "nonempty_string"; path: string; minLen?: number; label?: string }
+  | { kind: "field_oneof"; path: string; oneOf: string[]; label?: string }
+  | { kind: "nonempty_array"; path: string; label?: string }
+  | { kind: "tools_not_wiped"; label?: string }
+  | { kind: "webhooks_https"; label?: string }
+  | { kind: "no_placeholder_prompt"; path: string; label?: string };
 
 export type ExecutableTestCard = SyncTestCard & { exec: ExecStep[]; authState?: string };
 
@@ -198,7 +216,7 @@ async function registerArtifact(runId: string, testCardId: string, filePath: str
     const sha256 = crypto.createHash("sha256").update(content).digest("hex");
     const response = await fetch(REGISTER_URL, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...runnerAuthHeaders() },
       body: JSON.stringify({
         campaign_id: CAMPAIGN_ID,
         run_id: runId,
@@ -301,7 +319,7 @@ async function main() {
 
   const response = await fetch(SYNC_URL, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...runnerAuthHeaders() },
     body: JSON.stringify(payload),
   });
   const syncResult = await response.json();

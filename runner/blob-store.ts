@@ -58,6 +58,20 @@ export function blobConfigured(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
+/**
+ * Auth headers for runner writes to /api/runner/sync and
+ * /api/storage/register-artifact. Reads RUNNER_SYNC_SECRET from the
+ * environment (loading .env.local first). When no secret is configured
+ * (local dev with an unauthenticated endpoint) it returns an empty object so
+ * the open dev path keeps working. The platform enforces the secret in
+ * production; this sends it as 'authorization: Bearer <secret>'.
+ */
+export function runnerAuthHeaders(): Record<string, string> {
+  loadLocalEnv();
+  const secret = (process.env.RUNNER_SYNC_SECRET ?? "").trim();
+  return secret ? { authorization: `Bearer ${secret}` } : {};
+}
+
 /** Campaign/name → safe blob path segment. */
 export function safeName(value: string): string {
   const cleaned = value

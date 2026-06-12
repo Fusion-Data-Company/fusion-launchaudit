@@ -16,7 +16,7 @@ import { generateTestCards } from "../src/lib/card-generator.ts";
 import type { AuditHints } from "../src/lib/generators/types.ts";
 import { captureAuth } from "./capture-auth.ts";
 import fsp from "node:fs/promises";
-import { blobConfigured, safeName, uploadEvidence } from "./blob-store.ts";
+import { blobConfigured, runnerAuthHeaders, safeName, uploadEvidence } from "./blob-store.ts";
 import { crawlRuntime } from "./crawler.ts";
 import { executeCards, registerArtifact, type CardResult } from "./execute-core.ts";
 import { humanize, renderReport, type ReportCard } from "./render-report.ts";
@@ -64,7 +64,7 @@ async function collectEvidence(results: CardResult[], campaignName: string, runS
 
 
 async function buildHints(appUrl: string, crawl: { links: Array<{ href: string }>; has_password_field: boolean }, hintsFile?: string): Promise<AuditHints> {
-  const hints: AuditHints = { securityPaths: ["/"], protectedRoutes: [], protectedApis: [], postEndpoints: [], roles: {} };
+  const hints: AuditHints = { securityPaths: ["/"], protectedRoutes: [], protectedApis: [], postEndpoints: [], roles: {}, writeApis: [], elevenLabsAgents: [] };
   const origin = new URL(appUrl).origin;
   const sample = (route: string) => route.replace(/:(\w+)|\[(\w+)\]|\*/g, "42");
 
@@ -75,8 +75,12 @@ async function buildHints(appUrl: string, crawl: { links: Array<{ href: string }
       for (const r of raw.protected_routes ?? []) hints.protectedRoutes!.push(sample(r));
       for (const a of raw.protected_apis ?? []) hints.protectedApis!.push(typeof a === "string" ? { path: a, method: "POST" } : a);
       for (const e of raw.post_endpoints ?? []) hints.postEndpoints!.push(typeof e === "string" ? { path: e } : e);
+      for (const w of raw.write_apis ?? []) hints.writeApis!.push(typeof w === "string" ? { path: w, method: "POST" } : w);
       if (raw.security_paths) hints.securityPaths = raw.security_paths;
       if (raw.login_path) hints.loginPath = raw.login_path;
+      // ElevenLabs agents to audit (read-only). Accepts string IDs or {agentId,name,toolless,apiKeyEnv}.
+      if (raw.elevenlabs_api_key_env) hints.elevenLabsApiKeyEnv = raw.elevenlabs_api_key_env;
+      for (const a of raw.elevenlabs_agents ?? []) hints.elevenLabsAgents!.push(typeof a === "string" ? { agentId: a } : a);
       // Capture auth for provided roles (locally; creds never leave the machine).
       for (const [role, creds] of [["admin", raw.admin_creds], ["user", raw.user_creds]] as const) {
         if (creds?.username && creds?.password) {
@@ -197,7 +201,7 @@ async function main() {
           if (r.status === "failed") syncFindings.push({ id: `FD_${runStamp}_${r.card.id}`, test_card_id: r.card.id, type: "product_bug", severity: r.card.risk, title: `${r.card.title} — failed`, summary: `Failed at ${r.failedStep}: ${r.error}`.slice(0, 480), evidence_refs: refs });
         }
         await fetch(`${PLATFORM_URL}/api/runner/sync`, {
-          method: "POST", headers: { "content-type": "application/json" },
+          method: "POST", headers: { "content-type": "application/json", ...runnerAuthHeaders() },
           body: JSON.stringify({ campaign_id: campaignId, runner_host: os.hostname(), build_sha: "audit-cli", scan_mode: "live_scan",
             scan_detail: { ...(scan?.detail ?? {}), crawl }, repo_summary: scan?.repo_summary ?? { framework: crawl.title || appUrl, package_manager: "n/a", scripts: [], route_count: crawl.links.length, api_route_count: 0, env_keys_present: [], env_keys_missing: [] },
             runtime_summary: await probeRuntime(appUrl), test_cards: [...results.map((r) => ({ ...r.card, status: r.status })), ...blocked], run_results: runResults, findings: syncFindings, artifact_refs: artifactRefs }),

@@ -17,6 +17,12 @@ export type GeneratedCard = {
 
 export type RoleAuth = { cookie?: string; storageState?: string };
 
+/** A state-changing API that must reject anonymous callers (write-authz / IDOR surface). */
+export type WriteApi = { path: string; method?: string; body?: unknown };
+
+/** An ElevenLabs ConvAI agent to audit (config is fetched read-only via the EL API). */
+export type ElevenLabsAgent = { agentId: string; name?: string; toolless?: boolean; apiKeyEnv?: string };
+
 export type AuditHints = {
   protectedRoutes?: string[];
   protectedApis?: Array<{ path: string; method?: string }>;
@@ -24,6 +30,11 @@ export type AuditHints = {
   loginPath?: string;
   roles?: Record<string, RoleAuth>;
   securityPaths?: string[];
+  /** State-changing endpoints whose anonymous-write rejection must be proven. */
+  writeApis?: WriteApi[];
+  /** ElevenLabs agents to audit, plus the env var holding the xi-api-key. */
+  elevenLabsAgents?: ElevenLabsAgent[];
+  elevenLabsApiKeyEnv?: string;
 };
 
 export class Counter {

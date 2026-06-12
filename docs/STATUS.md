@@ -47,6 +47,31 @@
   security headers) have no browser context, so no trace or screenshot; their
   evidence is the recorded failure detail itself.
 - **Production campaign creation** needs `POSTGRES_URL` set in Vercel env (1 step).
+- **Seed/demo campaign is labelled, not faked.** Until a real campaign is created
+  via the API (Postgres live), the dashboard serves a clearly-marked
+  "Demo: Sample Campaign" (`demo.example/sample-app`, `demo-runner (sample)`),
+  and the UI renders a "Sample data" badge + advisory notes whenever
+  `persistence.mode !== "postgres"`. Real Postgres-backed campaigns render
+  truthfully with no badge.
+
+## Security hardening (2026-06-12)
+- **Runner-write authentication.** `/api/runner/sync` and
+  `/api/storage/register-artifact` now require the shared `RUNNER_SYNC_SECRET`
+  (sent by the runner as `authorization: Bearer <secret>`), compared in
+  constant time. Production fails closed: an unset secret rejects all writes
+  (503); a configured secret rejects missing/wrong credentials (401). Local dev
+  with no secret stays open so `npm run dev` + `npm run runner:sync` work with
+  zero setup; when `.env.local` carries the secret, the dev server enforces it
+  exactly like production.
+- **Security headers** set in `vercel.json` for all paths: a tight CSP
+  (`script-src 'self'`, no inline scripts in deployed HTML; `style-src` allows
+  `'unsafe-inline'` for the app's dynamic runtime inline styles + Google Fonts;
+  `font-src` Google Fonts; `connect-src 'self'`; `frame-ancestors 'none'`),
+  plus `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+  `Referrer-Policy: strict-origin-when-cross-origin`, a deny-all
+  `Permissions-Policy`, and `Cross-Origin-Opener-Policy: same-origin`.
+- **Favicon** added (`public/favicon.svg`, the LaunchAudit gauge mark) and linked
+  from both HTML pages — no more `/favicon.ico` 404.
 - **Traffic-insight + self-healing engines** — not built yet. Their dashboard
   panels (and the Evidence nav view) were removed entirely rather than showing
   sample data; they return when the Playwright traffic layer and healing engine
