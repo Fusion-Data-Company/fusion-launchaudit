@@ -17,15 +17,41 @@
   gauge + road-to-100, category-coverage centerpiece, Linear-style results).
   Live in production, hostile-verified (dark/light/mobile, 6 views, 0 console errors).
 - **Multi-campaign** persistence (Neon), campaign switcher, report export.
+- **Trace artifacts + Blob upload** — every browser-executed check is traced
+  (Playwright screenshots + DOM snapshots); FAILED cards export a `trace.zip`
+  into the report's `evidence/` dir (passed checks keep none — size
+  discipline). When `BLOB_READ_WRITE_TOKEN` is present (`.env.local` or env),
+  the runner uploads evidence binaries (screenshots + traces) to Vercel Blob
+  under `launchaudit/<name>/<run-stamp>/`. Uploads try `access: "private"`
+  first (the storage contract's preference, with presigned report links); the
+  production `launchaudit-artifacts` store is configured PUBLIC, so the API
+  rejects private writes and the runner falls back to public uploads with
+  unguessable random-suffix URLs. The HTML report links evidence per check —
+  blob URLs in blob mode, local relative paths (`evidence/...`) when no token.
+  Hosted sync now registers trace artifacts (kind `trace`) alongside
+  screenshots. Verified end-to-end on the buggy-shop fixture: 2 trace.zips for
+  the 2 failed browser cards, 6 blobs uploaded, trace blob re-downloaded
+  byte-identical (HTTP 200).
 
 ## What's honestly not done
 - **Cowork (non-developer) surface** — packaging the same tools as a Cowork
   plugin so non-devs run it without a terminal. ("Both, devs first" — this is the
   second half.)
-- **Trace/video artifacts + Blob upload** — screenshot evidence works and is
-  referenced; richer artifacts are next.
+- **Video artifacts** — skipped deliberately. Playwright `recordVideo` must be
+  enabled at context creation, before pass/fail is known, so "video for failed
+  cards only" would mean recording every attempt of every card and deleting
+  most of it — real encoding overhead on every run for evidence the trace
+  viewer already covers (traces include per-step screenshots + DOM snapshots).
+  Not built; revisit only if a client asks for watchable video.
+- **Trace coverage is browser-cards only** — pure-HTTP checks (admin API /
+  security headers) have no browser context, so no trace or screenshot; their
+  evidence is the recorded failure detail itself.
 - **Production campaign creation** needs `POSTGRES_URL` set in Vercel env (1 step).
-- Traffic-insights / self-healing dashboard panels are labeled sample data.
+- **Traffic-insight + self-healing engines** — not built yet. Their dashboard
+  panels (and the Evidence nav view) were removed entirely rather than showing
+  sample data; they return when the Playwright traffic layer and healing engine
+  produce real per-campaign events. The concepts remain listed honestly as
+  roadmap items in the Reports view's flagship-feature layer.
 
 ## Install (developer, on their own subscription)
 ```bash

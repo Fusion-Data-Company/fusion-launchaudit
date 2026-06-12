@@ -16,8 +16,9 @@ import { generateTestCards } from "../src/lib/card-generator.ts";
 import type { AuditHints } from "../src/lib/generators/types.ts";
 import { captureAuth } from "./capture-auth.ts";
 import fsp from "node:fs/promises";
+import { blobConfigured, safeName, uploadEvidence } from "./blob-store.ts";
 import { crawlRuntime } from "./crawler.ts";
-import { executeCards, registerArtifact } from "./execute-core.ts";
+import { executeCards, registerArtifact, type CardResult } from "./execute-core.ts";
 import { humanize, renderReport, type ReportCard } from "./render-report.ts";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
 import { classifyFailure } from "./classify.ts";
@@ -27,6 +28,39 @@ const arg = (n: string) => { const i = args.indexOf(`--${n}`); return i !== -1 ?
 
 const PLATFORM_URL = (process.env.LAUNCHAUDIT_API_URL ?? "").replace(/\/$/, "");
 const OUT_DIR = arg("out") ?? "launchaudit-report";
+
+/**
+ * Collect evidence links per card. Local relative paths always work (the
+ * report lives in OUT_DIR, evidence in OUT_DIR/evidence). When
+ * BLOB_READ_WRITE_TOKEN is present (.env.local or env), binaries are ALSO
+ * uploaded to Vercel Blob (private) and the report links the presigned URL.
+ */
+async function collectEvidence(results: CardResult[], campaignName: string, runStamp: string) {
+  const useBlob = blobConfigured();
+  const blobDir = `launchaudit/${safeName(campaignName)}/${runStamp}`;
+  if (useBlob) console.error(`      evidence → Vercel Blob under ${blobDir}/`);
+  const byCard = new Map<string, Array<{ label: string; href: string }>>();
+  let uploaded = 0;
+  for (const r of results) {
+    const files: Array<[string, string]> = [["screenshot", r.screenshotPath], ["trace", r.tracePath]];
+    const links: Array<{ label: string; href: string }> = [];
+    for (const [label, filePath] of files) {
+      if (!filePath || !(await fsp.stat(filePath).catch(() => null))) continue;
+      let href = path.relative(path.resolve(OUT_DIR), path.resolve(filePath));
+      if (useBlob) {
+        const blob = await uploadEvidence(filePath, blobDir);
+        if (blob) {
+          uploaded += 1;
+          if (blob.reportUrl) href = blob.reportUrl;
+        }
+      }
+      links.push({ label, href });
+    }
+    if (links.length) byCard.set(r.card.id, links);
+  }
+  if (useBlob) console.error(`      uploaded ${uploaded} evidence file(s) to Blob`);
+  return byCard;
+}
 
 
 async function buildHints(appUrl: string, crawl: { links: Array<{ href: string }>; has_password_field: boolean }, hintsFile?: string): Promise<AuditHints> {
@@ -115,11 +149,15 @@ async function main() {
   const executedDenom = passed + failed + needAttention;
   const readiness = executedDenom === 0 ? 0 : Math.round((passed / executedDenom) * 100);
 
+  // One run stamp shared by evidence blob paths and (optional) platform sync run IDs.
+  const runStamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const evidenceByCard = await collectEvidence(results, name, runStamp);
+
   const reportCards: ReportCard[] = [
     ...results.map((r) => {
       const cls = clsById.get(r.card.id);
       const status = r.flaky ? "passed" : cls?.type === "needs_verification" ? "needs_verification" : r.status;
-      return { ...r.card, status, ...humanize({ category: r.card.category, title: r.card.title, status }) };
+      return { ...r.card, status, evidence: evidenceByCard.get(r.card.id), ...humanize({ category: r.card.category, title: r.card.title, status }) };
     }),
     ...blocked.map((c) => ({ ...c, status: "blocked", plainTitle: c.title, plainDetail: c.acceptanceCriteria })),
   ] as ReportCard[];
@@ -146,14 +184,17 @@ async function main() {
       }).then((r) => r.json());
       const campaignId = created.id;
       if (campaignId) {
-        const runStamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
         const runResults = [], syncFindings = [], artifactRefs: string[] = [];
         for (const r of results) {
           const runId = `run_${runStamp}_${r.card.id}`;
-          const ref = await registerArtifact(PLATFORM_URL, campaignId, runId, r.card.id, r.screenshotPath);
-          if (ref) artifactRefs.push(ref);
-          runResults.push({ run_id: runId, test_card_id: r.card.id, status: r.status, started_at: r.startedAt, ended_at: r.endedAt, artifact_refs: ref ? [ref] : [] });
-          if (r.status === "failed") syncFindings.push({ id: `FD_${runStamp}_${r.card.id}`, test_card_id: r.card.id, type: "product_bug", severity: r.card.risk, title: `${r.card.title} — failed`, summary: `Failed at ${r.failedStep}: ${r.error}`.slice(0, 480), evidence_refs: ref ? [ref] : [] });
+          const refs: string[] = [];
+          const shotRef = await registerArtifact(PLATFORM_URL, campaignId, runId, r.card.id, r.screenshotPath, "screenshot");
+          if (shotRef) refs.push(shotRef);
+          const traceRef = await registerArtifact(PLATFORM_URL, campaignId, runId, r.card.id, r.tracePath, "trace");
+          if (traceRef) refs.push(traceRef);
+          artifactRefs.push(...refs);
+          runResults.push({ run_id: runId, test_card_id: r.card.id, status: r.status, started_at: r.startedAt, ended_at: r.endedAt, artifact_refs: refs });
+          if (r.status === "failed") syncFindings.push({ id: `FD_${runStamp}_${r.card.id}`, test_card_id: r.card.id, type: "product_bug", severity: r.card.risk, title: `${r.card.title} — failed`, summary: `Failed at ${r.failedStep}: ${r.error}`.slice(0, 480), evidence_refs: refs });
         }
         await fetch(`${PLATFORM_URL}/api/runner/sync`, {
           method: "POST", headers: { "content-type": "application/json" },

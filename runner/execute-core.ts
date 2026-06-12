@@ -18,6 +18,8 @@ export type CardResult = {
   consoleErrors: string[];
   failedRequests: string[];
   screenshotPath: string;
+  /** Playwright trace.zip — only written for FAILED browser cards (size discipline). Empty otherwise. */
+  tracePath: string;
   startedAt: string;
   endedAt: string;
   attempts: number;
@@ -143,6 +145,8 @@ async function runBrowserAttempt(browser: Browser, card: ExecutableTestCard, opt
     reducedMotion: "reduce",
     ...(card.authState ? { storageState: card.authState } : {}),
   });
+  // Trace every attempt (screenshots + DOM snapshots); export only on failure.
+  await context.tracing.start({ screenshots: true, snapshots: true }).catch(() => {});
   const page = await context.newPage();
   page.on("console", (m) => { if (m.type() === "error") state.consoleErrors.push(m.text()); });
   page.on("response", (r) => { if (r.status() >= 500) state.failedRequests.push(`${r.status()} ${r.url()}`); });
@@ -155,8 +159,19 @@ async function runBrowserAttempt(browser: Browser, card: ExecutableTestCard, opt
   await fs.mkdir(options.artifactDir, { recursive: true });
   const screenshotPath = path.join(options.artifactDir, `${card.id}.png`);
   await page.screenshot({ path: screenshotPath, fullPage: false }).catch(() => {});
+
+  // Size discipline: keep the trace.zip only when the card FAILED.
+  let tracePath = "";
+  if (status === "failed") {
+    tracePath = path.join(options.artifactDir, `${card.id}-trace.zip`);
+    try { await context.tracing.stop({ path: tracePath }); }
+    catch { tracePath = ""; }
+  } else {
+    await context.tracing.stop().catch(() => {});
+  }
+
   await context.close();
-  return { status, failedStep, error, consoleErrors: state.consoleErrors, failedRequests: state.failedRequests, screenshotPath };
+  return { status, failedStep, error, consoleErrors: state.consoleErrors, failedRequests: state.failedRequests, screenshotPath, tracePath };
 }
 
 async function executeOne(browser: Browser, card: ExecutableTestCard, options: ExecOptions): Promise<CardResult> {
@@ -171,7 +186,7 @@ async function executeOne(browser: Browser, card: ExecutableTestCard, options: E
       try { await runHttp(step as Extract<ExecStep, { action: "http" }>, options.appUrl); }
       catch (e) { status = "failed"; failedStep = describeStep(step); error = e instanceof Error ? e.message : String(e); break; }
     }
-    return { card, status, failedStep, error, consoleErrors: [], failedRequests: [], screenshotPath: "", startedAt, endedAt: new Date().toISOString(), attempts: 1 };
+    return { card, status, failedStep, error, consoleErrors: [], failedRequests: [], screenshotPath: "", tracePath: "", startedAt, endedAt: new Date().toISOString(), attempts: 1 };
   }
 
   // Browser cards: bounded retry separates a real failure from a one-off timing flake
@@ -184,9 +199,15 @@ async function executeOne(browser: Browser, card: ExecutableTestCard, options: E
     last = await runBrowserAttempt(browser, card, options);
   }
   const flaky = last.status === "passed" && attempt > 1;
+  // A failed attempt may have exported a trace before a retry recovered; the
+  // card ultimately passed, so drop the stale trace (passed checks keep none).
+  if (last.status === "passed") {
+    await fs.unlink(path.join(options.artifactDir, `${card.id}-trace.zip`)).catch(() => {});
+  }
   return {
     card, status: last.status, failedStep: last.failedStep, error: last.error,
     consoleErrors: last.consoleErrors, failedRequests: last.failedRequests, screenshotPath: last.screenshotPath,
+    tracePath: last.status === "failed" ? last.tracePath : "",
     startedAt, endedAt: new Date().toISOString(), attempts: attempt, flaky,
   };
 }
@@ -205,14 +226,14 @@ export async function executeCards(cards: ExecutableTestCard[], options: ExecOpt
   return results;
 }
 
-export async function registerArtifact(platformUrl: string, campaignId: string, runId: string, testCardId: string, filePath: string): Promise<string | null> {
+export async function registerArtifact(platformUrl: string, campaignId: string, runId: string, testCardId: string, filePath: string, artifactType: "screenshot" | "trace" = "screenshot"): Promise<string | null> {
   if (!filePath) return null;
   try {
     const content = await fs.readFile(filePath);
     const sha256 = crypto.createHash("sha256").update(content).digest("hex");
     const r = await fetch(`${platformUrl}/api/storage/register-artifact`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ campaign_id: campaignId, run_id: runId, test_card_id: testCardId, artifact_type: "screenshot", filename: path.basename(filePath), sha256 }),
+      body: JSON.stringify({ campaign_id: campaignId, run_id: runId, test_card_id: testCardId, artifact_type: artifactType, filename: path.basename(filePath), sha256 }),
     });
     const d = await r.json();
     return d.artifact_ref ?? null;

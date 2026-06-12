@@ -15,6 +15,8 @@ export type ReportCard = {
   plainTitle?: string;
   plainDetail?: string;
   acceptanceCriteria?: string;
+  /** Evidence links — local relative paths (e.g. evidence/TC-1.png) or presigned blob URLs. */
+  evidence?: Array<{ label: string; href: string }>;
 };
 
 export type ReportData = {
@@ -41,9 +43,12 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
     .map((c) => {
       const cls = c.status === "passed" ? "p" : c.status === "failed" ? "f" : "w";
       const mark = c.status === "passed" ? "✓" : c.status === "failed" ? "✕" : "!";
+      const evidence = (c.evidence ?? [])
+        .map((e) => `<a class="ev" href="${esc(e.href)}" target="_blank" rel="noopener">${esc(e.label)}</a>`)
+        .join("");
       return `<tr>
         <td style="width:34px"><div class="st ${cls}">${mark}</div></td>
-        <td><div class="ttl">${esc(c.plainTitle ?? c.title)}</div><div class="desc">${esc(c.plainDetail ?? c.acceptanceCriteria ?? "")}</div></td>
+        <td><div class="ttl">${esc(c.plainTitle ?? c.title)}</div><div class="desc">${esc(c.plainDetail ?? c.acceptanceCriteria ?? "")}</div>${evidence ? `<div class="ev-row">${evidence}</div>` : ""}</td>
         <td class="cat">${esc(c.category)}</td>
       </tr>`;
     })
@@ -91,6 +96,9 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
   .finding{margin:0 40px 12px;border:1px solid var(--line);border-left:4px solid var(--fail);border-radius:8px;padding:14px 16px}
   .finding h3{font-size:14px}.finding p{color:var(--soft);font-size:13.5px;margin-top:5px}
   .muted{color:var(--faint);padding:0 40px;font-size:14px}
+  .ev-row{display:flex;gap:8px;margin-top:7px}
+  .ev{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:5px;padding:2px 8px}
+  .ev:hover{border-color:var(--accent)}
   .foot{padding:24px 40px 30px;color:var(--faint);font-size:11.5px;display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:20px}
 </style></head><body>
 <div class="sheet">

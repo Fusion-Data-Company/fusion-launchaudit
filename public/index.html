@@ -41,8 +41,6 @@
         <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
         <symbol id="i-findings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 9v5M12 17v.5"/></symbol>
         <symbol id="i-truth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
-        <symbol id="i-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></symbol>
-        <symbol id="i-heal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 8.5a4.5 4.5 0 0 0-7.5-3l-1 1-1-1a4.5 4.5 0 0 0-6.4 6.3L12 21l4.2-4.2"/><path d="M14 14h3v3"/></symbol>
         <symbol id="i-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 9V3"/><path d="M8 3h8M7.5 15h9"/></symbol>
       </defs>
     </svg>
@@ -64,7 +62,6 @@
           <a class="nav-item nav-active" href="#/campaigns" data-nav="campaigns"><svg><use href="#i-campaigns"/></svg>Campaign<span class="nav-count" data-nav-count="campaigns"></span></a>
           <a class="nav-item" href="#/projects" data-nav="projects"><svg><use href="#i-projects"/></svg>Projects<span class="nav-count" data-nav-count="projects"></span></a>
           <a class="nav-item" href="#/runner" data-nav="runner"><svg><use href="#i-runner"/></svg>Runner<span class="nav-count" data-nav-count="runner"></span></a>
-          <a class="nav-item" href="#/evidence" data-nav="evidence"><svg><use href="#i-evidence"/></svg>Evidence<span class="nav-count" data-nav-count="evidence"></span></a>
           <a class="nav-item" href="#/reports" data-nav="reports"><svg><use href="#i-reports"/></svg>Reports<span class="nav-count" data-nav-count="reports"></span></a>
           <a class="nav-item" href="#/models" data-nav="models"><svg><use href="#i-models"/></svg>Models<span class="nav-count" data-nav-count="models"></span></a>
         </nav>
@@ -138,29 +135,6 @@
                 <div class="panel-title-line"><svg><use href="#i-runner"/></svg><h2>Context contract</h2></div>
                 <div class="contract-stack" id="context-contract"></div>
               </section>
-              <section class="panel" data-view="runner">
-                <div class="panel-heading">
-                  <div>
-                    <h2><svg><use href="#i-heal"/></svg>Audited self-healing</h2>
-                    <p>Locator healing is permitted only with an audit note and behavior proof. A heal never turns a red run green on its own.</p>
-                  </div>
-                  <span class="badge badge-medium">activates with healing engine</span>
-                </div>
-                <div class="traffic-list" id="heal-events"></div>
-              </section>
-
-              <!-- ===================== EVIDENCE ===================== -->
-              <section class="panel" data-view="evidence">
-                <div class="panel-heading">
-                  <div>
-                    <h2><svg><use href="#i-net"/></svg>Traffic insight debugger</h2>
-                    <p>Network sessions captured during execution, attached to the failures and repair packets they explain.</p>
-                  </div>
-                  <span class="badge badge-medium">ships with Playwright traffic layer</span>
-                </div>
-                <div class="traffic-list" id="traffic-insights"></div>
-              </section>
-
               <!-- ===================== REPORTS ===================== -->
               <section class="panel" data-view="reports">
                 <div class="panel-heading">

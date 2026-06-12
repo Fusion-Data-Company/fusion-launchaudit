@@ -753,24 +753,6 @@ code, .mono, .mono-id {
 .contract-row .contract-row-main { min-width: 0; }
 
 /* ============================================================================
-   TRAFFIC + HEAL
-   ============================================================================ */
-.traffic-list { display: flex; flex-direction: column; }
-.traffic-row {
-  display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
-  padding: 11px 16px; border-top: 1px solid var(--line);
-}
-.traffic-row:first-child { border-top: none; }
-.traffic-row .t-url { font-family:"JetBrains Mono",monospace; font-size: 11px; color: var(--code-fg); word-break: break-all; margin-top:6px; }
-.traffic-row .t-status { font-family:"JetBrains Mono",monospace; font-size: 12px; font-weight: 600; }
-.traffic-row .t-status.ok { color: var(--ok); } .traffic-row .t-status.bad { color: var(--bad); } .traffic-row .t-status.warn { color: var(--warn);}
-.traffic-row .t-dur { font-family:"JetBrains Mono",monospace; font-size: 11px; color: var(--fg-3); text-align: right; min-width: 52px;}
-.heal-row { grid-template-columns: 1fr auto; }
-.heal-row .h-event { font-size: 11.5px; color: var(--fg-2); margin-top: 6px; line-height: 1.45; }
-.heal-row small { display:block; font-size: 10.5px; color: var(--fg-4); margin-top: 4px; line-height: 1.45; }
-.heal-row .h-conf { font-family:"JetBrains Mono",monospace; font-size: 13px; font-weight: 600; color: var(--fg-2); }
-
-/* ============================================================================
    PERSISTENCE
    ============================================================================ */
 .persist-banner {

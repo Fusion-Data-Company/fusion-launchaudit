@@ -573,42 +573,6 @@ function renderStorage(readiness, tables, artifacts) {
 }
 
 /* ============================================================================
-   EVIDENCE — traffic + RUNNER — heal
-   ============================================================================ */
-function renderTrafficInsights(items) {
-  const statusClass = (s) => (s == null ? "warn" : s >= 400 ? "bad" : s >= 300 ? "warn" : "ok");
-  document.getElementById("traffic-insights").innerHTML = (items || [])
-    .map(
-      (item) => `
-        <div class="traffic-row">
-          <div>
-            <div class="badge-row">${badge(item.method, "badge-info")}${badge(item.risk, item.risk === "clean" ? "badge-success" : item.risk === "slow" ? "badge-medium" : "badge-high")}${item.attachedFindingId ? `<span class="mono-id">${esc(item.attachedFindingId)}</span>` : ""}</div>
-            <div class="t-url">${esc(item.url)}</div>
-          </div>
-          <div class="t-status ${statusClass(item.status)}">${esc(item.status ?? "—")}</div>
-          <div class="t-dur">${esc(item.durationMs)}ms</div>
-        </div>`,
-    )
-    .join("");
-}
-
-function renderHealEvents(items) {
-  document.getElementById("heal-events").innerHTML = (items || [])
-    .map(
-      (item) => `
-        <div class="traffic-row heal-row">
-          <div>
-            <div class="badge-row">${badge(item.testCardId, "badge-info")}${badge(titleCase(item.disposition), item.disposition === "approved" ? "badge-success" : "badge-medium")}</div>
-            <div class="h-event">${esc(item.event)}</div>
-            <small>${esc(item.auditNote)}</small>
-          </div>
-          <div class="h-conf">${Math.round(item.confidence * 100)}%</div>
-        </div>`,
-    )
-    .join("");
-}
-
-/* ============================================================================
    PERSISTENCE banner
    ============================================================================ */
 function renderPersistence(persistence) {
@@ -629,7 +593,6 @@ function renderNavCounts(data) {
     campaigns: (data.test_cards || []).length,
     projects: (data.database_tables || []).length,
     runner: (data.runner_tools || []).length,
-    evidence: (data.traffic_insights || []).length,
     reports: (data.competitive_scorecard || []).length,
     models: (data.model_routes || []).length,
   };
@@ -687,8 +650,6 @@ async function loadCampaign(campaignId = selectedCampaignId()) {
   renderModelRouting(data.model_routes || [], data.model_provider_slots || []);
   renderProviderSlots(data.model_provider_slots || []);
   renderStorage(data.storage_readiness || [], data.database_tables || [], data.blob_artifacts || []);
-  renderTrafficInsights(data.traffic_insights);
-  renderHealEvents(data.heal_events);
   renderPersistence(data.persistence);
   renderNavCounts(data);
   return data;
@@ -711,7 +672,7 @@ const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)
 
 function initReveals() {
   if (prefersReducedMotion) return;
-  const groups = [".metric-card", ".cov-card", ".cat-group", ".tile", ".finding-card", ".contract-row", ".traffic-row", ".panel"];
+  const groups = [".metric-card", ".cov-card", ".cat-group", ".tile", ".finding-card", ".contract-row", ".panel"];
   const seen = new Set();
   for (const selector of groups) {
     const nodes = [...document.querySelectorAll(selector)].filter((n) => !seen.has(n));
@@ -737,7 +698,7 @@ function initMotion() { initReveals(); }
 /* ============================================================================
    VIEW ROUTER
    ============================================================================ */
-const VIEW_NAMES = ["campaigns", "projects", "runner", "evidence", "reports", "models"];
+const VIEW_NAMES = ["campaigns", "projects", "runner", "reports", "models"];
 
 function currentView() {
   const candidate = window.location.hash.replace(/^#\/?/, "");

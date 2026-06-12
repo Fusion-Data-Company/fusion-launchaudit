@@ -46,3 +46,7 @@ launchaudit-report/
 
 # generated audit reports
 launchaudit-report-*/
+.env*.local
+
+# captured auth sessions (cookies, storage state) - never commit
+.launchaudit/
