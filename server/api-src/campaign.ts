@@ -44,6 +44,10 @@ const SEEDED_PERSISTENCE = {
 };
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
+  if (request.method && request.method !== "GET") {
+    response.status(405).json({ error: "Method Not Allowed", allow: "GET" });
+    return;
+  }
   const sql = await getSqlClient();
   const rawId = request.query?.id;
   const campaignId = typeof rawId === "string" && rawId.trim() ? rawId.trim() : undefined;

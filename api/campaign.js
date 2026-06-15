@@ -6240,6 +6240,10 @@ var SEEDED_PERSISTENCE = {
   detail: "POSTGRES_URL is not configured; serving build-time seeded campaign data."
 };
 async function handler(request, response) {
+  if (request.method && request.method !== "GET") {
+    response.status(405).json({ error: "Method Not Allowed", allow: "GET" });
+    return;
+  }
   const sql = await getSqlClient();
   const rawId = request.query?.id;
   const campaignId = typeof rawId === "string" && rawId.trim() ? rawId.trim() : void 0;
