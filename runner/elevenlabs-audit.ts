@@ -40,7 +40,17 @@ function dig(obj: unknown, path: string): unknown {
   }, obj);
 }
 
-const PLACEHOLDER_MARKERS = ["TODO", "FIXME", "lorem ipsum", "your prompt here", "system prompt goes here", "xxxxx", "placeholder", "tbd"];
+// High-precision unfilled-template detection. The bare words "placeholder",
+// "todo", and "tbd" appear in LEGITIMATE prompt prose (e.g. an instruction that
+// says: NEVER pass a placeholder like "base64 here"), so matching them produces
+// false positives. We match only unambiguous markers: clear template phrases,
+// code-style markers WITH a trailing colon, and all-caps PLACEHOLDER/XXXXX forms.
+const PLACEHOLDER_PHRASES = [
+  "lorem ipsum", "your prompt here", "system prompt goes here", "prompt goes here",
+  "insert prompt here", "insert your prompt", "[insert", "todo:", "fixme:", "tbd:",
+];
+const PLACEHOLDER_CAPS = /\bPLACEHOLDER\b|\bTKTK\b/; // case-sensitive: caps marker, not prose "placeholder"
+const PLACEHOLDER_REDACTION = /x{5,}/i; // 5+ x's = redaction/fill-in stub
 
 /** The webhook/client tools that should carry a real https endpoint. */
 function collectWebhookUrls(agent: Record<string, unknown>): Array<{ name: string; url: string | undefined }> {
@@ -108,8 +118,11 @@ export async function runElevenLabsAssertion(agentId: string, apiKeyEnv: string 
     case "no_placeholder_prompt": {
       const v = String(dig(agent, assert.path) ?? "");
       const lower = v.toLowerCase();
-      const hit = PLACEHOLDER_MARKERS.find((m) => lower.includes(m.toLowerCase()));
-      if (hit) throw new Error(`${name}: system prompt still contains placeholder text "${hit}" — not production-ready`);
+      const phrase = PLACEHOLDER_PHRASES.find((m) => lower.includes(m));
+      const caps = PLACEHOLDER_CAPS.exec(v)?.[0];
+      const redaction = PLACEHOLDER_REDACTION.test(v) ? "an x-run redaction stub (xxxxx)" : undefined;
+      const hit = phrase ? `"${phrase}"` : caps ? `"${caps}"` : redaction;
+      if (hit) throw new Error(`${name}: system prompt still contains a placeholder marker (${hit}) — not production-ready`);
       return;
     }
     case "webhooks_https": {
