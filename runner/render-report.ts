@@ -142,6 +142,8 @@ export function humanize(card: { category: string; title: string; status: string
     integration_side_effects: { t: "Connected services", d: "Third-party tools (payments, email) are wired up." },
     state_persistence: { t: "Your settings stick", d: "Choices are remembered after reloading." },
     roles_permissions: { t: "Admin access is locked down", d: "Only admins can reach admin pages and actions — not regular users or the public." },
+    write_authz: { t: "Strangers can't change your data", d: "Logged-out visitors can't create, edit, or delete through your privileged write APIs." },
+    write_authz_unverified: { t: "Open write endpoints to confirm", d: "A write API accepted an anonymous request — confirm it's meant to be public (like a contact form) or needs a login." },
     security_headers: { t: "Browser protections are on", d: "The site sends the headers that stop clickjacking, MIME-sniffing, and stack leaks." },
     secrets_exposure: { t: "No secrets are downloadable", d: "Config files, keys, and version-control data aren't publicly served." },
   };
