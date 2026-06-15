@@ -70,6 +70,16 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
       reason: "a privileged surface answered an unauthenticated request — server-side authorization is missing, not just UI-hidden",
     };
   }
+  // SEO / structured data. Title + viewport are universal page quality (a real
+  // miss); the rest (description, canonical, OG, JSON-LD, noindex) are public-
+  // marketing-specific — a gap for a public page, irrelevant to an internal
+  // tool — so we verify intent rather than claim a bug.
+  if (cat === "seo") {
+    if (has(err, "<title>") || has(err, "viewport")) {
+      return { type: "product_bug", confidence: "medium", reason: "a universal page-quality element is missing — every page needs a real title and a mobile viewport" };
+    }
+    return { type: "needs_verification", confidence: "low", reason: "a public-page SEO/structured-data element is missing (or a noindex is present) — a real gap if this is a public/marketing page, not applicable to an internal tool; confirm which this is" };
+  }
   // Server 5xx where a clean 4xx was expected → unhandled exception path.
   if (/status 5\d\d/i.test(err) || has(err, "5xx")) {
     return { type: "product_bug", confidence: "high", reason: "the server threw a 5xx instead of a clean 4xx — an unhandled exception path (DoS / info-leak risk)" };

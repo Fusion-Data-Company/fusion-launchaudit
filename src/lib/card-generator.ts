@@ -8,6 +8,7 @@ import { generateMiddleware } from "./generators/middleware.ts";
 import { generateSecurity } from "./generators/security.ts";
 import { generateWriteAuthz } from "./generators/write-authz.ts";
 import { generateElevenLabs } from "./generators/elevenlabs.ts";
+import { generateSeo } from "./generators/seo.ts";
 
 export type { GeneratedCard, AuditHints } from "./generators/types.ts";
 
@@ -65,6 +66,7 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateSecurity(scan, crawl, hints, c),
     ...generateWriteAuthz(scan, crawl, hints, c),
     ...generateElevenLabs(scan, crawl, hints, c),
+    ...generateSeo(scan, crawl, hints, c),
   ];
 
   if (crawl.has_password_field && !(hints.roles?.admin || hints.roles?.user)) {

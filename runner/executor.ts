@@ -56,7 +56,23 @@ export type ExecStep =
       agentId: string;
       apiKeyEnv?: string;
       assert: ElAssertion;
+    }
+  | {
+      action: "seo";
+      url?: string;
+      path?: string;
+      assert: SeoAssertion;
     };
+
+/** One assertion against a page's initial server HTML (SEO / structured data). */
+export type SeoAssertion =
+  | { kind: "title_present"; minLen?: number }
+  | { kind: "meta_present"; name: string; label?: string }
+  | { kind: "canonical_present" }
+  | { kind: "viewport_present" }
+  | { kind: "og_present"; property: string }
+  | { kind: "jsonld_valid" }
+  | { kind: "not_noindex" };
 
 /** One assertion against a fetched ElevenLabs ConvAI agent config (dot-path into the agent JSON). */
 export type ElAssertion =

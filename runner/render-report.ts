@@ -146,6 +146,7 @@ export function humanize(card: { category: string; title: string; status: string
     write_authz_unverified: { t: "Open write endpoints to confirm", d: "A write API accepted an anonymous request — confirm it's meant to be public (like a contact form) or needs a login." },
     security_headers: { t: "Browser protections are on", d: "The site sends the headers that stop clickjacking, MIME-sniffing, and stack leaks." },
     secrets_exposure: { t: "No secrets are downloadable", d: "Config files, keys, and version-control data aren't publicly served." },
+    seo: { t: "Search & sharing ready", d: "The page has a real title, mobile viewport, and the meta/structured data search engines and link previews need." },
   };
   const m = map[card.category] ?? { t: card.title, d: "" };
   return { plainTitle: m.t, plainDetail: m.d };
