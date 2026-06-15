@@ -24,6 +24,35 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   const isRbac = cat === "roles_permissions";
   const isExposure = has(err, "blocked") || has(err, "exposed");
 
+  // Write-authz, unknown-intent surface: an anonymous well-formed write was
+  // ACCEPTED (the only way this card fails). We can't tell from the repo if the
+  // route is meant to be public, so a human confirms — never a claimed bug.
+  if (cat === "write_authz_unverified") {
+    return {
+      type: "needs_verification",
+      confidence: "medium",
+      reason:
+        "an unauthenticated, well-formed write was accepted on an API route whose access intent isn't declared — confirm whether this endpoint is intentionally public (e.g. a contact form or public webhook) or is missing server-side write authorization",
+    };
+  }
+  // Write-authz, privileged surface: the anonymous write was not rejected with
+  // 401/403. Distinguish an accepted write (confirmed hole) from a shape/method
+  // rejection (auth not provably the gate → verify, don't over-claim).
+  if (cat === "write_authz") {
+    const got = Number((err.match(/got (\d{3})/) ?? [])[1] ?? 0);
+    const accepted = got >= 200 && got < 300;
+    if (accepted && ctx.devStubAuth) {
+      return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed in this environment, so an accepted anonymous write here does not prove a production hole — re-run against an environment with real auth active" };
+    }
+    if (accepted) {
+      return { type: "product_bug", confidence: "high", reason: "an unauthenticated, well-formed write was ACCEPTED (2xx) on a privileged surface — server-side write authorization is missing (open write)" };
+    }
+    if (got >= 500) {
+      return { type: "product_bug", confidence: "high", reason: "an unauthenticated write triggered a 5xx on a privileged surface — the auth gate is missing and the handler crashed on the input" };
+    }
+    return { type: "needs_verification", confidence: "medium", reason: `the privileged write was rejected with a ${got || "non-2xx"} (shape/method), not a 401/403 — confirm the auth gate rejects a well-formed anonymous write, not just a malformed one` };
+  }
+
   // Privileged surface reachable, but auth is stubbed here → cannot conclude a real hole.
   if (isRbac && isExposure && ctx.devStubAuth) {
     return {
