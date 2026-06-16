@@ -15,6 +15,8 @@ export type RuntimeCrawl = {
   has_password_field: boolean;
   console_errors_on_load: number;
   crawled_at: string;
+  /** When reachable is false, a plain-English reason (HTTP status, DNS, timeout). */
+  unreachable_reason?: string;
 };
 
 export async function crawlRuntime(appUrl: string): Promise<RuntimeCrawl> {
@@ -41,7 +43,13 @@ export async function crawlRuntime(appUrl: string): Promise<RuntimeCrawl> {
 
   try {
     const response = await page.goto(base, { waitUntil: "domcontentloaded", timeout: 30000 });
-    result.reachable = Boolean(response && response.status() < 500);
+    const status = response?.status();
+    result.reachable = Boolean(response && status !== undefined && status < 500);
+    if (!result.reachable) {
+      result.unreachable_reason = status === undefined
+        ? "no HTTP response from the server"
+        : `the site returned HTTP ${status} (server error — the deployment is up but failing)`;
+    }
     // Best-effort settle for SPA hydration / async content. Real apps with
     // websockets, animation loops, or analytics beacons never reach "networkidle";
     // we wait softly and move on instead of hard-failing a reachable site.
@@ -75,8 +83,14 @@ export async function crawlRuntime(appUrl: string): Promise<RuntimeCrawl> {
     result.button_count = dom.button_count;
     result.has_password_field = dom.has_password_field;
     result.console_errors_on_load = consoleErrors;
-  } catch {
+  } catch (e) {
     result.reachable = false;
+    const msg = e instanceof Error ? e.message : String(e);
+    result.unreachable_reason = /ERR_NAME_NOT_RESOLVED|getaddrinfo|ENOTFOUND/i.test(msg)
+      ? "the domain did not resolve (DNS) — check the URL or that the site is still hosted there"
+      : /timeout|ERR_TIMED_OUT/i.test(msg)
+        ? "the request timed out after 30s — the server is unreachable or extremely slow"
+        : `navigation failed: ${msg.split("\n")[0].slice(0, 120)}`;
   }
 
   await browser.close();

@@ -120,7 +120,7 @@ async function main() {
   const scan = repoPath ? await scanRepo(repoPath) : null;
   const crawl = await crawlRuntime(appUrl);
   if (!crawl.reachable) {
-    console.error(`FATAL: ${appUrl} is not reachable. Start the app/site and re-run.`);
+    console.error(`FATAL: ${appUrl} could not be audited — ${crawl.unreachable_reason ?? "the site is not reachable"}.`);
     process.exit(1);
   }
   console.error(`      ${scan ? scan.repo_summary.framework + " · " : ""}${crawl.links.length} pages · ${crawl.form_count} forms · "${crawl.title}"`);

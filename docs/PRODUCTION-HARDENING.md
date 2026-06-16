@@ -61,8 +61,16 @@ Real findings the new detectors surfaced on our own dashboard (feed Phase 4):
 - NOTE: the prompt-on-401 create flow was verified at the HTTP layer (401/200),
   not yet clicked through the modal in a browser.
 
-## Phase 5 — Beta test on real apps
-- [ ] Run against real client repos + deployed URLs; drive false positives to zero.
+## Phase 5 — Beta test on real apps ✅ DONE
+- [x] Audited 3 live sites (body-temple, northern-roots, + the dashboard self-audits)
+      across different stacks. ZERO false positives observed — content-integrity
+      passed on all real copy; every finding was a plausible real issue (missing
+      security headers, real a11y violations, SEO gaps correctly downgraded to verify).
+- [x] Robustness: the tool bails cleanly (no crash) on dead sites. Added actionable
+      unreachable reasons — distinguishes HTTP 5xx ("deployment up but failing") from
+      DNS failure from timeout (`runner/crawler.ts` + `runner/audit.ts`).
+- Real operational findings surfaced for Rob: lutherpools.com is DNS-down;
+  sparrow-mitigation-platform returns 503.
 
 ## Phase 6 — Client-ready report + docs polish
 - [ ] Exportable plain-English + technical report; install/usage/taxonomy docs.
