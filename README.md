@@ -100,7 +100,7 @@ silently counted as passes.
 
 ## What it tests
 
-Four generator families, made repo-aware when you pass `--repo`:
+Generator families, made repo-aware when you pass `--repo`:
 
 - Frontend: app shell renders, pages reachable, no horizontal overflow at 390
   and 768 px viewports, no console errors or 5xx responses on load.
@@ -109,11 +109,24 @@ Four generator families, made repo-aware when you pass `--repo`:
 - Admin / RBAC: anonymous users are blocked from admin routes and admin APIs;
   with captured credentials, normal users are denied and admins pass (positive
   control); direct-URL access to admin detail pages is blocked.
+- Write authorization: anonymous state-changing writes (POST/PUT/PATCH/DELETE)
+  to privileged endpoints must be rejected (401/403); other mutating endpoints
+  are flagged only if they silently accept an anonymous write (needs_verification).
 - Middleware and security: security headers present and carrying safe values
   (X-Frame-Options, X-Content-Type-Options, CSP, HSTS, Referrer-Policy,
   Permissions-Policy), no X-Powered-By stack banner, and secret or VCS files
   (`/.env`, `/.env.local`, `/.env.production`, `/.git/config`, `/.git/HEAD`)
   are not publicly downloadable.
+- SEO and structured data: real `<title>`, mobile viewport, meta description,
+  canonical, Open Graph, valid Schema.org JSON-LD, and no accidental `noindex`.
+- Content integrity: no lorem/placeholder copy, no unbound `undefined`/`NaN`
+  values leaking to the page, no hardcoded `localhost` URLs on a deployed site.
+- Accessibility: axe-core (WCAG 2.0/2.1 A + AA), reporting serious/critical
+  violations only.
+- Core Web Vitals: a cold-load LCP/CLS/FCP/TTFB smoke check (poor-range only,
+  reported as needs_verification since one headless run is not a lab benchmark).
+- ElevenLabs voice agents (when agent IDs + an API key are supplied): config
+  reachable, real system prompt, tools not wiped, HTTPS webhooks, voice + TTS set.
 
 Every failure is classified before it reaches the report: `product_bug`,
 `test_bug`, `flaky`, `needs_verification`, or `needs_input`, each with a
@@ -124,9 +137,8 @@ downgraded to `needs_verification` instead of being claimed as confirmed
 vulnerabilities.
 
 What it does not test yet (planned, tracked in
-`docs/research/GAP-ANALYSIS.md`): accessibility (axe-core), Core Web Vitals,
-SEO and structured data, IDOR / object-id swaps, and verifying that denied
-privileged mutations caused no state change.
+`docs/research/GAP-ANALYSIS.md`): IDOR / object-id swaps across user boundaries,
+and verifying that a denied privileged mutation caused no state change.
 
 ## How it compares to TestSprite
 
@@ -135,7 +147,10 @@ overlaps on that surface and adds the authorization and middleware checks
 that functional-QA tools generally do not run: multi-role RBAC, admin-panel
 access control, server-side guards on privileged APIs, and security-header
 correctness. A survey of 23 functional-QA tools (`docs/research/competitor-coverage.md`)
-found none of them test authorization.
+found none of them test authorization. On top of that wedge it also runs the
+breadth a launch needs in one pass: accessibility (axe-core), SEO/structured
+data, Core Web Vitals, fake/placeholder-data detection, and ElevenLabs voice
+agent config — each finding classified for honesty rather than dumped as a bug.
 
 Measured result on the included fixture: `fixtures/buggy-shop` has 5 planted
 bugs (an RBAC direct-URL leak, an unguarded admin API, a 500 with stack-trace
@@ -156,8 +171,16 @@ npm run dev        # local dashboard at http://127.0.0.1:3010
 
 ## Development
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for npm scripts and how to run the
-fixture tests.
+The engine has a unit-test suite (Node's built-in test runner, no extra deps):
+
+```bash
+npm test
+```
+
+It covers the scanner's HTTP-method extraction, the failure classifier (the
+honesty rules), the write-authz tiers, card generation, and the content-integrity,
+accessibility, SEO, and web-vitals detectors. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for the other npm scripts and how to run the fixture tests.
 
 ## License
 

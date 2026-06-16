@@ -72,5 +72,19 @@ Real findings the new detectors surfaced on our own dashboard (feed Phase 4):
 - Real operational findings surfaced for Rob: lutherpools.com is DNS-down;
   sparrow-mitigation-platform returns 503.
 
-## Phase 6 — Client-ready report + docs polish
-- [ ] Exportable plain-English + technical report; install/usage/taxonomy docs.
+## Phase 6 — Client-ready report + docs polish ✅ DONE
+- [x] README corrected to match reality: documented all current detectors
+      (write-authz, SEO, content-integrity, accessibility, Core Web Vitals,
+      ElevenLabs) and removed the stale "not tested yet" claims for a11y/CWV/SEO.
+      Strengthened the competitor comparison; documented `npm test`.
+- [x] Dependency hygiene: `npm audit` clean (0 vulnerabilities) — bumped esbuild
+      (dev-only) off the high-severity advisory. Build still green.
+- [x] The self-contained HTML report already ships (plain-English + technical,
+      exportable, no server needed) — unchanged.
+
+---
+
+## Status: all six phases complete.
+Engine: 51 tests passing, build green, npm audit clean, beta-validated on live
+sites with zero false positives, and the tool's own self-audit defects (write-authz
+false positives, a11y contrast) fixed and verified. Branch: `production-hardening`.
