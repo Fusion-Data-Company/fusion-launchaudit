@@ -62,7 +62,20 @@ export type ExecStep =
       url?: string;
       path?: string;
       assert: SeoAssertion;
+    }
+  | {
+      action: "content";
+      url?: string;
+      path?: string;
+      assert: ContentAssertion;
     };
+
+/** One assertion against a page's rendered content (fake/placeholder data integrity). */
+export type ContentAssertion =
+  | { kind: "no_lorem" }
+  | { kind: "no_unbound_values" }
+  | { kind: "no_localhost_refs" }
+  | { kind: "no_placeholder_markers" };
 
 /** One assertion against a page's initial server HTML (SEO / structured data). */
 export type SeoAssertion =

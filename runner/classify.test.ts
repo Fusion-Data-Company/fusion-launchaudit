@@ -69,3 +69,10 @@ test("a missing hardening header is a product bug", () => {
 test("a front-end expectation that survived retries is a product bug", () => {
   assert.equal(classifyFailure(result("responsive_visual", "horizontal overflow at 390px"), ctx()).type, "product_bug");
 });
+
+test("content integrity: lorem/undefined/localhost is a product bug; a placeholder marker is needs_verification", () => {
+  assert.equal(classifyFailure(result("content_integrity", "rendered page contains 'lorem ipsum' filler"), ctx()).type, "product_bug");
+  assert.equal(classifyFailure(result("content_integrity", 'shows an unbound "undefined" value'), ctx()).type, "product_bug");
+  assert.equal(classifyFailure(result("content_integrity", 'references "http://localhost:3000"'), ctx()).type, "product_bug");
+  assert.equal(classifyFailure(result("content_integrity", 'contains a placeholder marker ("your company name")'), ctx()).type, "needs_verification");
+});

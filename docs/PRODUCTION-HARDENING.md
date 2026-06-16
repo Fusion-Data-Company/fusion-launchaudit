@@ -22,11 +22,15 @@ Driven 2026-06-15. One phase at a time, each verified before moving on.
 - [x] ElevenLabs + SEO detectors — `src/lib/generators/detectors.test.ts` (5).
 - [x] scanner method extraction (3). Total: 29 tests passing.
 
-## Phase 1 — Trust surface (no fake data posing as real) — IN PROGRESS
-- [ ] Audit dashboard seeded/demo data: everything fake unmistakably labeled or
-      replaced with a real empty/onboarding state.
-- [ ] New detector: fake/placeholder data on an AUDITED app (hardcoded localhost,
-      lorem, stub records) — the class this tool ironically didn't own.
+## Phase 1 — Trust surface (no fake data posing as real) ✅ DONE
+- [x] Dashboard seeded data audited — already honestly labeled ("Demo: Sample
+      Campaign", "sample data", visible "Sample data" notes). No change needed.
+- [x] New `content_integrity` detector: lorem filler, unbound undefined/NaN,
+      hardcoded localhost on deployed targets, placeholder markers
+      (`runner/content-audit.ts`, `src/lib/generators/content-integrity.ts`,
+      executor `content` action, classifier branch, 12 tests).
+- [x] Verified live: self-audit generated + passed 4 TC-CI cards; write-authz
+      cards dropped 7→3 (false positives gone). 38 tests passing.
 
 ## Phase 3 — Close value gaps
 - [ ] ElevenLabs path made first-class in the default flow (not hints-only) where possible.

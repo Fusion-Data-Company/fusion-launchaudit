@@ -11,6 +11,7 @@ import { launchBrowser } from "./browser.ts";
 import { runnerAuthHeaders } from "./blob-store.ts";
 import { runElevenLabsAssertion } from "./elevenlabs-audit.ts";
 import { runSeoAssertion } from "./seo-audit.ts";
+import { runContentAssertion } from "./content-audit.ts";
 import type { ExecStep, ExecutableTestCard } from "./executor.ts";
 
 export type CardResult = {
@@ -134,17 +135,19 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
     case "http": await runHttp(step, appUrl); return;
     case "elevenlabs": await runElevenLabsAssertion(step.agentId, step.apiKeyEnv, step.assert); return;
     case "seo": await runSeoAssertion(resolveUrl(appUrl, step), step.assert); return;
+    case "content": await runContentAssertion(resolveUrl(appUrl, step), step.assert); return;
   }
 }
 
 /** Deterministic, no-browser cards: raw HTTP (BE/RBAC/middleware/security/write-authz), ElevenLabs, and SEO API checks. */
-const NO_BROWSER_ACTIONS = new Set(["http", "elevenlabs", "seo"]);
+const NO_BROWSER_ACTIONS = new Set(["http", "elevenlabs", "seo", "content"]);
 const isNoBrowser = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => NO_BROWSER_ACTIONS.has(s.action));
 
 async function runNoBrowserStep(step: ExecStep, appUrl: string): Promise<void> {
   if (step.action === "http") return runHttp(step, appUrl);
   if (step.action === "elevenlabs") return runElevenLabsAssertion(step.agentId, step.apiKeyEnv, step.assert);
   if (step.action === "seo") return runSeoAssertion(resolveUrl(appUrl, step), step.assert);
+  if (step.action === "content") return runContentAssertion(resolveUrl(appUrl, step), step.assert);
   throw new Error(`runNoBrowserStep got a browser action: ${step.action}`);
 }
 

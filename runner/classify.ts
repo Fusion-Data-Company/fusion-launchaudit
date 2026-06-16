@@ -80,6 +80,15 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
     }
     return { type: "needs_verification", confidence: "low", reason: "a public-page SEO/structured-data element is missing (or a noindex is present) — a real gap if this is a public/marketing page, not applicable to an internal tool; confirm which this is" };
   }
+  // Content integrity / fake data. Lorem filler, unbound undefined/NaN, and a
+  // hardcoded localhost URL on a deployed page are concrete defects (real bug).
+  // A generic placeholder marker might be intentional copy → verify, don't claim.
+  if (cat === "content_integrity") {
+    if (has(err, "lorem") || has(err, "undefined") || has(err, "nan") || has(err, "localhost")) {
+      return { type: "product_bug", confidence: "medium", reason: "the live page rendered placeholder or unbound data (lorem filler, an undefined/NaN value, or a hardcoded localhost URL) — real content/data wiring is missing" };
+    }
+    return { type: "needs_verification", confidence: "low", reason: "a possible placeholder marker is present — confirm it's intentional (e.g. a genuine stub/coming-soon section) rather than unfinished content" };
+  }
   // Server 5xx where a clean 4xx was expected → unhandled exception path.
   if (/status 5\d\d/i.test(err) || has(err, "5xx")) {
     return { type: "product_bug", confidence: "high", reason: "the server threw a 5xx instead of a clean 4xx — an unhandled exception path (DoS / info-leak risk)" };
