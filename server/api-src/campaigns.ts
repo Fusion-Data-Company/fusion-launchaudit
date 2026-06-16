@@ -1,8 +1,10 @@
 import { createCampaign, ensureCampaignReady, listCampaigns } from "../../src/lib/campaign-store.ts";
 import { getSqlClient } from "../../src/lib/db.ts";
+import { authorizeRunnerWrite } from "./runner-auth.ts";
 
 type VercelRequest = {
   method?: string;
+  headers?: Record<string, string | string[] | undefined>;
   body?: { name?: string; app_url?: string; repo_path_hint?: string };
 };
 
@@ -32,6 +34,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     if (request.method === "POST") {
+      // Campaign creation is a privileged write. Gate it with the same operator
+      // secret as the runner-sync endpoints (open in local dev, enforced in prod)
+      // so a deployed dashboard can't be written to by anonymous callers.
+      const auth = authorizeRunnerWrite(request.headers);
+      if (!auth.ok) {
+        response.status(auth.status).json({ error: auth.error });
+        return;
+      }
       const { name, app_url, repo_path_hint } = request.body ?? {};
       if (!name || !app_url) {
         response.status(400).json({ error: "name and app_url are required." });

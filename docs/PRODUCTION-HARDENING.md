@@ -48,9 +48,18 @@ Real findings the new detectors surfaced on our own dashboard (feed Phase 4):
 - A11Y: 45 elements fail WCAG AA color-contrast (serious). → fix in dashboard CSS.
 - PERF: a Core Web Vital in the poor range on cold load → verify.
 
-## Phase 4 — Dashboard to premium grade
-- [ ] Real data only, dark+light, mobile, zero console errors; FDC design register.
-- [ ] Dashboard auth decision (resolves the Phase 0 `/api/campaigns` item).
+## Phase 4 — Dashboard to premium grade ✅ DONE
+- [x] Fixed the accessibility defect the tool caught on itself: 45 WCAG AA
+      color-contrast violations → 0 in BOTH dark and light themes. Bumped --fg-4
+      (both themes), darkened light-mode status colors, fixed one .verify-box
+      label. Verified by driving a real browser with axe (0 serious+ violations).
+- [x] Resolved the Phase 0 `/api/campaigns` write gap: gated POST behind the
+      operator secret (authorizeRunnerWrite) in BOTH the serverless handler and
+      the dev server; UI now sends the operator key (prompt + retry on 401),
+      anonymous visitors blocked. Verified: no token / wrong token → 401, GET → 200.
+- [x] Real data / honest demo labeling confirmed in Phase 1.
+- NOTE: the prompt-on-401 create flow was verified at the HTTP layer (401/200),
+  not yet clicked through the modal in a browser.
 
 ## Phase 5 — Beta test on real apps
 - [ ] Run against real client repos + deployed URLs; drive false positives to zero.

@@ -787,14 +787,31 @@ function initNewCampaign() {
       app_url: document.getElementById("nc-url").value.trim(),
       repo_path_hint: document.getElementById("nc-repo").value.trim() || undefined,
     };
+    const postCampaign = (secret) => fetch("/api/campaigns", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(secret ? { "x-runner-secret": secret } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
     try {
-      const response = await fetch("/api/campaigns", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      let response = await postCampaign(localStorage.getItem("launch-audit-operator-key") || "");
+      // A deployed dashboard gates creation behind the operator secret. Prompt
+      // once, store it locally, and retry — anonymous visitors stay blocked.
+      if (response.status === 401) {
+        const key = window.prompt("Operator key required to create campaigns (RUNNER_SYNC_SECRET):", "");
+        if (!key) {
+          errorBox.textContent = "Campaign creation requires the operator key.";
+          errorBox.hidden = false;
+          return;
+        }
+        localStorage.setItem("launch-audit-operator-key", key.trim());
+        response = await postCampaign(key.trim());
+      }
       const result = await response.json();
       if (!response.ok) {
+        if (response.status === 401) localStorage.removeItem("launch-audit-operator-key");
         errorBox.textContent = result.error || `Creation failed (${response.status})${result.hint ? ` — ${result.hint}` : ""}`;
         errorBox.hidden = false;
         return;

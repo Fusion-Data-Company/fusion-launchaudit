@@ -27,7 +27,7 @@
   --fg:            #f4f4f5;
   --fg-2:          #c4c4cb;
   --fg-3:          #8d8d97;
-  --fg-4:          #62626b;
+  --fg-4:          #82828c; /* WCAG AA 4.5:1 on the dark surfaces (was #62626b, ~3.2:1) */
 
   /* single restrained accent — refined iris */
   --accent:        #7c83ff;
@@ -78,7 +78,7 @@
   --fg:            #18181b;
   --fg-2:          #3f3f46;
   --fg-3:          #6c6c75;
-  --fg-4:          #9a9aa2;
+  --fg-4:          #6b6b73; /* WCAG AA 4.5:1 on the light surfaces (was #9a9aa2, ~2.5:1) */
 
   --accent:        #5b5fe0;
   --accent-2:      #4a4ec9;
@@ -86,17 +86,17 @@
   --accent-soft:   rgba(91,95,224,0.10);
   --accent-line:   rgba(91,95,224,0.30);
 
-  --ok:            #1f9d63;
+  --ok:            #0a6e40;
   --ok-soft:       rgba(31,157,99,0.10);
   --ok-line:       rgba(31,157,99,0.28);
-  --warn:          #b5810f;
+  --warn:          #855d08;
   --warn-soft:     rgba(181,129,15,0.10);
   --warn-line:     rgba(181,129,15,0.28);
-  --bad:           #d6453f;
+  --bad:           #b22f2a;
   --bad-soft:      rgba(214,69,63,0.10);
   --bad-line:      rgba(214,69,63,0.26);
-  --crit:          #c93030;
-  --info:          #1f7f9c;
+  --crit:          #a31f1f;
+  --info:          #115f73;
   --info-soft:     rgba(31,127,156,0.10);
   --info-line:     rgba(31,127,156,0.26);
 
@@ -691,7 +691,8 @@ code, .mono, .mono-id {
 .repair-box { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .repair-box > span, .verify-box > span {
   font-family:"JetBrains Mono",monospace; font-size: 9.5px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--fg-4);
+  /* fg-3 (not fg-4) for AA contrast on the elevated accent-soft background */
+  text-transform: uppercase; color: var(--fg-3);
 }
 .repair-box code {
   font-family:"JetBrains Mono",monospace; font-size: 11px; color: var(--code-fg);

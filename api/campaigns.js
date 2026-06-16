@@ -5678,6 +5678,56 @@ async function getSqlClient(env = process.env) {
   return cachedClient;
 }
 
+// server/api-src/runner-auth.ts
+import crypto2 from "node:crypto";
+function headerValue(headers, name) {
+  const raw = headers[name] ?? headers[name.toLowerCase()];
+  if (Array.isArray(raw)) return raw[0];
+  return raw;
+}
+function presentedSecret(headers) {
+  const bearer = headerValue(headers, "authorization");
+  if (bearer && /^Bearer\s+/i.test(bearer)) {
+    return bearer.replace(/^Bearer\s+/i, "").trim();
+  }
+  const direct = headerValue(headers, "x-runner-secret");
+  if (direct) return direct.trim();
+  return void 0;
+}
+function timingSafeEqual(a2, b2) {
+  const aBuf = Buffer.from(a2, "utf8");
+  const bBuf = Buffer.from(b2, "utf8");
+  const aHash = crypto2.createHash("sha256").update(aBuf).digest();
+  const bHash = crypto2.createHash("sha256").update(bBuf).digest();
+  return crypto2.timingSafeEqual(aHash, bHash);
+}
+function authorizeRunnerWrite(headers) {
+  const configured = (process.env.RUNNER_SYNC_SECRET ?? "").trim();
+  const isProduction = process.env.VERCEL_ENV === "production";
+  const presented = presentedSecret(headers ?? {});
+  if (!configured) {
+    if (isProduction) {
+      return {
+        ok: false,
+        status: 503,
+        error: "Runner write endpoint is not configured (RUNNER_SYNC_SECRET unset). Writes are rejected."
+      };
+    }
+    return { ok: true };
+  }
+  if (!presented) {
+    return {
+      ok: false,
+      status: 401,
+      error: "Missing runner credential. Send the shared secret as 'authorization: Bearer <secret>' or 'x-runner-secret: <secret>'."
+    };
+  }
+  if (!timingSafeEqual(presented, configured)) {
+    return { ok: false, status: 401, error: "Invalid runner credential." };
+  }
+  return { ok: true };
+}
+
 // server/api-src/campaigns.ts
 async function handler(request, response) {
   const sql = await getSqlClient();
@@ -5696,6 +5746,11 @@ async function handler(request, response) {
       return;
     }
     if (request.method === "POST") {
+      const auth = authorizeRunnerWrite(request.headers);
+      if (!auth.ok) {
+        response.status(auth.status).json({ error: auth.error });
+        return;
+      }
       const { name, app_url, repo_path_hint } = request.body ?? {};
       if (!name || !app_url) {
         response.status(400).json({ error: "name and app_url are required." });

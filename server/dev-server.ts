@@ -361,6 +361,11 @@ async function main() {
     }
 
     if (request.method === "POST" && request.url === "/api/campaigns") {
+      const auth = authorizeRunnerWrite(request.headers);
+      if (!auth.ok) {
+        json(response, auth.status, { error: auth.error });
+        return;
+      }
       const sqlCreate = await getSqlClient();
       if (!sqlCreate) {
         json(response, 503, { error: "Campaign management requires Postgres.", persistence: { mode: "seeded" } });
