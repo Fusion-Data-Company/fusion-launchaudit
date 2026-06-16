@@ -344,16 +344,33 @@ function isPrivilegedUrl(url: string): boolean {
   return /(^|\/)(admin|superadmin|internal)(\/|$)/.test(url);
 }
 
+const HTTP_METHOD = "GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS";
+
 /** Read an API route file to learn which HTTP methods it actually exports. */
-async function extractApiMethods(absFile: string): Promise<string[]> {
+export async function extractApiMethods(absFile: string): Promise<string[]> {
   try {
     const src = await fs.readFile(absFile, "utf8");
     const methods = new Set<string>();
-    for (const m of src.matchAll(/export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g)) methods.add(m[1]);
-    for (const m of src.matchAll(/export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s*[:=]/g)) methods.add(m[1]);
-    // Pages Router default handler accepts any method.
-    if (methods.size === 0 && /export\s+default\b/.test(src)) return ["GET", "POST"];
-    return [...methods];
+    // App Router: explicit named method exports are authoritative.
+    for (const m of src.matchAll(new RegExp(`export\\s+(?:async\\s+)?function\\s+(${HTTP_METHOD})\\b`, "g"))) methods.add(m[1]);
+    for (const m of src.matchAll(new RegExp(`export\\s+const\\s+(${HTTP_METHOD})\\s*[:=]`, "g"))) methods.add(m[1]);
+    if (methods.size > 0) return [...methods];
+
+    // Default-export / Pages-Router-style handler: infer the methods it actually
+    // serves from its own `request.method` guards rather than blindly assuming
+    // GET+POST. This is the difference between flagging a real write endpoint and
+    // crying wolf on a GET-only handler that returns 405 for everything else.
+    const guard = new RegExp(`req(?:uest)?\\.method\\s*(?:===|!==|==|!=)\\s*["'\`](${HTTP_METHOD})["'\`]`, "g");
+    for (const m of src.matchAll(guard)) methods.add(m[1]);
+    // OPTIONS/HEAD alone (e.g. a CORS preflight branch) doesn't tell us the real
+    // verb the handler serves, so don't let it suppress the safe fallback.
+    const meaningful = [...methods].filter((m) => m !== "HEAD" && m !== "OPTIONS");
+    if (meaningful.length > 0) return [...methods];
+
+    // Truly generic dispatcher: a default export with no discernible method guards.
+    // Fall back to the safe assumption that it accepts reads and writes.
+    if (/export\s+default\b/.test(src)) return ["GET", "POST"];
+    return [];
   } catch {
     return [];
   }
