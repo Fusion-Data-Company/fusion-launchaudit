@@ -70,6 +70,14 @@ test("a front-end expectation that survived retries is a product bug", () => {
   assert.equal(classifyFailure(result("responsive_visual", "horizontal overflow at 390px"), ctx()).type, "product_bug");
 });
 
+test("a serious/critical accessibility violation is a confirmed product bug", () => {
+  assert.equal(classifyFailure(result("accessibility", "2 accessibility violation type(s) at or above serious"), ctx()).type, "product_bug");
+});
+
+test("a poor Core Web Vital on a cold load is needs_verification, not a claimed regression", () => {
+  assert.equal(classifyFailure(result("performance", "Core Web Vitals in the poor range: LCP 5.2s"), ctx()).type, "needs_verification");
+});
+
 test("content integrity: lorem/undefined/localhost is a product bug; a placeholder marker is needs_verification", () => {
   assert.equal(classifyFailure(result("content_integrity", "rendered page contains 'lorem ipsum' filler"), ctx()).type, "product_bug");
   assert.equal(classifyFailure(result("content_integrity", 'shows an unbound "undefined" value'), ctx()).type, "product_bug");

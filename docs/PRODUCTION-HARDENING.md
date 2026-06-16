@@ -32,9 +32,21 @@ Driven 2026-06-15. One phase at a time, each verified before moving on.
 - [x] Verified live: self-audit generated + passed 4 TC-CI cards; write-authz
       cards dropped 7→3 (false positives gone). 38 tests passing.
 
-## Phase 3 — Close value gaps
-- [ ] ElevenLabs path made first-class in the default flow (not hints-only) where possible.
-- [ ] Accessibility (axe-core), Core Web Vitals.
+## Phase 3 — Close value gaps ✅ DONE
+- [x] Accessibility detector via axe-core (WCAG 2.0/2.1 A+AA, serious/critical floor)
+      — `runner/axe-audit.ts`, `src/lib/generators/accessibility.ts`, `axe` browser
+      action, classifier branch, tests. Verified live: caught 45 real color-contrast
+      violations on our own dashboard.
+- [x] Core Web Vitals detector (LCP/CLS/FCP/TTFB cold-load smoke; poor-range only;
+      classified needs_verification by design) — `runner/web-vitals-audit.ts`,
+      `src/lib/generators/performance.ts`, `web_vitals` action, classifier, tests.
+- [x] ElevenLabs: already a full first-class detector (hints-gated because agent IDs +
+      API key are required — correct; cannot be auto-detected without them).
+- 51 tests passing; all 12 categories fire in the live self-audit.
+
+Real findings the new detectors surfaced on our own dashboard (feed Phase 4):
+- A11Y: 45 elements fail WCAG AA color-contrast (serious). → fix in dashboard CSS.
+- PERF: a Core Web Vital in the poor range on cold load → verify.
 
 ## Phase 4 — Dashboard to premium grade
 - [ ] Real data only, dark+light, mobile, zero console errors; FDC design register.

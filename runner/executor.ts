@@ -34,6 +34,8 @@ export type ExecStep =
   | { action: "expect_no_horizontal_overflow" }
   | { action: "expect_console_clean" }
   | { action: "expect_network_clean" }
+  | { action: "axe"; impactFloor?: "minor" | "moderate" | "serious" | "critical" }
+  | { action: "web_vitals" }
   | {
       action: "http";
       method?: string;

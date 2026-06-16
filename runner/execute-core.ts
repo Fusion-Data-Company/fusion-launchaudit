@@ -12,6 +12,8 @@ import { runnerAuthHeaders } from "./blob-store.ts";
 import { runElevenLabsAssertion } from "./elevenlabs-audit.ts";
 import { runSeoAssertion } from "./seo-audit.ts";
 import { runContentAssertion } from "./content-audit.ts";
+import { runAxeOnPage } from "./axe-audit.ts";
+import { runWebVitalsOnPage } from "./web-vitals-audit.ts";
 import type { ExecStep, ExecutableTestCard } from "./executor.ts";
 
 export type CardResult = {
@@ -130,6 +132,8 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
       const o = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
       if (o) throw new Error("Horizontal overflow detected"); return;
     }
+    case "axe": await runAxeOnPage(page, step.impactFloor ?? "serious"); return;
+    case "web_vitals": await runWebVitalsOnPage(page); return;
     case "expect_console_clean": if (state.consoleErrors.length) throw new Error(`Console errors: ${state.consoleErrors.slice(0, 3).join(" | ").slice(0, 300)}`); return;
     case "expect_network_clean": if (state.failedRequests.length) throw new Error(`Failed requests: ${state.failedRequests.slice(0, 3).join(" | ").slice(0, 300)}`); return;
     case "http": await runHttp(step, appUrl); return;

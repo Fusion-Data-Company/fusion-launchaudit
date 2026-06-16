@@ -80,6 +80,16 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
     }
     return { type: "needs_verification", confidence: "low", reason: "a public-page SEO/structured-data element is missing (or a noindex is present) — a real gap if this is a public/marketing page, not applicable to an internal tool; confirm which this is" };
   }
+  // Accessibility (axe-core). The generator only fails on serious/critical WCAG
+  // violations, so a failure here is a real defect — confirmed, not speculative.
+  if (cat === "accessibility") {
+    return { type: "product_bug", confidence: "high", reason: "axe-core found serious/critical WCAG violations on the rendered page — real users (screen readers, keyboard, low-vision) are blocked, and it carries ADA/legal risk" };
+  }
+  // Core Web Vitals. A single cold headless measurement is a smoke signal, not a
+  // lab benchmark — so even a "poor" reading is verify, not a confirmed bug.
+  if (cat === "performance") {
+    return { type: "needs_verification", confidence: "medium", reason: "a single cold headless load measured a Core Web Vital in the poor range — confirm with a throttled lab run or field (CrUX) data before treating it as a regression" };
+  }
   // Content integrity / fake data. Lorem filler, unbound undefined/NaN, and a
   // hardcoded localhost URL on a deployed page are concrete defects (real bug).
   // A generic placeholder marker might be intentional copy → verify, don't claim.

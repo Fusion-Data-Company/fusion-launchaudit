@@ -10,6 +10,8 @@ import { generateWriteAuthz } from "./generators/write-authz.ts";
 import { generateElevenLabs } from "./generators/elevenlabs.ts";
 import { generateSeo } from "./generators/seo.ts";
 import { generateContentIntegrity } from "./generators/content-integrity.ts";
+import { generateAccessibility } from "./generators/accessibility.ts";
+import { generatePerformance } from "./generators/performance.ts";
 
 export type { GeneratedCard, AuditHints } from "./generators/types.ts";
 
@@ -69,6 +71,8 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateElevenLabs(scan, crawl, hints, c),
     ...generateSeo(scan, crawl, hints, c),
     ...generateContentIntegrity(scan, crawl, hints, c),
+    ...generateAccessibility(scan, crawl, hints, c),
+    ...generatePerformance(scan, crawl, hints, c),
   ];
 
   if (crawl.has_password_field && !(hints.roles?.admin || hints.roles?.user)) {

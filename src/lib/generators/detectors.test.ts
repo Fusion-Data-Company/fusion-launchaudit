@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generateElevenLabs } from "./elevenlabs.ts";
 import { generateSeo } from "./seo.ts";
+import { generateAccessibility } from "./accessibility.ts";
+import { generatePerformance } from "./performance.ts";
 import { Counter } from "./types.ts";
 import type { RepoScan } from "../../../runner/repo-scanner.ts";
 import type { RuntimeCrawl } from "../../../runner/crawler.ts";
@@ -43,6 +45,22 @@ test("ElevenLabs: a toolless agent skips the tool-wipe and webhook checks", () =
   } finally {
     delete process.env[keyEnv];
   }
+});
+
+test("Accessibility: emits a browser card that loads the page then runs axe at the serious floor", () => {
+  const cards = generateAccessibility(scan, crawl, {}, new Counter());
+  assert.equal(cards.length, 1);
+  assert.equal(cards[0].category, "accessibility");
+  const actions = cards[0].exec.map((e) => (e as Record<string, unknown>).action);
+  assert.deepEqual(actions, ["goto", "axe"]);
+  assert.equal((cards[0].exec[1] as Record<string, unknown>).impactFloor, "serious");
+});
+
+test("Performance: emits a browser card that loads the page then measures web vitals", () => {
+  const cards = generatePerformance(scan, crawl, {}, new Counter());
+  assert.equal(cards.length, 1);
+  assert.equal(cards[0].category, "performance");
+  assert.deepEqual(cards[0].exec.map((e) => (e as Record<string, unknown>).action), ["goto", "web_vitals"]);
 });
 
 test("SEO: generates the universal (title, viewport) and marketing checks, all categorized seo", () => {
