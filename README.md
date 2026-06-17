@@ -182,6 +182,16 @@ honesty rules), the write-authz tiers, card generation, and the content-integrit
 accessibility, SEO, and web-vitals detectors. See [CONTRIBUTING.md](CONTRIBUTING.md)
 for the other npm scripts and how to run the fixture tests.
 
+### Test research catalog (the build roadmap)
+
+`docs/research/test-catalog/` is a sourced catalog of ~1,485 tests across 9 domains
+(security, API/authz, a11y, performance, SEO, functional, headers/TLS, reliability/
+privacy, mobile/AI) — every row cites a real standard (OWASP, WCAG, Lighthouse,
+Schema.org, PCI-DSS, RFCs…). Start at
+[`docs/research/test-catalog/ROLLUP.md`](docs/research/test-catalog/ROLLUP.md): it
+maps what LaunchAudit already runs vs. the highest-leverage detectors still to build.
+`CLAUDE.md` orients agents to use it as the spec for new checks.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

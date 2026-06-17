@@ -5,13 +5,15 @@ backed by sourced rows in the linked file; raw Perplexity evidence is in `raw/`.
 
 ## Totals (v2 — gap passes folded in, 2026-06-17)
 
-- **~1,485 sourced test rows** catalogued across 9 domains (counted across all nine
+- **~1,545 sourced test rows** catalogued across 9 domains (counted across all nine
   files; per-domain figures below).
-- **93 raw Perplexity JSON files** saved as the audit trail (`raw/`).
-- **Provenance:** every domain file's "Unverified" section is empty. The ONLY
-  flagged-unsourced rows are in domain 09 (ElevenLabs ConvAI config + garak probe
-  taxonomy), left as `[MODEL-SUGGESTED]`/`[UNVERIFIED]` because the Perplexity quota
-  was exhausted before those two could be sourced — honestly tagged, never faked.
+- **93 raw Perplexity JSON files** + WebFetch evidence (cited inline) as the audit trail.
+- **Provenance:** every domain file's "Unverified" section is empty or down to a
+  couple of honestly-flagged residuals (reliability: log-volume cost + SCC disclosure;
+  one ElevenLabs item) that no source could be fetched for — tagged, never faked.
+- The v3 gap passes (ElevenLabs + garak, SEO rich-result types + X-Cards + Bing/
+  IndexNow, reliability/privacy commonly-missed) were closed with **WebSearch/WebFetch**
+  (zero Perplexity cost) after the API credit ran out.
 
 | # | Domain | File | Sourced rows | Notable standard refs |
 |---|---|---|---|---|
@@ -19,11 +21,11 @@ backed by sourced rows in the linked file; raw Perplexity evidence is in `raw/`.
 | 02 | API security & authz | `02-api-security-authz.md` | 175 | OWASP API1–API10:2023, WSTG-ATHZ/ATHN, RFC 8725, CWE, ASVS V4 |
 | 03 | Accessibility | `03-accessibility.md` | 93 | WCAG 2.2 A+AA SC, axe rule IDs, WAI-ARIA APG |
 | 04 | Performance / CWV | `04-performance-web-vitals.md` | 111 | Lighthouse audit IDs, LCP/INP/CLS, web.dev |
-| 05 | SEO / structured data | `05-seo-structured-data.md` | 229 | Lighthouse SEO, Search Central, Schema.org, OGP, sitemaps.org |
+| 05 | SEO / structured data | `05-seo-structured-data.md` | 247 | Lighthouse SEO, Search Central, Schema.org, OGP, sitemaps.org, IndexNow |
 | 06 | Functional / UI / E2E | `06-functional-ui-e2e.md` | 167 | ISTQB, Testing Library, Playwright, Cypress, WCAG, Apple HIG |
 | 07 | HTTP / TLS / headers | `07-http-tls-headers.md` | 158 | OWASP Secure Headers, Mozilla Observatory, CSP, TLS RFCs |
-| 08 | Reliability + privacy/compliance | `08-reliability-privacy-compliance.md` | 208 | k6/Chaos, web.dev, PCI-DSS v4.0.1, GDPR/CCPA/4 state laws, EDPB |
-| 09 | Mobile + AI/voice | `09-mobile-ai-voice.md` | 147 | OWASP MASVS/MASTG, OWASP LLM Top 10, MITRE ATLAS, NIST AI RMF, ITU-T |
+| 08 | Reliability + privacy/compliance | `08-reliability-privacy-compliance.md` | 226 | k6/Chaos, web.dev, SRE book, PCI-DSS v4.0.1, GDPR/CCPA/4 state laws, EDPB, IAB TCF, COPPA |
+| 09 | Mobile + AI/voice | `09-mobile-ai-voice.md` | 172 | OWASP MASVS/MASTG, OWASP LLM Top 10, MITRE ATLAS, NIST AI RMF, ITU-T, ElevenLabs docs, garak |
 
 ## Research gaps remaining (after the v2 gap passes)
 

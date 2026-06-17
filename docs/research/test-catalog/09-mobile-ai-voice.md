@@ -6,12 +6,13 @@ appeared in a Perplexity answer or its citations, plus a standard reference wher
 
 > Provenance note for this domain (read first): AI/voice testing has **weaker standardization**
 > than web/API. The OWASP Top 10 for LLM Applications 2025 and NIST AI RMF are real, published, and
-> citable. But RAG-eval frameworks (RAGAS, DeepEval), prompt-injection scanners (garak, Promptfoo),
-> and ElevenLabs ConvAI configuration checks were **not successfully sourced** in this run — the
-> Perplexity call covering them (raw 06) failed mid-flight (network reset), and a planned ElevenLabs
-> official-docs call never ran, both because the host machine's disk filled (ENOSPC) and blocked all
-> further shell/curl calls. Those items are therefore listed under "Unverified / needs a source" and
-> "[MODEL-SUGGESTED — confirm]" rather than the main tables. Mobile (MASVS/MASTG) is fully sourced.
+> citable. RAG-eval frameworks (RAGAS, DeepEval, TruLens) are sourced in section B3. **Update
+> 2026-06-17:** the two items that were previously unsourced — **garak** (NVIDIA LLM vuln scanner)
+> and **ElevenLabs ConvAI config checks** — have now been sourced via **WebFetch + WebSearch against
+> official vendor docs** (no Perplexity; that path was out of credits) and moved into the main tables
+> as **section B7 (garak, rows 158–172)** and **section B6 (ElevenLabs, rows 148–157)**. The only
+> remaining flagged item is the FDC-specific admin-passphrase/privileged-mode gating check, which is
+> not an ElevenLabs-documented config field. Mobile (MASVS/MASTG) is fully sourced.
 
 ---
 
@@ -284,6 +285,61 @@ appeared in a Perplexity answer or its citations, plus a standard reference wher
 
 ---
 
+## B6. AI / VOICE — ElevenLabs ConvAI agent-config checks (gap-fill, WebFetch 2026-06-17)
+
+> **Method: WebFetch + WebSearch against official ElevenLabs docs (elevenlabs.io/docs).** Field names
+> below were confirmed against the Agents Platform WebSocket API reference (`conversation_config_override`
+> structure) and the ElevenAgents Quickstart, both fetched on 2026-06-17. The `tool_ids` location and
+> webhook-HTTPS support were confirmed from the Tools / Server-tools docs (the deeper docs pages render
+> client-side and 404 to the raw fetcher, but the search engine reads their server-rendered content;
+> the `body.conversation_config.agent.prompt.tool_ids` path and HTTPS webhook support were quoted from
+> those pages). These rows close the ElevenLabs items previously in [MODEL-SUGGESTED]. One item
+> (admin-passphrase / privileged-mode gating) remains FDC-pattern-specific, not an ElevenLabs doc concept,
+> and stays flagged below.
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 148 | System prompt present & non-placeholder | Agent has a non-empty, scoped system prompt (`agent.prompt.prompt`) defining persona/policy/guardrails — not blank or boilerplate | ConvAI config | ElevenLabs Agents — `agent.prompt.prompt` | ElevenLabs Docs (WebSocket API ref + Quickstart) | https://elevenlabs.io/docs/eleven-agents/api-reference/eleven-agents/websocket | Yes — agent config inspection |
+| 149 | LLM model set | Agent's LLM is explicitly configured (`agent.prompt.llm`); not left unset | ConvAI config | ElevenLabs Agents — `agent.prompt.llm` | ElevenLabs Docs (WebSocket API ref) | https://elevenlabs.io/docs/eleven-agents/api-reference/eleven-agents/websocket | Yes — agent config inspection |
+| 150 | First message configured | `agent.first_message` set so there's no dead-air on call connect | ConvAI config | ElevenLabs Agents — `agent.first_message` | ElevenLabs Docs (WebSocket API ref + Quickstart) | https://elevenlabs.io/docs/eleven-agents/api-reference/eleven-agents/websocket | Yes — agent config inspection |
+| 151 | Language set | `agent.language` set to the intended conversation language code | ConvAI config | ElevenLabs Agents — `agent.language` | ElevenLabs Docs (WebSocket API ref) | https://elevenlabs.io/docs/eleven-agents/api-reference/eleven-agents/websocket | Yes — agent config inspection |
+| 152 | Voice ID set (TTS) | `tts.voice_id` set to a valid voice for synthesis | ConvAI config | ElevenLabs Agents — `tts.voice_id` | ElevenLabs Docs (WebSocket API ref + Quickstart) | https://elevenlabs.io/docs/eleven-agents/api-reference/eleven-agents/websocket | Yes — agent config inspection |
+| 153 | TTS model set + real-time-appropriate | TTS `modelId` set; low-latency model (e.g. `eleven_flash_v2` / `eleven_flash_v2_5`) recommended for real-time agents | ConvAI config | ElevenLabs Agents — TTS `modelId`; Flash for Agents Platform | ElevenLabs Docs (Quickstart + Models) | https://elevenlabs.io/docs/eleven-agents/quickstart | Yes — agent config inspection |
+| 154 | Tools / `tool_ids` intact (not wiped) | `agent.prompt.tool_ids` lists the intended client/server tools; not an accidental empty array wiping all tools | ConvAI config | ElevenLabs Agents — `agent.prompt.tool_ids` | ElevenLabs Docs (Tools / Server tools) | https://elevenlabs.io/docs/agents-platform/customization/tools | Yes — agent config inspection |
+| 155 | Webhook (server) tools use HTTPS | Server-tool webhook endpoints are HTTPS + authenticated (auth methods supported by the platform) | ConvAI config | ElevenLabs Agents — Server tools (webhook URL + auth) | ElevenLabs Docs (Server tools) | https://elevenlabs.io/docs/agents-platform/customization/tools/server-tools | Yes — URL scheme check on tool config |
+| 156 | Dynamic variables injected | Runtime context (page/record/user) injected via dynamic variables for per-conversation personalization/context-awareness | ConvAI config | ElevenLabs Agents — Dynamic variables | ElevenLabs Docs (Dynamic variables) | https://elevenlabs.io/docs/agents-platform/customization/personalization/dynamic-variables | Partial — config + runtime check |
+| 157 | Knowledge base attached (RAG grounding) | KB docs/links attached to the agent so responses are grounded to the KB | ConvAI config | ElevenLabs Agents — Knowledge Base | ElevenLabs Docs (Quickstart — Knowledge Base tab) | https://elevenlabs.io/docs/eleven-agents/quickstart | Partial — config inspection |
+
+---
+
+## B7. AI / VOICE — garak LLM vulnerability scanner probe taxonomy (gap-fill, WebFetch 2026-06-17)
+
+> **Method: WebFetch against the official garak repo (github.com/NVIDIA/garak), fetched 2026-06-17.**
+> garak is NVIDIA's open-source LLM vulnerability scanner ("checks if an LLM can be made to fail in a
+> way we don't want" — nmap/Metasploit-style for GenAI). The probe categories below are taken directly
+> from the repo's probe taxonomy. Official docs: User Guide https://docs.garak.ai/ and Code Reference
+> https://reference.garak.ai/ (both linked from the repo). This closes the remaining [UNVERIFIED] garak item.
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 158 | garak `promptinject` probe | Susceptibility to prompt injection (Agency Enterprise PromptInject methods) | LLM vuln scan | garak probe `promptinject` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 159 | garak `dan` probe | DAN ("Do Anything Now") and similar jailbreak-style attacks | LLM vuln scan | garak probe `dan` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 160 | garak `encoding` probe | Prompt injection via text-encoding techniques (bypass content filters) | LLM vuln scan | garak probe `encoding` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 161 | garak `leakreplay` probe | Model reproduces training data verbatim (memorization/leakage) | LLM vuln scan | garak probe `leakreplay` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 162 | garak `malwaregen` probe | Model can be made to generate malicious code | LLM vuln scan | garak probe `malwaregen` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 163 | garak `xss` probe | Cross-site-scripting payloads + data exfiltration via model output | LLM vuln scan | garak probe `xss` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 164 | garak `atkgen` probe | Attack-generating LLM probes target to elicit toxic outputs | LLM vuln scan | garak probe `atkgen` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 165 | garak `badchars` probe | Unicode perturbations — invisible characters / homoglyphs | LLM vuln scan | garak probe `badchars` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 166 | garak `continuation` probe | Model completes potentially harmful word sequences | LLM vuln scan | garak probe `continuation` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 167 | garak `donotanswer` probe | Refusal mechanisms for questions a responsible model shouldn't answer | LLM vuln scan | garak probe `donotanswer` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 168 | garak `gcg` probe | Adversarial suffixes that disrupt the system prompt | LLM vuln scan | garak probe `gcg` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 169 | garak `glitch` probe | "Glitch tokens" causing unusual/unstable model behavior | LLM vuln scan | garak probe `glitch` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 170 | garak `lmrc` probe | Language Model Risk Cards framework implementation (risk-card coverage) | LLM vuln scan | garak probe `lmrc` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 171 | garak `misleading` probe | Generation of false / misleading claims | LLM vuln scan | garak probe `misleading` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+| 172 | garak `packagehallucination` probe | False/hallucinated package specifications in generated code (supply-chain risk) | LLM vuln scan | garak probe `packagehallucination` | NVIDIA garak (repo) | https://github.com/NVIDIA/garak | Yes — garak run |
+
+---
+
 ## Unverified / needs a source
 
 Gap-fill passes (raws 06–10) sourced most of what was previously unverified: RAGAS/DeepEval/TruLens
@@ -291,9 +347,11 @@ are now in section B3 (with official docs URLs), the prompt-injection/jailbreak 
 ATLAS + OWASP + vendor taxonomies), NIST AI RMF testable controls are in B4, and voice-agent QA is in
 B5. The items still genuinely unsourced or sourced only to weaker references:
 
-- **garak** (NVIDIA LLM vuln/jailbreak scanner) — named in raw 07's narrative as a recognized tool but its
+- ~~**garak** (NVIDIA LLM vuln/jailbreak scanner) — named in raw 07's narrative as a recognized tool but its
   detailed probe taxonomy "is in tool docs/code rather than a formal taxonomy paper"; **no official garak
-  docs URL was returned** in any pass. [UNVERIFIED — needs official garak/NVIDIA docs URL before cataloguing]
+  docs URL was returned** in any pass. [UNVERIFIED]~~ **CLOSED 2026-06-17** — sourced via WebFetch against
+  the official repo https://github.com/NVIDIA/garak (User Guide https://docs.garak.ai/, Code Reference
+  https://reference.garak.ai/). Full probe taxonomy now in **section B7** (rows 158–172).
 - **CrowdStrike (185+ technique) / Pangea (145+ technique) / Lasso prompt-injection taxonomies** — real,
   cited in raw 07, but they are vendor catalogs, not standards. Usable as coverage checklists; not added
   as individual test rows. [vendor taxonomy — confirm desired granularity before expanding]
@@ -306,20 +364,28 @@ B5. The items still genuinely unsourced or sourced only to weaker references:
 
 ## [MODEL-SUGGESTED — confirm]
 
-The orchestrator explicitly requested ElevenLabs ConvAI agent-configuration checks (tools, system
-prompt, webhooks, voice/TTS) cited to ElevenLabs official docs. **That Perplexity call never executed**
-(disk blocker). The items below are from model knowledge ONLY and are NOT source-backed — do not put
-them in the main table until confirmed against https://elevenlabs.io/docs (ConvAI / Agents Platform):
+**MOSTLY CLOSED 2026-06-17.** The orchestrator's requested ElevenLabs ConvAI agent-configuration checks
+(system prompt, tools/`tool_ids`, webhook HTTPS, voice/TTS, LLM, first_message, language) were sourced
+via **WebFetch + WebSearch against official ElevenLabs docs (elevenlabs.io/docs)** and moved into the
+main tables as **section B6** (rows 148–157). The previously model-knowledge-only list resolved as:
 
-- ConvAI agent has a non-empty, scoped **system prompt** (persona, guardrails, anti-narration).
-- **Tools / `tool_ids`** registered are intended set; no accidental empty array wiping all tools.
-- **Webhook tools** point to correct, authenticated endpoints (HMAC/secret), reachable, correct schema.
-- **Voice / TTS** model + voice ID set; latency/`flash` model appropriate for real-time.
-- **LLM model** + fallback chain configured.
-- **Dynamic variables** injected (page/record/user context) for context-awareness.
-- **Knowledge base** docs attached and retrievable; RAG grounded to KB.
-- **Admin passphrase / privileged-mode** gating works and isn't leakable (ties to LLM07 above).
-- First-message / conversation-start config present; no dead-air on call connect.
+- ✅ **System prompt** (`agent.prompt.prompt`) — row 148, confirmed (WebSocket API ref + Quickstart).
+- ✅ **Tools / `tool_ids`** (`agent.prompt.tool_ids`) — row 154, confirmed (Tools / Server-tools docs).
+- ✅ **Webhook tools HTTPS + auth** — row 155, confirmed (Server-tools docs; HTTPS webhooks + auth methods).
+- ✅ **Voice / TTS** voice ID (`tts.voice_id`) row 152 + TTS model row 153 (`flash` for real-time) — confirmed.
+- ✅ **LLM model** (`agent.prompt.llm`) — row 149, confirmed (WebSocket API ref).
+- ✅ **First message** (`agent.first_message`) — row 150, confirmed; ✅ **Language** (`agent.language`) — row 151.
+- ✅ **Dynamic variables** — row 156, confirmed (Dynamic variables doc page).
+- ✅ **Knowledge base** docs attached / RAG grounding — row 157, confirmed (Quickstart, Knowledge Base tab).
+- ⚠️ **Admin passphrase / privileged-mode gating** (ties to LLM07) — **still flagged.** This is an
+  FDC-specific deployment pattern, not an ElevenLabs documented config field, so it is NOT sourced to
+  official docs and remains here as model-suggested until a real reference (or internal FDC doctrine doc)
+  is cited.
+
+> Note on fetch method: the deeper ElevenLabs docs pages (server-tools, tools, prompting-guide) render
+> client-side and returned 404 to the raw WebFetch fetcher; their server-rendered content was read via
+> WebSearch (elevenlabs.io-scoped), which is what confirmed `agent.prompt.tool_ids` and HTTPS webhook
+> support. The WebSocket API reference and Quickstart fetched cleanly and carry the core field paths.
 
 ## Raw evidence
 
@@ -334,6 +400,18 @@ them in the main table until confirmed against https://elevenlabs.io/docs (ConvA
 - `docs/research/test-catalog/raw/mobile-ai-09.json` — NIST AI RMF testable controls (NIST AI 100-1 + Generative AI Profile AI 600-1; 9 characteristics × GOVERN/MAP/MEASURE/MANAGE) — HTTP 200
 - `docs/research/test-catalog/raw/mobile-ai-10.json` — Conversational/voice-agent QA categories (11 categories; industry frameworks + WER/MOS/POLQA standards) — HTTP 200
 
+### WebFetch / WebSearch pass (2026-06-17) — method: live fetch against official docs (no Perplexity; per task constraint)
+Sections B6 (ElevenLabs, rows 148–157) and B7 (garak, rows 158–172) were sourced by the tools below.
+URLs fetched/queried, all against official vendor docs:
+- **ElevenLabs Agents — WebSocket API reference** (`conversation_config_override` field paths: `agent.prompt.prompt`, `agent.prompt.llm`, `agent.first_message`, `agent.language`, `tts.voice_id`) — WebFetch, HTTP 200 — https://elevenlabs.io/docs/eleven-agents/api-reference/eleven-agents/websocket
+- **ElevenLabs ElevenAgents — Quickstart** (system prompt `prompt.prompt`, `first_message`, `voiceId`+`modelId` e.g. `eleven_flash_v2`, Knowledge Base tab) — WebFetch, HTTP 200 — https://elevenlabs.io/docs/eleven-agents/quickstart
+- **ElevenLabs Agents — Tools** (`body.conversation_config.agent.prompt.tool_ids`) — WebSearch (elevenlabs.io-scoped; page renders client-side, 404s to raw fetcher) — https://elevenlabs.io/docs/agents-platform/customization/tools
+- **ElevenLabs Agents — Server tools** (webhook URL + HTTPS + auth methods) — WebSearch (elevenlabs.io-scoped) — https://elevenlabs.io/docs/agents-platform/customization/tools/server-tools
+- **ElevenLabs Agents — Dynamic variables** — WebSearch (elevenlabs.io-scoped) — https://elevenlabs.io/docs/agents-platform/customization/personalization/dynamic-variables
+- **ElevenLabs — Models** (Flash for Agents Platform; `eleven_flash_v2` / `eleven_flash_v2_5` ~75ms) — WebSearch (elevenlabs.io-scoped) — https://elevenlabs.io/docs/overview/models
+- **NVIDIA garak repo** (full probe taxonomy: promptinject, dan, encoding, leakreplay, malwaregen, xss, atkgen, badchars, continuation, donotanswer, gcg, glitch, lmrc, misleading, packagehallucination) — WebFetch, HTTP 200 — https://github.com/NVIDIA/garak
+  - linked official docs: User Guide https://docs.garak.ai/ · Code Reference https://reference.garak.ai/
+
 ### Still open (re-run when prioritized)
-- **ElevenLabs ConvAI official-docs pass** — still NOT run; the [MODEL-SUGGESTED] ConvAI config checks above remain model-knowledge only, unconfirmed against https://elevenlabs.io/docs.
-- **garak official docs** — needed to source the one remaining [UNVERIFIED] tool taxonomy.
+- ~~**ElevenLabs ConvAI official-docs pass**~~ — **DONE 2026-06-17** (section B6, rows 148–157). Only the FDC-specific admin-passphrase/privileged-mode gating item remains flagged (not an ElevenLabs doc concept).
+- ~~**garak official docs**~~ — **DONE 2026-06-17** (section B7, rows 158–172).

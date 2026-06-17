@@ -38,13 +38,16 @@ Every entry traces to a real published source. Nothing invented.
 
 ## Status — v2 complete (2026-06-17)
 
-All 9 domain catalogs written by the research team via Perplexity, under the shared
-protocol, with the gap passes folded in. **~1,485 sourced test rows, 93 raw-JSON
-evidence files.** The only flagged-unsourced rows are domain 09's ElevenLabs + garak
-checks ([MODEL-SUGGESTED]/[UNVERIFIED]) — the Perplexity quota was exhausted before
-those two could be sourced. Nothing was invented.
+All 9 domain catalogs written by the research team, under the shared protocol, with
+gap passes folded in. **~1,545 sourced test rows.** Evidence: 93 raw Perplexity JSON
+files + WebFetch citations for the v3 gap passes. After the Perplexity API credit ran
+out, the remaining gaps (ElevenLabs + garak, SEO rich-result types / X-Cards /
+IndexNow, reliability & privacy commonly-missed) were closed with free WebSearch/
+WebFetch. Only a couple of residuals stay honestly flagged (reliability log-volume
+cost + cross-border SCC disclosure; one ElevenLabs item) — no source could be fetched.
+Nothing invented.
 
-- Per-domain counts, totals, remaining gaps, and the **LaunchAudit coverage-vs-catalog
-  build list** are in **`ROLLUP.md`**.
-- To finish the last few quota-blocked items: top up the Perplexity API plan, then
-  re-run those passes per `RESEARCH-PROTOCOL.md`.
+- Per-domain counts, totals, remaining residuals, and the **LaunchAudit coverage-vs-
+  catalog build list** are in **`ROLLUP.md`**.
+- `CLAUDE.md` (repo root) points building agents here and explains how to turn catalog
+  rows into detectors.

@@ -34,6 +34,9 @@ canonical standard, e.g. Open Graph property, Core Web Vitals metric).
 | Twitter / X Cards | X Corp. | Card markup (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`); card types summary / summary_large_image / player / app | https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/abouts-cards |
 | web.dev — Core Web Vitals metric pages | Google | LCP (≤2.5s), INP (≤200ms), CLS (≤0.1) thresholds | https://web.dev/articles/lcp |
 | WHATWG URL Standard / IETF HTTP (RFC 9110) | WHATWG / IETF | URL normalization & HTTP status-code semantics underpinning crawl/canonical | https://url.spec.whatwg.org/ |
+| Google Search Central — JobPosting / Dataset / Course / Q&A / How-to / Software App | Google | Per-type rich-result required + recommended props for JobPosting, Dataset, Course, QAPage, HowTo (deprecated), SoftwareApplication | https://developers.google.com/search/docs/appearance/structured-data/job-posting |
+| IndexNow protocol | IndexNow.org (Microsoft/Yandex et al.) | URL submission protocol: key file, single GET ping, bulk POST, response codes, cross-engine sharing | https://www.indexnow.org/documentation |
+| Bing Webmaster — IndexNow / URL Submission | Microsoft Bing | Bing IndexNow setup (key file, `api.indexnow.org` POST), cross-engine sharing, legacy URL Submission API | https://www.bing.com/indexnow/getstarted |
 
 ## Tests
 
@@ -268,6 +271,23 @@ canonical standard, e.g. Open Graph property, Core Web Vitals metric).
 | 227 | IDN / non-ASCII URL handling | Punycode correct at DNS/HTTP; hreflang/canonical use encoded fully-qualified URLs | i18n | Search Central — international getting started | Google Search Central | https://developers.google.com/search/docs/specialty/international/getting-started | Partial |
 | 228 | hreflang cluster pages indexable | hreflang pages not `noindex`, self-canonical within cluster | i18n | Search Central — Localized versions (technical guidelines) | Google Search Central | https://developers.google.com/search/docs/specialty/international/localized-versions | Partial |
 | 229 | Render-critical JS/CSS/API not blocked | robots.txt doesn't block JS/CSS/API endpoints needed to render | Blocked resources | Search Central — robots.txt intro | Google Search Central | https://developers.google.com/search/docs/crawling-indexing/robots/intro | Yes |
+| 230 | JobPosting required props | `title`, `description`, `datePosted`, `hiringOrganization`, `jobLocation` present for job experience eligibility | Structured data (JobPosting) | Search Central — Job posting | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/job-posting | Yes |
+| 231 | JobPosting recommended props | `baseSalary`, `employmentType`, `identifier`, `validThrough`, `jobLocationType`, `directApply`, `applicantLocationRequirements` present | Structured data (JobPosting) | Search Central — Job posting | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/job-posting | Partial |
+| 232 | Dataset required props | `name` + `description` (50–5000 chars) present on `Dataset` | Structured data (Dataset) | Search Central — Dataset | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/dataset | Yes |
+| 233 | Dataset recommended props | `creator`, `license`, `identifier`, `keywords`, `distribution`, `temporalCoverage`, `spatialCoverage`, `variableMeasured`, `url`, `includedInDataCatalog`, `sameAs`, `version` present | Structured data (Dataset) | Search Central — Dataset | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/dataset | Partial |
+| 234 | Course required props | `Course.name` + `description` present | Structured data (Course) | Search Central — Course | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/course | Yes |
+| 235 | Course recommended prop / list markup | `provider` present; when `ItemList` markup is used, `itemListElement` + `ListItem.position` + `ListItem.url` required | Structured data (Course) | Search Central — Course | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/course | Partial |
+| 236 | Q&A (QAPage) required props | `QAPage.mainEntity` = `Question` with `name` + `answerCount` + ≥1 `acceptedAnswer`/`suggestedAnswer`; each `Answer.text` present | Structured data (QAPage) | Search Central — Q&A page | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/qapage | Yes |
+| 237 | Q&A (QAPage) recommended props | `author`, `upvoteCount`, `datePublished`, `dateModified`, `Answer.url`, `image`, `comment`, `commentCount` present | Structured data (QAPage) | Search Central — Q&A page | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/qapage | Partial |
+| 238 | How-to markup deprecated | `HowTo` rich result is no longer shown in Search (removed 2023-09-14); flag reliance on it for a rich result | Structured data (HowTo) | Search Central — How-to (deprecation) | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/how-to | Yes |
+| 239 | Software App required props | `SoftwareApplication.name` + `offers.price` + (≥1 of `aggregateRating`/`review`) present | Structured data (SoftwareApplication) | Search Central — Software app | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/software-app | Yes |
+| 240 | Software App recommended props | `applicationCategory`, `operatingSystem` present | Structured data (SoftwareApplication) | Search Central — Software app | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/software-app | Partial |
+| 241 | Bing/multi-engine: IndexNow key file present | API key (8–128 hex-allowed chars) hosted as `{key}.txt` at site root (UTF-8), or referenced via `keyLocation` | Multi-engine indexing | IndexNow protocol docs | IndexNow.org | https://www.indexnow.org/documentation | Yes |
+| 242 | IndexNow single-URL ping valid | `GET https://<searchengine>/indexnow?url=<url-changed>&key=<your-key>` form correct; URL host matches key | Multi-engine indexing | IndexNow protocol docs | IndexNow.org | https://www.indexnow.org/documentation | Yes |
+| 243 | IndexNow bulk POST valid | `POST /IndexNow` to `api.indexnow.org`, `Content-Type: application/json; charset=utf-8`, JSON `host`/`key`/`keyLocation`/`urlList`, ≤10,000 URLs | Multi-engine indexing | Bing — Add IndexNow / IndexNow docs | Bing Webmaster Tools | https://www.bing.com/indexnow/getstarted | Yes |
+| 244 | IndexNow response handling | Handle 200 OK / 202 pending / 400 bad format / 403 invalid key / 422 host/schema mismatch / 429 rate-limited | Multi-engine indexing | IndexNow protocol docs | IndexNow.org | https://www.indexnow.org/documentation | Yes |
+| 245 | IndexNow propagates to all engines | One IndexNow submission shared with all participating engines (Bing, Yandex, etc.) — no per-engine ping needed | Multi-engine indexing | Bing Webmaster Blog — IndexNow sharing | Bing Webmaster Blog | https://blogs.bing.com/webmaster/january-2022/IndexNow-Announcing-Sharing-of-Submitted-URLs | Yes |
+| 246 | Bing URL Submission API (legacy) reachable | If used instead of IndexNow, JSON/XML submit endpoint returns 200 and URL crawls in real time (Bing now recommends IndexNow) | Multi-engine indexing | Bing Webmaster Blog — URL Submission API | Bing Webmaster Blog | https://blogs.bing.com/webmaster/september-2021/Access-to-Instant-Indexing-%C2%A0Bing%C2%A0URL-submission-API | Partial |
 
 ## Unverified / needs a source
 
@@ -298,14 +318,35 @@ Notes on provenance nuance (not unverified, but flagged for the auditor):
 
 ## Needs a first-party source (surfaced, but cited to non-canonical sources)
 
-These checks were surfaced by Perplexity but the supporting URL is a community/secondary source,
+These checks were surfaced but the supporting URL is a community/secondary source,
 not the first-party standard. They are real and useful, but should get a first-party citation
 before going into the main table:
 
-- Twitter/X Card image constraints: supported formats JPG / PNG / WEBP / GIF; max 5 MB; min
-  dimensions 144×144 (summary) and 300×157 (summary_large_image). `seo-11` cites these to
-  community sources (Conductor, DigitalOcean, Sprout Social), not the X docs page. Confirm against
-  first-party X/`developer.x.com` Cards docs.
+- Twitter/X Card image constraints (summary_large_image): formats JPG / PNG / WEBP; max 5 MB;
+  min 300×157, max 4096×4096; 2:1 aspect (recommended 1200×628, 1.91:1). **STILL FLAGGED — first-party
+  fetch failed 2026-06-17 (method = WebFetch).** Every first-party X URL was attempted and none
+  returned a usable body: `https://developer.x.com/en/docs/x-for-websites/cards/overview/summary-card-with-large-image`
+  → HTTP 402; `https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/summary-card-with-large-image`
+  and `.../markup` → 307 redirect to `https://docs.x.com/` (host change, not followed);
+  `https://docs.x.com/x-api/cards/getting-started` and `https://docs.x.com/en/docs/x-for-websites/cards/overview/summary-card-with-large-image`
+  → HTTP 404. The numbers above currently trace only to a WebSearch result that *names* the
+  first-party `developer.twitter.com/.../summary-card-with-large-image` page but returns aggregated
+  third-party values (Influencer Marketing Hub, soona, og-image.org). Because the first-party page
+  would not load, these constraints were **NOT** promoted into the main table (rows 185–192 keep the
+  X Developer Community cards hub as their cited URL). Re-attempt against `docs.x.com` when reachable.
+
+## Multi-engine indexing — provenance note
+
+Rows 230–246 were added 2026-06-17 (method = WebFetch). Rich-result rows 230–240 cite Google
+Search Central per-feature docs fetched directly (job-posting, dataset, course, qapage, how-to,
+software-app). Note: **How-to (row 238)** is recorded as deprecated — Google removed the How-to
+rich result on 2023-09-14, confirmed on its own docs page, so the only testable check is flagging
+reliance on it. **Video** rich-result props were already enumerated (rows 146–147), so no duplicate
+was added. Multi-engine rows 241–246 cite IndexNow.org + first-party Bing pages
+(`bing.com/indexnow/getstarted`, `blogs.bing.com`). Bing's general Webmaster *guidelines* help pages
+(`bing.com/webmasters/help/...`) render JS-only and returned no body via WebFetch on 2026-06-17, so
+Bing-specific crawl/sitemap signals beyond IndexNow/URL-Submission remain uncited here and were not
+added.
 
 ## [MODEL-SUGGESTED — confirm]
 
@@ -326,3 +367,21 @@ None added. No tests beyond what Perplexity surfaced were introduced.
 - `docs/research/test-catalog/raw/seo-11.json` — Completeness: Twitter/X Cards per card type (summary, summary_large_image, player, app), OG fallback, image constraints (canonical X docs URL not surfaced; community cards hub used)
 - `docs/research/test-catalog/raw/seo-12.json` — Completeness: sitemaps.org XML sitemap + sitemap-index validation (urlset/loc/lastmod/changefreq/priority, 50k/50MB limits, UTF-8, escaping, host/protocol, gzip, XSD; 2048-char limit explicitly excluded as non-protocol)
 - `docs/research/test-catalog/raw/seo-13.json` — Completeness sweep of commonly-missed categories (pagination/rel=next-prev deprecation, JS SEO rendering/hydration, canonical+noindex conflict, SD vs visible mismatch, AMP, favicon, web app manifest, breadcrumb SD vs visual, redirect cloaking, mixed content, lazy-load crawlability, meta-robots vs X-Robots conflict, trailing-slash loops, IDN handling, render-critical resource blocking)
+
+### seo-14 — direct WebFetch pass (2026-06-17, method = WebFetch; no Perplexity)
+
+Rows 230–246 were sourced by fetching first-party pages directly with the WebFetch tool (Perplexity
+was out of credits). URLs fetched and their outcome:
+
+- `https://developers.google.com/search/docs/appearance/structured-data/job-posting` — OK → row 230–231
+- `https://developers.google.com/search/docs/appearance/structured-data/dataset` — OK → row 232–233
+- `https://developers.google.com/search/docs/appearance/structured-data/course` — OK → row 234–235
+- `https://developers.google.com/search/docs/appearance/structured-data/qapage` — OK → row 236–237
+- `https://developers.google.com/search/docs/appearance/structured-data/how-to` — OK (confirms deprecation 2023-09-14) → row 238
+- `https://developers.google.com/search/docs/appearance/structured-data/software-app` — OK → row 239–240
+- `https://www.indexnow.org/documentation` — OK → rows 241, 242, 244
+- `https://www.bing.com/indexnow/getstarted` — OK → row 243
+- `https://blogs.bing.com/webmaster/january-2022/IndexNow-Announcing-Sharing-of-Submitted-URLs` — OK → row 245
+- `https://blogs.bing.com/webmaster/september-2021/Access-to-Instant-Indexing-...-URL-submission-API` — OK → row 246
+- X Cards image constraints — first-party fetch FAILED (developer.x.com 402; developer.twitter.com 307→docs.x.com; docs.x.com 404). Left flagged under "Needs a first-party source"; not added to the main table.
+- Bing general Webmaster guidelines help pages (`bing.com/webmasters/help/...`) — returned no body (JS-only render). Not added.

@@ -1,9 +1,11 @@
 # Reliability / Performance & Privacy / Compliance — Test Catalog
 
 > Provenance-first catalog per `RESEARCH-PROTOCOL.md`. Every row carries a Source
-> name + URL surfaced by Perplexity (`sonar-pro`) and a standard reference where one
-> exists. Two clearly separated domains: **A. Reliability / Performance-Engineering**
-> and **B. Privacy / Compliance**. Raw retrieval trail and Gaps listed at the bottom.
+> name + URL (surfaced by Perplexity `sonar-pro` for R1-R106 / P1-P102, or by direct
+> **WebFetch** for the commonly-missed sweep R107-R116 / P103-P110) and a standard
+> reference where one exists. Two clearly separated domains: **A. Reliability /
+> Performance-Engineering** and **B. Privacy / Compliance**. Raw retrieval trail (incl.
+> the WebFetch evidence list) and Gaps listed at the bottom.
 
 ---
 
@@ -143,6 +145,25 @@ Added sources for this block: **web.dev / Lighthouse** (Google — Core Web Vita
 | R104 | Streaming for large responses | Chunked/streaming reduces TTFB; progressive render | Transfer optimization | RFC 9112 chunked | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding | Partial |
 | R105 | Service worker offline resilience | SW caches static assets / offline fallback without harming freshness | Offline/resilience | Service Worker spec; web.dev | web.dev | https://web.dev/articles/service-worker-lifecycle | Partial |
 | R106 | Safe retry semantics (GET/HEAD) | Idempotent methods retryable without side effects | HTTP semantics | RFC 9110 safe methods | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods | Yes |
+
+### Reliability — "commonly-missed" sweep (cold-start, pooling, N+1, clock, SIGTERM, backpressure, DNS, TLS, cache-poison, brownout)
+
+Method = **WebFetch** (real URLs fetched 2026-06-17; replaces the un-runnable Perplexity
+`reliability-09` sweep). Each row cites a source page actually retrieved; section/best-practice
+refs quoted where the source provides one. URLs listed under Raw evidence.
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| R107 | Cold-start / serverless startup latency | First-request (cold) latency bounded; min-instances / startup-CPU-boost / trimmed deps reduce cold starts; instances not killed needlessly | Cold start | Cloud Run "startup time has impact on the latency of your service"; min-instances + startup CPU boost | Google Cloud Run – General tips | https://docs.cloud.google.com/run/docs/tips/general | Partial (cold-vs-warm TTFB delta synthetic) |
+| R108 | DB connection-pool exhaustion | App reuses a bounded pool; leaked/unreturned connections detected; stays under server connection limit; FD exhaustion doesn't break health checks | Resource exhaustion (connections) | Cloud SQL "fewer connections reduces overhead and helps you stay under the connection limit"; SRE Ch.22 "File descriptors" exhaustion → failed health checks | Google Cloud SQL – Manage connections; Google SRE Book Ch.22 | https://docs.cloud.google.com/sql/docs/postgres/manage-connections | No |
+| R109 | N+1 query detection | No repeated per-row queries in a loop; related data fetched in one round-trip (eager loading / select_related / prefetch_related) | Query efficiency | Django "a query that is executed in a loop … could end up doing many database queries, when only one was needed" → `select_related()`/`prefetch_related()` | Django docs – Database access optimization | https://docs.djangoproject.com/en/stable/topics/db/optimization/ | Partial (repeated-query pattern in network log) |
+| R110 | Clock drift / time synchronization | Hosts NTP-synced; timestamp ordering doesn't break under cross-host clock skew (drift bounded / monotonic source) | Time sync | Spanner TrueTime: lagging clock could assign an earlier timestamp to a later transaction → consistency violation; bounded clock uncertainty | Google Cloud Spanner – TrueTime & external consistency | https://docs.cloud.google.com/spanner/docs/true-time-external-consistency | No |
+| R111 | SIGTERM graceful draining | On termination, process stops accepting new work, drains in-flight requests within the grace period, then exits before SIGKILL | Graceful shutdown | K8s Pod lifecycle: default 30s `terminationGracePeriodSeconds`, SIGTERM → grace period → SIGKILL; Cloud Run "avoid system exits that … increase cold starts" | Kubernetes – Pod lifecycle (termination); Google Cloud Run tips | https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/ | No |
+| R112 | Queue backpressure / backlog control | Async queues don't grow unbounded; message-age tracked; inbound throttled (inversely) proportional to backlog; stale messages sidelined | Backpressure | AWS Builders' Library: queues are bimodal; track message age not just errors; "scaling an inbound throttle limit (inversely) proportionally to backlog size"; sideline stale messages | AWS Builders' Library – Avoiding insurmountable queue backlogs | https://aws.amazon.com/builders-library/avoiding-insurmountable-queue-backlogs/ | No |
+| R113 | DNS TTL handling | Records carry sane TTL; resolvers/clients honor TTL before re-resolving; TTL low enough for failover, high enough to avoid lookup storms | DNS caching | MDN: TTL "indicates the amount of time in seconds during which the resource can be cached"; expired record must be re-queried from authoritative server | MDN – TTL (glossary) | https://developer.mozilla.org/en-US/docs/Glossary/TTL | Partial (DNS TTL inspection) |
+| R114 | TLS certificate-expiry monitoring | Served cert is currently valid (now within notBefore..notAfter); expiry tracked and renewed before notAfter | Cert lifecycle | RFC 5280 §4.1.2.5 Validity (notBefore/notAfter); §6.1.3 path validation requires current time within validity period | IETF RFC 5280 | https://www.rfc-editor.org/rfc/rfc5280 | Yes (read cert notAfter, alert on days-to-expiry) |
+| R115 | CDN / shared-cache poisoning resistance | Unkeyed inputs can't poison a shared cache; cache key + correct Vary prevent serving an attacker-influenced response to other users; unsafe methods invalidate cache | Cache poisoning | PortSwigger: unkeyed inputs influencing the response → poisoned shared cache served to all; RFC 9111 §4.1 Vary cache-key correctness, §4.4 invalidation on unsafe methods | PortSwigger Web Security Academy – Web cache poisoning; IETF RFC 9111 | https://portswigger.net/web-security/web-cache-poisoning | Partial (unkeyed-header reflection probe) |
+| R116 | Brownout / load-shedding behavior | Near overload, server sheds low-criticality load (503) and/or degrades gracefully (cached/less-accurate responses) rather than collapsing; client-side adaptive throttling | Load shedding | SRE Ch.21 "serve degraded responses"; client-side adaptive throttling; criticality tiers; Ch.22 "Load Shedding and Graceful Degradation" returns 503 near overload; AWS REL05-BP01 graceful degradation | Google SRE Book Ch.21 (Handling Overload) & Ch.22 (Addressing Cascading Failures); AWS Well-Architected REL05-BP01 | https://sre.google/sre-book/handling-overload/ | Partial (degraded-response / 503-under-load synthetic) |
 
 ---
 
@@ -294,9 +315,26 @@ Sources: **EDPB Guidelines 05/2020 on consent** https://www.edpb.europa.eu/sites
 | P101 | No banner bypass via iframes/subdomains | Scripts in iframes/subdomains don't set non-essential cookies pre-consent | Technical enforcement | ePrivacy Art. 5(3); EDPB 05/2020 §17-25 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
 | P102 | No geo-weakening for EU users | EU IP/locale gets opt-in model (no non-essential cookies by default) | Territorial scope | GDPR Art. 3; EDPB 05/2020 scope | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
 
+### Privacy — "commonly-missed" sweep (DSR SLA, TCF string, COPPA, breach timing, log retention, IP anonymization, pixel consent, session-replay masking)
+
+Method = **WebFetch** (real URLs fetched 2026-06-17; replaces the un-runnable Perplexity
+`reliability-09` sweep). Each row cites a source page actually retrieved, with the statute
+article/section quoted where one exists. URLs listed under Raw evidence.
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| P103 | Data-subject-request SLA timer | DSR (access/erasure/etc.) answered "without undue delay and in any event within one month"; extendable by two further months for complex/numerous requests with notice | DSR timing | GDPR Art. 12(3) — one-month response, +2-month extension | GDPR Art. 12 (gdpr-info) | https://gdpr-info.eu/art-12-gdpr/ | No (process/SLA, not a live-URL check) |
+| P104 | IAB TCF consent-string validity | If a TCF CMP is present, a valid TC String is produced/stored and vendor/purpose signals are well-formed per the Global Vendor List format | Consent signaling | IAB Europe TCF — "Transparency and Consent (TC) String with Global Vendor List Format"; standardises informing users, choices, and respecting consent | IAB Europe – Transparency & Consent Framework | https://iabeurope.eu/transparency-consent-framework/ | Partial (detect CMP + parse `__tcfapi` TC String) |
+| P105 | COPPA — children's data (under 13) | Service directed to children obtains verifiable parental consent before collecting personal info from a child under 13; posts notice of what's collected/used/disclosed | Children's privacy | 15 U.S.C. §6502 — unlawful to collect from a child without verifiable parental consent + notice; "child" = under 13 | US Code 15 §6502 (Cornell LII) | https://www.law.cornell.edu/uscode/text/15/6502 | No |
+| P106 | Breach-notification readiness (timing) | Process exists to notify the supervisory authority ≤72h of awareness (Art 33) and affected data subjects without undue delay where high risk (Art 34) | Breach notification | GDPR Art. 33 (≤72h to authority) + Art. 34 (high-risk → notify subjects; exceptions: encryption, mitigation, disproportionate effort) | GDPR Art. 33 & 34 (gdpr-info) | https://gdpr-info.eu/art-33-gdpr/ | No |
+| P107 | Server-log / PII retention limit | Personal data in server logs/analytics/backups kept no longer than necessary; retention schedule + auto-deletion; backups also bounded | Storage limitation | GDPR Art. 5(1)(e) — kept "for no longer than is necessary"; even backup copies fall under storage limitation | GDPR Art. 5 (gdpr-info) | https://gdpr-info.eu/art-5-gdpr/ | No |
+| P108 | Analytics IP anonymization | Analytics either masks/truncates IP before storage or does not log IP at all (so the full IP never persists) | IP anonymization | Google Analytics: UA truncates last octet (IPv4)/last 80 bits (IPv6) "before any storage or processing"; GA4 does not log/store IP | Google Analytics Help – IP masking/anonymization | https://support.google.com/analytics/answer/2763052 | Partial (detect analytics tag + anonymize flag/GA4) |
+| P109 | Tracking-pixel / non-cookie tracker consent | Tracking pixels/web beacons/scripts that store or read info on the device are gated behind consent like cookies (technology-neutral), not fired pre-consent | Prior consent (non-cookie) | ePrivacy Art. 5(3) consent for storing/accessing info on terminal equipment (tech-neutral); EDPB Opinion 5/2019 & Cookie Banner Taskforce treat trackers beyond cookies alike. gdpr.eu: consent before any non-strictly-necessary tracking | gdpr.eu – Cookies (+ ePrivacy Art 5(3) / EDPB, already cited above) | https://gdpr.eu/cookies/ | Partial (pre-consent third-party pixel/beacon request detection) |
+| P110 | Session-replay PII masking | Session-replay/heatmap tools mask form inputs and sensitive content client-side; masked content never sent to the vendor; password/input fields masked in all modes | Session replay masking | MS Clarity: masks sensitive content by default, "never captures anything that is masked or sent over the wire"; input boxes masked in all modes; Strict/Balanced/Relaxed modes | Microsoft Clarity docs – Masking content | https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-masking | Partial (detect replay script + check masking config) |
+
 ## Unverified / needs a source
 
-(None — every row above carries a Perplexity-surfaced source + URL.)
+(None — every row above carries a Perplexity-surfaced or WebFetch-verified source + URL.)
 
 ## [MODEL-SUGGESTED — confirm]
 
@@ -307,18 +345,22 @@ Perplexity responses surfaced. Items not yet researched are listed under Gaps be
 
 The gap-fill passes (reliability-05 through reliability-08) closed the four largest gaps
 (frontend/infra reliability R68-R106; PCI SAQ A line items P47-P65; US state privacy
-P66-P79; cookie-consent specifics P80-P102). Remaining open items:
+P66-P79; cookie-consent specifics P80-P102). The "commonly-missed" sweep was then closed
+via **WebFetch** (method substitute for the un-runnable Perplexity `reliability-09`),
+adding R107-R116 (reliability) and P103-P110 (privacy) — see those blocks above. Remaining
+open items:
 
-- **Completeness "what's commonly missed" sweep** for both domains — NOT completed.
-  The dedicated sweep call (`reliability-09`) returned HTTP 401 `insufficient_quota`:
-  the Perplexity account ran out of credits mid-run. Topics still un-researched: cold-start/
-  serverless latency, connection-pool exhaustion, slow-query/N+1 detection, clock drift,
-  graceful SIGTERM draining, queue backpressure, log-volume cost blowups, DNS TTL, TLS
-  cert-expiry monitoring, CDN cache-poisoning, brownout/load-shedding (reliability); and
-  DSR SLA timers, IAB TCF consent strings, COPPA children's data, breach-notification
-  readiness, server-log PII retention, analytics IP anonymization, email tracking-pixel
-  consent, session-replay PII masking, cross-border SCC disclosure (privacy). Rerun once
-  Perplexity credits are topped up.
+- ~~**Completeness "what's commonly missed" sweep**~~ — CLOSED 2026-06-17 via WebFetch
+  (Perplexity was out of credits, so real source URLs were fetched directly instead).
+  Reliability: cold-start (R107), connection-pool exhaustion (R108), N+1 detection (R109),
+  clock drift (R110), SIGTERM graceful draining (R111), queue backpressure (R112), DNS TTL
+  (R113), TLS cert-expiry (R114), CDN cache-poisoning (R115), brownout/load-shedding (R116).
+  Privacy: DSR SLA timer (P103), IAB TCF consent string (P104), COPPA (P105), breach-
+  notification timing (P106), server-log PII retention (P107), analytics IP anonymization
+  (P108), tracking-pixel consent (P109), session-replay PII masking (P110).
+- **Still un-sourced from this sweep:** *log-volume cost blowups* (reliability) and
+  *cross-border SCC disclosure* (privacy) — not added; no authoritative URL was fetched for
+  either, so they remain flagged rather than invented.
 - **WCAG 2.2 success-criterion-level rows** for general site accessibility (vs the
   privacy-UI-specific accessibility rows already captured P36-P39) — still not enumerated.
 
@@ -333,7 +375,47 @@ P66-P79; cookie-consent specifics P80-P102). Remaining open items:
 - `raw/reliability-07.json` — US state privacy laws beyond California (Virginia VCDPA, Colorado CPA, Connecticut CTDPA, Utah UCPA; statute citations; UOOM required CO/CT only; sensitive-data opt-in VA/CO/CT vs opt-out UT). HTTP 200. → rows P66-P79.
 - `raw/reliability-08.json` — Cookie-consent banner specifics (EDPB Guidelines 05/2020, EDPB Cookie Banner Taskforce 2023, ePrivacy Art 5(3), CJEU Planet49, GDPR Art 7; 24 testable banner checks). HTTP 200. → rows P80-P102.
 
-> NOTE (Truth Protocol): The completeness "commonly missed" sweep (`reliability-09`) could
-> NOT be saved — Perplexity returned HTTP 401 `insufficient_quota` (account credits
-> exhausted). No `reliability-09.json` exists. Every row in this catalog is sourced from
-> the eight saved raw JSON files (01-08); nothing was added from training knowledge.
+### Commonly-missed sweep — WebFetch evidence (2026-06-17)
+
+Method = **WebFetch** (no `raw/*.json`; the Perplexity `reliability-09` call was unavailable
+— HTTP 401 `insufficient_quota`). Each URL below was fetched live and quoted in the rows it
+backs. Memory-Palace auto-capture stored each fetched page under
+`~/.claude/projects/-Users-robertyeager/memory/` (webfetch-*.md, pending_review).
+
+Reliability (→ R107-R116):
+- Google Cloud Run – General tips (cold start, min-instances, startup CPU boost, SIGTERM) — https://docs.cloud.google.com/run/docs/tips/general — HTTP 200 (after 301 from cloud.google.com). → R107, R111.
+- Google Cloud SQL – Manage connections (pool exhaustion, connection limit, leaked connections) — https://docs.cloud.google.com/sql/docs/postgres/manage-connections — HTTP 200 (after 301). → R108.
+- Google SRE Book Ch.22 – Addressing Cascading Failures (file-descriptor exhaustion, queue mgmt, load shedding, retry amplification) — https://sre.google/sre-book/addressing-cascading-failures/ — HTTP 200. → R108, R112, R116.
+- Django docs – Database access optimization (N+1, select_related/prefetch_related, queries in loops) — https://docs.djangoproject.com/en/stable/topics/db/optimization/ — HTTP 200. → R109.
+- Google Cloud Spanner – TrueTime & external consistency (clock drift, timestamp ordering, bounded uncertainty) — https://docs.cloud.google.com/spanner/docs/true-time-external-consistency — HTTP 200. → R110.
+- Kubernetes – Pod lifecycle / termination (SIGTERM, 30s grace period, SIGKILL) — https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/ — HTTP 200 (termination-flow detail partially truncated; grace-period + signal sequence captured). → R111.
+- AWS Builders' Library – Avoiding insurmountable queue backlogs (bimodal queues, message-age metric, inbound throttle ∝ backlog, sidelining) — https://aws.amazon.com/builders-library/avoiding-insurmountable-queue-backlogs/ — HTTP 200. → R112.
+- AWS Builders' Library – Timeouts, retries, and backoff with jitter (retry amplification 243x, jitter, token bucket) — https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/ — HTTP 200. → supports R112/R116 (retry-storm context).
+- MDN – TTL glossary (DNS/HTTP cache TTL seconds, re-query on expiry) — https://developer.mozilla.org/en-US/docs/Glossary/TTL — HTTP 200. → R113.
+- IETF RFC 5280 (§4.1.2.5 Validity notBefore/notAfter; §6.1.3 path validation within validity) — https://www.rfc-editor.org/rfc/rfc5280 — HTTP 200. → R114.
+- IETF RFC 9111 (§4.1 Vary cache-key; §4.4 invalidation on unsafe methods; freshness) — https://www.rfc-editor.org/rfc/rfc9111 — HTTP 200. → R115.
+- PortSwigger Web Security Academy – Web cache poisoning (unkeyed inputs, cache key, Vary, defenses) — https://portswigger.net/web-security/web-cache-poisoning — HTTP 200. → R115.
+- Google SRE Book Ch.21 – Handling Overload (degraded responses, client-side adaptive throttling, criticality tiers) — https://sre.google/sre-book/handling-overload/ — HTTP 200. → R116.
+- AWS Well-Architected Reliability – REL05-BP01 graceful degradation (soft dependencies, circuit breaker, queue buffering) — https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_graceful_degradation.html — HTTP 200. → R116.
+
+Privacy (→ P103-P110):
+- GDPR Art. 12 (gdpr-info) — DSR one-month / +2-month response — https://gdpr-info.eu/art-12-gdpr/ — HTTP 200. → P103.
+- IAB Europe – Transparency & Consent Framework (TC String / Global Vendor List) — https://iabeurope.eu/transparency-consent-framework/ — HTTP 200. → P104.
+- US Code 15 §6502 (Cornell LII) — COPPA verifiable parental consent + notice, child = under 13 — https://www.law.cornell.edu/uscode/text/15/6502 — HTTP 200. → P105.
+- GDPR Art. 33 (gdpr-info) — ≤72h breach notification to authority — https://gdpr-info.eu/art-33-gdpr/ — HTTP 200. → P106.
+- GDPR Art. 34 (gdpr-info) — breach notification to data subjects (high risk) + exceptions — https://gdpr-info.eu/art-34-gdpr/ — HTTP 200. → P106.
+- GDPR Art. 5 (gdpr-info) — Art 5(1)(e) storage limitation incl. backups — https://gdpr-info.eu/art-5-gdpr/ — HTTP 200. → P107.
+- Google Analytics Help – IP masking/anonymization (UA truncation before storage; GA4 no IP logged) — https://support.google.com/analytics/answer/2763052 — HTTP 200. → P108.
+- gdpr.eu – Cookies (consent before non-strictly-necessary tracking) — https://gdpr.eu/cookies/ — HTTP 200. Note: page is cookie-specific; technology-neutral basis for pixels/beacons rests on ePrivacy Art 5(3) + EDPB Opinion 5/2019 (already cited in the Privacy sources table). → P109.
+- Microsoft Clarity docs – Masking content (masks by default, never sent over the wire, input boxes masked in all modes, Strict/Balanced/Relaxed) — https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-masking — HTTP 200. → P110.
+
+Fetches attempted but unusable (NOT used as sources): ftc.gov COPPA pages (HTTP 403 ×2 → COPPA sourced from 15 U.S.C. §6502 at Cornell instead); ecfr.gov 16 CFR Part 312 (302 → unblock captcha); ico.org.uk PECR cookies guidance (HTTP 403); eur-lex.europa.eu GDPR consolidated text and ePrivacy 32002L0058 (returned blank — JS-rendered → GDPR sourced from gdpr-info per-article pages; ePrivacy Art 5(3) basis retained from the existing Privacy sources table); web.dev TTFB (fetched but does not cover cold starts → cold start sourced from Cloud Run instead).
+
+> NOTE (Truth Protocol): The completeness "commonly missed" sweep originally planned as
+> Perplexity `reliability-09` could NOT be run that way — Perplexity returned HTTP 401
+> `insufficient_quota`. It was instead completed on 2026-06-17 via **WebFetch** against the
+> real URLs listed directly above; no `reliability-09.json` exists. Rows R1-R106 and P1-P102
+> remain sourced from the eight saved raw JSON files (01-08); rows R107-R116 and P103-P110
+> are sourced from the live WebFetch evidence above. Nothing was added from training
+> knowledge; items without a fetchable authoritative source (log-volume cost blowups,
+> cross-border SCC disclosure) were left flagged in Gaps, not invented.
