@@ -6,6 +6,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildSeoRanking } from "../src/lib/report/seo-report.ts";
+import { fixTheseThree, type Finding } from "../src/lib/report/fixes.ts";
 
 export type ReportCard = {
   id: string;
@@ -28,7 +29,7 @@ export type ReportData = {
   failed: number;
   blocked: number;
   cards: ReportCard[];
-  findings: Array<{ title: string; summary: string; severity: string }>;
+  findings: Array<{ id?: string; title: string; category?: string; summary: string; severity: string; fixPrompt?: string }>;
   generatedAt: string;
 };
 
@@ -61,14 +62,23 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
     ${seo.hurts.length ? `<p style="padding:0 40px;color:var(--soft);font-size:13.5px;margin-bottom:8px"><strong style="color:var(--fail)">Hurting your ranking:</strong></p><ul style="margin:0 40px 14px;padding-left:18px;color:var(--soft);font-size:13.5px">${seo.hurts.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>` : ""}
     ${seo.fixes.length ? `<p style="padding:0 40px;color:var(--soft);font-size:13.5px;margin-bottom:8px"><strong>Exact fixes:</strong></p>${seo.fixes.map((f) => `<div class="finding" style="border-left-color:var(--accent)"><p>${esc(f.fix)}</p><p style="font-size:11.5px;color:var(--faint);margin-top:6px">Source: ${esc(f.source)}</p></div>`).join("")}` : ""}`;
 
+  const fixBlock = (f: ReportData["findings"][number]) =>
+    f.fixPrompt ? `<details class="fix"><summary>Paste-ready fix for your AI builder</summary><pre>${esc(f.fixPrompt)}</pre></details>` : "";
+
   const findingBlocks = data.findings.length
     ? data.findings
         .map(
           (f) =>
-            `<div class="finding"><h3>${esc(f.severity.toUpperCase())} — ${esc(f.title)}</h3><p>${esc(f.summary)}</p></div>`,
+            `<div class="finding"><h3>${esc(f.severity.toUpperCase())} — ${esc(f.title)}</h3><p>${esc(f.summary)}</p>${fixBlock(f)}</div>`,
         )
         .join("")
     : `<p class="muted">No problems found. Every executed check passed.</p>`;
+
+  // Fix these 3 first — the launch-blockers, leading the report.
+  const top3 = fixTheseThree(data.findings as Finding[]);
+  const fixThree = top3.length
+    ? `<ol class="top3">${top3.map((f) => `<li><div class="t3t">${esc(f.title)} <span class="t3s">${esc(f.severity)}</span></div>${f.fixPrompt ? `<details class="fix"><summary>Paste-ready fix</summary><pre>${esc(f.fixPrompt)}</pre></details>` : ""}</li>`).join("")}</ol>`
+    : `<p class="muted">Nothing blocking — no failures to prioritize.</p>`;
 
   const html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -107,6 +117,10 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
   .ev{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:5px;padding:2px 8px}
   .ev:hover{border-color:var(--accent)}
   .foot{padding:24px 40px 30px;color:var(--faint);font-size:11.5px;display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:20px}
+  .top3{margin:0 40px 8px;padding-left:20px}.top3 li{margin-bottom:12px}
+  .t3t{font-weight:600;font-size:15px}.t3s{font-family:ui-monospace,monospace;font-size:10.5px;text-transform:uppercase;color:var(--fail);border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin-left:6px}
+  .fix{margin-top:7px}.fix summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-family:ui-monospace,monospace}
+  .fix pre{white-space:pre-wrap;background:#f4f1ea;border:1px solid var(--line);border-radius:7px;padding:11px 13px;margin-top:7px;font-size:12.5px;line-height:1.5;font-family:ui-monospace,monospace;color:var(--ink)}
 </style></head><body>
 <div class="sheet">
   <div class="mast">
@@ -122,6 +136,8 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
       <div class="legend"><span><i style="background:#0f8b53"></i>${data.passed} passed</span><span><i style="background:#c23b46"></i>${data.failed} failed</span><span><i style="background:#b6791b"></i>${data.blocked} need attention</span></div>
     </div>
   </div>
+  <h2>Fix these 3 first</h2>
+  ${fixThree}
   <h2>What we checked</h2>
   <table>${rows}</table>
   <h2>Problems to fix</h2>

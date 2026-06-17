@@ -26,6 +26,7 @@ import { resultToRaw } from "./verify.ts";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
 import { classifyFailure, type Classification } from "./classify.ts";
 import { detectPlatform, PLATFORM_LABEL, type Platform } from "../src/lib/platform/detect.ts";
+import { buildFixPrompt } from "../src/lib/report/fixes.ts";
 
 const args = process.argv.slice(2);
 const arg = (n: string) => { const i = args.indexOf(`--${n}`); return i !== -1 ? args[i + 1] : undefined; };
@@ -209,11 +210,14 @@ async function main() {
   ] as ReportCard[];
 
   // Findings carry the classification + a plain reason. Product bugs first, then needs-verification.
-  const findings = [...productBugs, ...needsVerify].map(({ r, cls }) => ({
-    title: r.card.title,
-    summary: `${cls!.reason}${r.error ? ` [${r.error.slice(0, 160)}]` : ""}`.slice(0, 400),
-    severity: cls!.type === "needs_verification" ? "needs verification" : cls!.type === "product_bug" ? r.card.risk : cls!.type,
-  }));
+  const findings = [...productBugs, ...needsVerify].map(({ r, cls }) => {
+    const severity = cls!.type === "needs_verification" ? "needs verification" : cls!.type === "product_bug" ? r.card.risk : cls!.type;
+    const summary = `${cls!.reason}${r.error ? ` [${r.error.slice(0, 160)}]` : ""}`.slice(0, 400);
+    return {
+      id: r.card.id, title: r.card.title, category: r.card.category, summary, severity,
+      fixPrompt: buildFixPrompt({ id: r.card.id, title: r.card.title, category: r.card.category, severity, summary }),
+    };
+  });
 
   console.error("[4/4] Writing your report…");
   const reportFile = await renderReport(
