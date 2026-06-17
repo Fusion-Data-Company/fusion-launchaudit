@@ -117,6 +117,16 @@ async function buildHints(appUrl: string, crawl: { links: Array<{ href: string }
   return hints;
 }
 
+/** Load the most recent prior report JSON from the output dir (for --reverify). */
+async function loadPriorReport(outDir: string): Promise<{ findings: Array<{ id?: string; title: string; severity: string; category?: string }> } | null> {
+  try {
+    const files = (await fsp.readdir(outDir)).filter((f) => /^launch-audit-.*\.json$/.test(f)).sort();
+    const latest = files[files.length - 1];
+    if (!latest) return null;
+    return JSON.parse(await fsp.readFile(path.join(outDir, latest), "utf8"));
+  } catch { return null; }
+}
+
 async function main() {
   const name = arg("name");
   const appUrl = arg("app-url");
@@ -147,11 +157,19 @@ async function main() {
     : detectPlatform(scan, crawl, hints);
   console.error(`      platform: ${PLATFORM_LABEL[platform.platform]} (${platform.confidence} confidence) — ${platform.signals.slice(0, 2).join("; ") || "default"}`);
   const cards = generateTestCards(scan, crawl, hints, platform.platform);
+
+  // "Prove it's fixed" re-run: re-check ONLY the checks that failed/needed verification
+  // in the most recent report, and show before -> after.
+  const reverify = process.argv.includes("--reverify");
+  const prior = reverify ? await loadPriorReport(OUT_DIR) : null;
+  const priorFindings = prior?.findings ?? [];
+  const priorIds = new Set(priorFindings.map((f) => f.id).filter(Boolean) as string[]);
+  if (reverify) console.error(`      re-verify mode: re-checking ${priorIds.size} prior finding(s) from the last report`);
   const blocked = cards.filter((c) => c.status === "blocked");
   console.error(`      ${cards.length} checks (${blocked.length} need your input)`);
 
   console.error("[3/4] Running them in a real browser…");
-  const executable = cards.filter((c) => c.status !== "blocked");
+  const executable = cards.filter((c) => c.status !== "blocked" && (!reverify || priorIds.has(c.id)));
   const auditOpts = { appUrl, artifactDir: path.join(OUT_DIR, "evidence") };
   const results = await executeCards(executable as never, auditOpts);
 
@@ -258,6 +276,24 @@ async function main() {
     }
   }
 
+  const newFailingIds = new Set([...productBugs, ...needsVerify].map((x) => x.r.card.id));
+  const reranIds = new Set(results.map((r) => r.card.id));
+  const beforeAfter = reverify
+    ? priorFindings.map((f) => ({
+        id: f.id, title: f.title, before: f.severity,
+        after: !f.id || !reranIds.has(f.id) ? "not re-run" : newFailingIds.has(f.id) ? "still failing" : "now passing",
+      }))
+    : [];
+  if (reverify) {
+    console.error(`\n==== PROVE IT'S FIXED: before -> after ====`);
+    for (const b of beforeAfter) {
+      const mark = b.after === "now passing" ? "✓" : b.after === "still failing" ? "✕" : "·";
+      console.error(`  ${mark} ${b.title}: ${b.before} -> ${b.after}`);
+    }
+    const fixed = beforeAfter.filter((b) => b.after === "now passing").length;
+    console.error(`  ${fixed}/${beforeAfter.length} prior findings now pass.`);
+  }
+
   console.error(`\n==== DONE ====`);
   console.error(
     `Readiness: ${readiness}/100  ·  ${passed} passed${flaky ? ` (${flaky} flaky-recovered)` : ""}, ${failed} to fix, ${needsVerify.length} need verification, ${blocked.length} need input`,
@@ -269,6 +305,7 @@ async function main() {
     readiness, passed, flaky, to_fix: failed, needs_verification: needsVerify.length, needs_input: blocked.length,
     report: path.resolve(reportFile),
     client_report: path.resolve(clientFile),
+    ...(reverify ? { reverify: true, before_after: beforeAfter } : {}),
     product_bugs: productBugs.map((x) => ({ id: x.r.card.id, title: x.r.card.title, confidence: x.cls!.confidence, why: x.cls!.reason })),
     needs_verification_items: needsVerify.map((x) => ({ id: x.r.card.id, title: x.r.card.title, why: x.cls!.reason })),
     needs_input_items: blocked.map((c) => ({ id: c.id, title: c.title, why: c.acceptanceCriteria })),
