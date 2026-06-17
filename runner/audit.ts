@@ -19,7 +19,7 @@ import fsp from "node:fs/promises";
 import { blobConfigured, runnerAuthHeaders, safeName, uploadEvidence } from "./blob-store.ts";
 import { crawlRuntime } from "./crawler.ts";
 import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, type CardResult } from "./execute-core.ts";
-import { humanize, renderReport, type ReportCard } from "./render-report.ts";
+import { humanize, renderReport, renderClientReport, type ReportCard } from "./render-report.ts";
 import { sealVerdict, type RawResult } from "./verdict.ts";
 import { runWatchdog } from "./watchdog.ts";
 import { resultToRaw } from "./verify.ts";
@@ -219,11 +219,10 @@ async function main() {
     };
   });
 
-  console.error("[4/4] Writing your report…");
-  const reportFile = await renderReport(
-    { name, appUrl, readiness, passed, failed, blocked: needAttention, cards: reportCards, findings, generatedAt: new Date().toISOString() },
-    OUT_DIR,
-  );
+  console.error("[4/4] Writing your reports…");
+  const reportData = { name, appUrl, readiness, passed, failed, blocked: needAttention, cards: reportCards, findings, generatedAt: new Date().toISOString() };
+  const reportFile = await renderReport(reportData, OUT_DIR);
+  const clientFile = await renderClientReport(reportData, OUT_DIR);
 
   // Optional: sync to hosted command center if configured.
   if (PLATFORM_URL) {
@@ -263,11 +262,13 @@ async function main() {
   console.error(
     `Readiness: ${readiness}/100  ·  ${passed} passed${flaky ? ` (${flaky} flaky-recovered)` : ""}, ${failed} to fix, ${needsVerify.length} need verification, ${blocked.length} need input`,
   );
-  console.error(`Report:  ${path.resolve(reportFile)}`);
+  console.error(`Builder report: ${path.resolve(reportFile)}`);
+  console.error(`Client one-pager: ${path.resolve(clientFile)}`);
   console.log(JSON.stringify({
     platform: { kind: platform.platform, label: PLATFORM_LABEL[platform.platform], confidence: platform.confidence, signals: platform.signals },
     readiness, passed, flaky, to_fix: failed, needs_verification: needsVerify.length, needs_input: blocked.length,
     report: path.resolve(reportFile),
+    client_report: path.resolve(clientFile),
     product_bugs: productBugs.map((x) => ({ id: x.r.card.id, title: x.r.card.title, confidence: x.cls!.confidence, why: x.cls!.reason })),
     needs_verification_items: needsVerify.map((x) => ({ id: x.r.card.id, title: x.r.card.title, why: x.cls!.reason })),
     needs_input_items: blocked.map((c) => ({ id: c.id, title: c.title, why: c.acceptanceCriteria })),

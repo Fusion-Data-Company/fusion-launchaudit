@@ -155,6 +155,51 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
   return file;
 }
 
+/**
+ * Client-facing one-pager: the plain-English summary a non-developer reads — score,
+ * verdict, the top 3 to fix in plain language, what's working, and the SEO headline.
+ * NO per-check table and NO paste-ready prompts (those live in the builder report).
+ */
+export async function renderClientReport(data: ReportData, outDir: string): Promise<string> {
+  const stamp = data.generatedAt.replace(/[:.]/g, "-").slice(0, 19);
+  const verdict = data.readiness >= 80 ? "Launch ready" : data.readiness >= 50 ? "Needs work before launch" : "Not ready to launch";
+  const top3 = fixTheseThree(data.findings as Finding[]);
+  const seo = buildSeoRanking(data.cards);
+  const top3Html = top3.length
+    ? `<ol>${top3.map((f) => `<li><strong>${esc(f.title)}</strong> — ${esc(f.summary.split(" [")[0])}</li>`).join("")}</ol>`
+    : `<p class="muted">Nothing is blocking launch.</p>`;
+  const seoHtml = [...seo.hurts.slice(0, 4)].map((h) => `<li>${esc(h)}</li>`).join("") || `<li>No ranking issues found on the pages we checked.</li>`;
+
+  const html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${esc(data.name)} — Launch Summary</title>
+<style>
+  body{background:#faf8f4;color:#16140f;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55;padding:40px 0}
+  .sheet{max-width:680px;margin:0 auto;background:#fff;border:1px solid #e7e1d6;border-radius:18px;padding:40px;box-shadow:0 30px 70px -40px rgba(20,18,12,.5)}
+  .top{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #16140f;padding-bottom:18px;margin-bottom:22px}
+  .score{font-size:64px;font-weight:800;letter-spacing:-.04em;line-height:.9}.score sup{font-size:20px;color:#9a9082}
+  h1{font-size:22px;margin:0 0 2px}.url{color:#5d574c;font-size:13px;font-family:ui-monospace,monospace}
+  .verdict{font-weight:700;font-size:14px;color:${data.readiness >= 80 ? "#0f8b53" : data.readiness >= 50 ? "#b6791b" : "#c23b46"}}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:#9a9082;margin:24px 0 8px;font-family:ui-monospace,monospace}
+  ol,ul{padding-left:20px;color:#3a352c;font-size:14.5px}li{margin-bottom:7px}
+  .counts{display:flex;gap:20px;font-size:14px;color:#5d574c;margin-top:6px}
+  .muted{color:#9a9082}.foot{margin-top:26px;padding-top:16px;border-top:1px solid #e7e1d6;color:#9a9082;font-size:11.5px}
+</style></head><body><div class="sheet">
+  <div class="top"><div><h1>${esc(data.name)}</h1><div class="url">${esc(data.appUrl)}</div></div>
+    <div style="text-align:center"><div class="score">${esc(data.readiness)}<sup>/100</sup></div><div class="verdict">${verdict}</div></div></div>
+  <div class="counts"><span>✅ ${data.passed} working</span><span>❌ ${data.failed} to fix</span><span>⚠️ ${data.blocked} need attention</span></div>
+  <h2>Fix these 3 first</h2>
+  ${top3Html}
+  <h2>Getting found on Google</h2>
+  <ul>${seoHtml}</ul>
+  <div class="foot">Plain-English summary. Your developer has the full technical report with exact fixes. — LaunchAudit, fusiondataco.com</div>
+</div></body></html>`;
+
+  await fs.mkdir(outDir, { recursive: true });
+  const file = path.join(outDir, `launch-audit-${stamp}-client.html`);
+  await fs.writeFile(file, html);
+  return file;
+}
+
 // Plain-English translation of technical categories for non-developers.
 export function humanize(card: { category: string; title: string; status: string }): { plainTitle: string; plainDetail: string } {
   const map: Record<string, { t: string; d: string }> = {
