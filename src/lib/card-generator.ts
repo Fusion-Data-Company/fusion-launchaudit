@@ -19,6 +19,8 @@ import { generateCookieSecurity } from "./generators/cookie-security.ts";
 import { generateMassAssignment } from "./generators/mass-assignment.ts";
 import { generateTlsHsts } from "./generators/tls-hsts.ts";
 import { generateInjection } from "./generators/injection.ts";
+import { type Platform } from "./platform/detect.ts";
+import { generatePlatformCards } from "./platform/registry.ts";
 
 export type { GeneratedCard, AuditHints } from "./generators/types.ts";
 
@@ -65,7 +67,7 @@ function deriveHintsFromScan(scan: RepoScan | null, hints: AuditHints): AuditHin
 }
 
 /** Compose the deep taxonomy: front end, back end, admin/RBAC, middleware, write-authz, ElevenLabs. */
-export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hints: AuditHints = {}): GeneratedCard[] {
+export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hints: AuditHints = {}, platform?: Platform): GeneratedCard[] {
   hints = deriveHintsFromScan(scan, hints);
   const c = new Counter();
   const cards: GeneratedCard[] = [
@@ -88,6 +90,9 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateTlsHsts(scan, crawl, hints, c),
     ...generateInjection(scan, crawl, hints, c),
   ];
+
+  // Platform-specific check set on top of the shared base (empty if no platform passed).
+  if (platform) cards.push(...generatePlatformCards(platform, scan, crawl, hints, c));
 
   if (crawl.has_password_field && !(hints.roles?.admin || hints.roles?.user)) {
     cards.push({

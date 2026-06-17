@@ -25,6 +25,7 @@ import { runWatchdog } from "./watchdog.ts";
 import { resultToRaw } from "./verify.ts";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
 import { classifyFailure, type Classification } from "./classify.ts";
+import { detectPlatform, PLATFORM_LABEL } from "../src/lib/platform/detect.ts";
 
 const args = process.argv.slice(2);
 const arg = (n: string) => { const i = args.indexOf(`--${n}`); return i !== -1 ? args[i + 1] : undefined; };
@@ -139,7 +140,9 @@ async function main() {
 
   console.error("[2/4] Building the checks…");
   const hints = await buildHints(appUrl, crawl, arg("hints"));
-  const cards = generateTestCards(scan, crawl, hints);
+  const platform = detectPlatform(scan, crawl, hints);
+  console.error(`      platform: ${PLATFORM_LABEL[platform.platform]} (${platform.confidence} confidence) — ${platform.signals.slice(0, 2).join("; ") || "default"}`);
+  const cards = generateTestCards(scan, crawl, hints, platform.platform);
   const blocked = cards.filter((c) => c.status === "blocked");
   console.error(`      ${cards.length} checks (${blocked.length} need your input)`);
 
@@ -255,6 +258,7 @@ async function main() {
   );
   console.error(`Report:  ${path.resolve(reportFile)}`);
   console.log(JSON.stringify({
+    platform: { kind: platform.platform, label: PLATFORM_LABEL[platform.platform], confidence: platform.confidence, signals: platform.signals },
     readiness, passed, flaky, to_fix: failed, needs_verification: needsVerify.length, needs_input: blocked.length,
     report: path.resolve(reportFile),
     product_bugs: productBugs.map((x) => ({ id: x.r.card.id, title: x.r.card.title, confidence: x.cls!.confidence, why: x.cls!.reason })),
