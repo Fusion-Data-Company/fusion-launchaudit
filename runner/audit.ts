@@ -18,10 +18,13 @@ import { captureAuth } from "./capture-auth.ts";
 import fsp from "node:fs/promises";
 import { blobConfigured, runnerAuthHeaders, safeName, uploadEvidence } from "./blob-store.ts";
 import { crawlRuntime } from "./crawler.ts";
-import { executeCards, registerArtifact, type CardResult } from "./execute-core.ts";
+import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, type CardResult } from "./execute-core.ts";
 import { humanize, renderReport, type ReportCard } from "./render-report.ts";
+import { sealVerdict, type RawResult } from "./verdict.ts";
+import { runWatchdog } from "./watchdog.ts";
+import { resultToRaw } from "./verify.ts";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
-import { classifyFailure } from "./classify.ts";
+import { classifyFailure, type Classification } from "./classify.ts";
 
 const args = process.argv.slice(2);
 const arg = (n: string) => { const i = args.indexOf(`--${n}`); return i !== -1 ? args[i + 1] : undefined; };
@@ -142,7 +145,25 @@ async function main() {
 
   console.error("[3/4] Running them in a real browser…");
   const executable = cards.filter((c) => c.status !== "blocked");
-  const results = await executeCards(executable as never, { appUrl, artifactDir: path.join(OUT_DIR, "evidence") });
+  const auditOpts = { appUrl, artifactDir: path.join(OUT_DIR, "evidence") };
+  const results = await executeCards(executable as never, auditOpts);
+
+  // Truth-protocol watchdog (the spine): independently re-run every PASSED
+  // no-browser check (security/authz/http/seo/content — deterministic) and
+  // downgrade any pass it cannot reproduce-with-evidence to needs_verification.
+  // Browser passes are verified by the executor's 3-attempt retry instead
+  // (re-launching a browser per pass here would double the run for no gain).
+  const byId = new Map((executable as never[]).map((c) => [(c as { id: string }).id, c]));
+  const passedNoBrowser = results.filter((r) => r.status === "passed" && isNoBrowser(r.card));
+  const reexec = async (id: string): Promise<RawResult> => {
+    const [fresh] = await executeNoBrowserCards([byId.get(id)] as never, auditOpts);
+    return resultToRaw(fresh);
+  };
+  const wd = passedNoBrowser.length
+    ? await runWatchdog(passedNoBrowser.map((r) => sealVerdict(resultToRaw(r))), reexec)
+    : null;
+  const downgradedIds = new Set((wd?.downgraded ?? []).map((d) => d.checkId));
+  if (wd) console.error(`      watchdog: re-verified ${wd.verifiedPasses}/${wd.checkedPasses} no-browser passes${downgradedIds.size ? `, downgraded ${downgradedIds.size} unreproducible` : ""}`);
 
   // Detect a stubbed/bypassed-auth environment so RBAC exposure isn't over-claimed as a vuln.
   const DEV_BYPASS_ENV = ["DEV_ORG_ID", "SUPERADMIN_DEV", "AUTH_BYPASS", "SKIP_AUTH", "NEXT_PUBLIC_DEV"];
@@ -150,10 +171,16 @@ async function main() {
   const devStubAuth = isLocal && (scan?.repo_summary.env_keys_present ?? []).some((k) => DEV_BYPASS_ENV.includes(k));
   if (devStubAuth) console.error("      note: auth looks stubbed here (local + dev-bypass key) — RBAC exposures flagged 'needs verification', not vulnerabilities");
 
-  const classified = results.map((r) => ({ r, cls: r.status === "failed" ? classifyFailure(r, { appUrl, devStubAuth }) : null }));
+  const watchdogReason = "Watchdog could not independently reproduce this pass (the re-run came back non-pass or without evidence) — re-verify before trusting it.";
+  const classified = results.map((r) => {
+    if (r.status === "failed") return { r, cls: classifyFailure(r, { appUrl, devStubAuth }) };
+    if (downgradedIds.has(r.card.id)) return { r, cls: { type: "needs_verification", confidence: "low", reason: watchdogReason } as Classification };
+    return { r, cls: null as Classification | null };
+  });
   const clsById = new Map(classified.filter((x) => x.cls).map((x) => [x.r.card.id, x.cls!]));
 
-  const passed = results.filter((r) => r.status === "passed").length;
+  // Honest readiness: a no-browser pass the watchdog couldn't reproduce no longer counts as passed.
+  const passed = results.filter((r) => r.status === "passed" && !downgradedIds.has(r.card.id)).length;
   const flaky = results.filter((r) => r.flaky).length;
   const productBugs = classified.filter((x) => x.cls && (x.cls.type === "product_bug" || x.cls.type === "test_bug"));
   const needsVerify = classified.filter((x) => x.cls && x.cls.type === "needs_verification");

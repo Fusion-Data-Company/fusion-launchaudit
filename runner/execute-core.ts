@@ -178,7 +178,7 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
 
 /** Deterministic, no-browser cards: raw HTTP (BE/RBAC/middleware/security/write-authz), ElevenLabs, and SEO API checks. */
 const NO_BROWSER_ACTIONS = new Set(["http", "elevenlabs", "seo", "content"]);
-const isNoBrowser = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => NO_BROWSER_ACTIONS.has(s.action));
+export const isNoBrowser = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => NO_BROWSER_ACTIONS.has(s.action));
 
 async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[]): Promise<void> {
   if (step.action === "http") return runHttp(step, appUrl, sink);
