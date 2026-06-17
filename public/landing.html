@@ -144,6 +144,8 @@
   .hero{position:relative;overflow:hidden;padding:104px 0 84px;text-align:center;}
   .hero-stage{position:absolute;inset:0;z-index:0;pointer-events:none;}
   .hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5;z-index:0;}
+  .hero.js-cinematic .hero-card{opacity:0;transform:translateY(14px);}
+  .hero.js-cinematic.is-revealed .hero-card{opacity:1;transform:none;transition:opacity 1s ease,transform 1s ease;}
   .hero-stage::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 30%,transparent 30%,rgba(6,7,13,.82) 100%);}
   .ha{position:absolute;border-radius:50%;filter:blur(72px);mix-blend-mode:screen;will-change:transform;}
   .ha1{width:560px;height:560px;left:6%;top:-20%;background:#4b50e0;opacity:.5;animation:haD1 17s ease-in-out infinite;}
@@ -345,7 +347,6 @@
 <!-- HERO -->
 <section class="hero" id="top-hero">
   <div class="hero-stage" aria-hidden="true">
-    <video class="hero-video" autoplay muted loop playsinline preload="auto"><source src="https://d8j0ntlcm91z4.cloudfront.net/user_3F2tNGuWpCUNCmvTpTN3rwIvoDi/hf_20260617_205352_0148f6ce-70ba-479a-9977-31b6125193f6.mp4" type="video/mp4"></video>
     <span class="ha ha1"></span><span class="ha ha2"></span><span class="ha ha3"></span>
     <div class="hero-grid"></div>
     <div class="hero-rings"><i></i><i></i><i></i></div>
@@ -632,70 +633,6 @@
   </div>
 </footer>
 
-<script>
-(function(){
-  // ---- Tabs ----
-  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab[role="tab"]'));
-  function selectTab(tab){
-    tabs.forEach(function(t){
-      var on = t === tab;
-      t.setAttribute('aria-selected', on ? 'true' : 'false');
-      t.tabIndex = on ? 0 : -1;
-      var panel = document.getElementById(t.getAttribute('aria-controls'));
-      if(panel){ panel.hidden = !on; }
-    });
-  }
-  tabs.forEach(function(tab, i){
-    tab.addEventListener('click', function(){ selectTab(tab); });
-    tab.addEventListener('keydown', function(e){
-      var idx = i;
-      if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ idx = (i+1) % tabs.length; }
-      else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ idx = (i-1+tabs.length) % tabs.length; }
-      else { return; }
-      e.preventDefault();
-      tabs[idx].focus();
-      selectTab(tabs[idx]);
-    });
-  });
-
-  // ---- Copy buttons ----
-  function flip(btn){
-    var label = btn.querySelector('.cb-label');
-    var prev = label ? label.textContent : '';
-    btn.classList.add('copied');
-    if(label){ label.textContent = 'Copied ✓'; }
-    setTimeout(function(){
-      btn.classList.remove('copied');
-      if(label){ label.textContent = prev || 'Copy'; }
-    }, 1500);
-  }
-  document.querySelectorAll('.copy-btn[data-copy]').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var target = document.getElementById(btn.getAttribute('data-copy'));
-      if(!target) return;
-      var text = target.innerText.replace(/ /g, ' ').trim();
-      function done(){ flip(btn); }
-      function fallback(){
-        try{
-          var ta = document.createElement('textarea');
-          ta.value = text;
-          ta.style.position = 'fixed';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          done();
-        }catch(err){ /* no-op */ }
-      }
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(text).then(done, fallback);
-      } else {
-        fallback();
-      }
-    });
-  });
-})();
-</script>
+<script src="/assets/landing.js" defer></script>
 </body>
 </html>
