@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LaunchAudit — the senior dev that finishes your app</title>
+<meta name="description" content="LaunchAudit is a deep, automated launch-readiness audit for web apps. It runs inside your own coding agent, drives your app in a real browser, and produces a 0–100 readiness score with evidence for every check. A watchdog re-verifies every pass — so it never lies that something works." />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta property="og:title" content="LaunchAudit — the senior dev that finishes your app" />
+<meta property="og:description" content="Deep launch-readiness audit that catches what AI builders ship and fake. Runs in your own agent. A watchdog re-verifies every pass." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#06070d;
+    --bg-2:#080a12;
+    --panel:rgba(20,22,34,0.55);
+    --panel-solid:#11131d;
+    --panel-2:rgba(28,30,44,0.5);
+    --ink:#f4f5fb;
+    --ink-soft:#c3c7d6;
+    --ink-mut:#8b90a4;
+    --ink-faint:#6a6f82;
+    --line:rgba(255,255,255,0.09);
+    --line-soft:rgba(255,255,255,0.055);
+    --line-strong:rgba(255,255,255,0.15);
+    --accent:#7c83ff;
+    --accent-2:#a674ff;
+    --accent-3:#5d6bff;
+    --accent-ink:#c9ccff;
+    --indigo:#6366f1;
+    --violet:#9b5cf6;
+    --cyan:#38d8e0;
+    --green:#34d399;
+    --amber:#f4b740;
+    --red:#fb7185;
+    --radius:18px;
+    --radius-sm:12px;
+    --maxw:1120px;
+    --shadow-card:0 1px 0 rgba(255,255,255,0.04) inset, 0 18px 40px -24px rgba(0,0,0,0.9);
+    --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  /* Ambient multi-hue glow */
+  .ambient{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+  .ambient::before,.ambient::after{content:"";position:absolute;border-radius:50%;filter:blur(90px);opacity:0.55;}
+  .ambient::before{
+    width:60vw;height:60vw;max-width:760px;max-height:760px;
+    top:-22vw;left:50%;transform:translateX(-52%);
+    background:radial-gradient(circle at 35% 35%, rgba(124,131,255,0.55), rgba(99,102,241,0.18) 45%, transparent 70%);
+  }
+  .ambient::after{
+    width:48vw;height:48vw;max-width:620px;max-height:620px;
+    top:6vw;right:-14vw;
+    background:radial-gradient(circle at 50% 50%, rgba(166,116,255,0.42), rgba(155,92,246,0.12) 48%, transparent 72%);
+  }
+  .ambient .glow-c{
+    position:absolute;border-radius:50%;filter:blur(100px);opacity:0.4;
+    width:42vw;height:42vw;max-width:560px;max-height:560px;
+    bottom:-12vw;left:-12vw;
+    background:radial-gradient(circle at 50% 50%, rgba(56,216,224,0.3), transparent 68%);
+  }
+  .grid-overlay{
+    position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.5;
+    background-image:linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px);
+    background-size:64px 64px;
+    -webkit-mask-image:radial-gradient(ellipse 80% 55% at 50% 0%, #000 0%, transparent 75%);
+    mask-image:radial-gradient(ellipse 80% 55% at 50% 0%, #000 0%, transparent 75%);
+  }
+  .wrap{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;padding:0 24px;}
+
+  /* ---------- NAV ---------- */
+  header.nav{position:sticky;top:0;z-index:50;backdrop-filter:saturate(160%) blur(14px);-webkit-backdrop-filter:saturate(160%) blur(14px);background:rgba(6,7,13,0.62);border-bottom:1px solid var(--line-soft);}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;}
+  .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink);font-weight:700;letter-spacing:-0.01em;font-size:17px;}
+  .brand-mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(150deg,var(--accent-3),var(--accent-2));box-shadow:0 6px 18px -6px rgba(124,131,255,0.7), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .brand-mark svg{width:18px;height:18px;color:#fff;}
+  .nav-links{display:flex;align-items:center;gap:8px;}
+  .nav-links a.nlink{color:var(--ink-mut);text-decoration:none;font-size:14px;font-weight:500;padding:8px 12px;border-radius:9px;transition:color .15s,background .15s;}
+  .nav-links a.nlink:hover{color:var(--ink);background:rgba(255,255,255,0.04);}
+  .nav-cta{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:10px;font-size:13.5px;font-weight:600;text-decoration:none;border:1px solid var(--line-strong);color:var(--ink);background:rgba(255,255,255,0.03);transition:border-color .15s,background .15s;}
+  .nav-cta:hover{border-color:var(--accent);background:rgba(124,131,255,0.1);}
+  .nav-cta svg{width:15px;height:15px;}
+  @media(max-width:720px){.nav-links a.nlink{display:none;}}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:88px 0 56px;text-align:center;}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(124,131,255,0.07);font-size:12.5px;font-weight:600;color:var(--accent-ink);letter-spacing:0.01em;margin-bottom:26px;}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(52,211,153,0.18);animation:pulse 2.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.45;}}
+  h1.hero-title{
+    font-size:clamp(34px,6.2vw,62px);
+    line-height:1.04;
+    letter-spacing:-0.035em;
+    font-weight:800;
+    margin:0 auto 22px;
+    max-width:16ch;
+    background:linear-gradient(180deg,#ffffff 30%,#c7cbe0 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  h1.hero-title .grad{
+    background:linear-gradient(110deg,var(--accent) 0%,var(--accent-2) 60%,#d7b6ff 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .subhead{font-size:clamp(16px,2.3vw,19px);color:var(--ink-soft);max-width:60ch;margin:0 auto 36px;line-height:1.6;}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:13px;justify-content:center;align-items:center;}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--font);font-size:15px;font-weight:600;text-decoration:none;cursor:pointer;border-radius:12px;padding:13px 22px;transition:transform .12s ease,box-shadow .2s,border-color .15s,background .2s;border:1px solid transparent;}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+  .btn svg{width:17px;height:17px;flex:none;}
+  .btn-primary{color:#fff;background:linear-gradient(135deg,var(--accent-3),var(--accent-2));box-shadow:0 12px 30px -10px rgba(124,131,255,0.7), inset 0 1px 0 rgba(255,255,255,0.28);}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 40px -12px rgba(124,131,255,0.85), inset 0 1px 0 rgba(255,255,255,0.28);}
+  .btn-ghost{color:var(--ink);background:rgba(255,255,255,0.035);border:1px solid var(--line-strong);}
+  .btn-ghost:hover{transform:translateY(-2px);border-color:var(--accent);background:rgba(124,131,255,0.09);}
+  .hero-mini{margin-top:22px;font-size:13.5px;color:var(--ink-mut);}
+  .hero-mini a{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid rgba(124,131,255,0.35);padding-bottom:1px;transition:color .15s,border-color .15s;}
+  .hero-mini a:hover{color:#fff;border-color:var(--accent);}
+  .hero-proof{display:inline-flex;align-items:center;gap:8px;margin-top:30px;padding:8px 16px;border-radius:999px;border:1px solid rgba(52,211,153,0.25);background:rgba(52,211,153,0.06);font-size:13px;color:#a7f3d0;font-weight:500;}
+  .hero-proof svg{width:15px;height:15px;color:var(--green);}
+
+  /* ---------- SECTION SCAFFOLD ---------- */
+  section.block{padding:64px 0;position:relative;}
+  .sec-head{text-align:center;max-width:62ch;margin:0 auto 44px;}
+  .sec-kicker{font-size:12.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+  h2.sec-title{font-size:clamp(26px,4vw,38px);line-height:1.12;letter-spacing:-0.025em;font-weight:800;margin:0 0 14px;color:var(--ink);}
+  .sec-sub{font-size:16.5px;color:var(--ink-mut);line-height:1.6;margin:0;}
+
+  /* ---------- CONNECT / CENTERPIECE ---------- */
+  #connect{scroll-margin-top:80px;padding-top:40px;}
+  .connect-shell{position:relative;}
+  .connect-shell::before{
+    content:"";position:absolute;inset:-2px;border-radius:calc(var(--radius) + 8px);z-index:0;
+    background:linear-gradient(135deg,rgba(124,131,255,0.7),rgba(166,116,255,0.4) 50%,rgba(56,216,224,0.3));
+    filter:blur(26px);opacity:0.68;
+  }
+  .connect-card{
+    position:relative;z-index:1;
+    border-radius:calc(var(--radius) + 6px);
+    border:1px solid var(--line-strong);
+    background:linear-gradient(180deg,rgba(18,20,31,0.92),rgba(12,13,21,0.96));
+    box-shadow:0 40px 90px -40px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.06);
+    padding:8px;
+    overflow:hidden;
+  }
+  .connect-head{padding:22px 22px 6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .connect-head h3{margin:0;font-size:17px;font-weight:700;letter-spacing:-0.01em;}
+  .connect-head .ch-sub{font-size:13.5px;color:var(--ink-mut);margin-left:auto;}
+  /* tabs */
+  .tabs{display:flex;gap:6px;padding:6px;margin:14px 16px 0;background:rgba(0,0,0,0.32);border:1px solid var(--line-soft);border-radius:13px;}
+  .tab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 8px;font-family:var(--font);font-size:14px;font-weight:600;color:var(--ink-mut);background:transparent;border:1px solid transparent;border-radius:9px;cursor:pointer;transition:all .15s;}
+  .tab svg{width:16px;height:16px;flex:none;}
+  .tab:hover{color:var(--ink-soft);}
+  .tab[aria-selected="true"]{color:#fff;background:linear-gradient(135deg,rgba(93,107,255,0.9),rgba(166,116,255,0.85));border-color:rgba(255,255,255,0.16);box-shadow:0 8px 22px -10px rgba(124,131,255,0.8), inset 0 1px 0 rgba(255,255,255,0.25);}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .tabpanel{padding:18px 16px 8px;}
+  .tabpanel[hidden]{display:none;}
+  .step-line{font-size:13.5px;color:var(--ink-mut);margin:0 4px 12px;display:flex;align-items:center;gap:9px;}
+  .step-line .n{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(124,131,255,0.14);border:1px solid rgba(124,131,255,0.3);}
+  .step-line b{color:var(--ink-soft);font-weight:600;}
+
+  /* code block */
+  .codeblock{position:relative;border-radius:13px;border:1px solid var(--line);background:#0a0b12;overflow:hidden;}
+  .code-bar{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--line-soft);background:rgba(255,255,255,0.018);}
+  .code-dots{display:flex;gap:6px;}
+  .code-dots i{width:10px;height:10px;border-radius:50%;display:block;}
+  .code-dots i:nth-child(1){background:#ff5f57;}
+  .code-dots i:nth-child(2){background:#febc2e;}
+  .code-dots i:nth-child(3){background:#28c840;}
+  .code-label{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-left:4px;letter-spacing:0.02em;}
+  .copy-btn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--ink-soft);background:rgba(255,255,255,0.05);border:1px solid var(--line-strong);border-radius:8px;padding:6px 11px;cursor:pointer;transition:all .15s;}
+  .copy-btn svg{width:14px;height:14px;}
+  .copy-btn:hover{color:#fff;border-color:var(--accent);background:rgba(124,131,255,0.12);}
+  .copy-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .copy-btn.copied{color:#fff;border-color:rgba(52,211,153,0.6);background:rgba(52,211,153,0.16);}
+  .code-body{margin:0;padding:15px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.75;color:#e7e9f5;-webkit-overflow-scrolling:touch;}
+  .code-body code{white-space:pre;display:block;}
+  .codeblock{position:relative;}
+  .codeblock .scrollfade{position:absolute;top:39px;right:0;bottom:0;width:42px;pointer-events:none;background:linear-gradient(90deg,rgba(10,11,18,0) 0%,#0a0b12 88%);opacity:0.9;border-top-right-radius:0;z-index:2;}
+  .code-body .tok-cmd{color:#8be9fd;}
+  .code-body .tok-flag{color:#bd93f9;}
+  .code-body .tok-amp{color:var(--ink-faint);}
+  .code-body .tok-str{color:#f1fa8c;}
+  .code-body .tok-key{color:#ff9bd0;}
+  .codeblock + .codeblock{margin-top:14px;}
+  .json-note{font-size:13px;color:var(--ink-soft);margin:14px 4px 10px;line-height:1.6;}
+  .json-note code{font-family:var(--mono);font-size:12px;color:var(--accent-ink);background:rgba(124,131,255,0.1);padding:1px 6px;border-radius:5px;}
+
+  .connect-foot{margin:16px 8px 12px;padding:15px 18px;border-radius:13px;border:1px dashed var(--line-strong);background:rgba(124,131,255,0.05);display:flex;align-items:center;gap:12px;font-size:14.5px;color:var(--ink-soft);}
+  .connect-foot svg{width:18px;height:18px;color:var(--accent);flex:none;}
+  .connect-foot b{color:#fff;font-weight:600;}
+  .connect-foot .cmdpill{font-family:var(--mono);font-size:13px;color:var(--accent-ink);background:rgba(0,0,0,0.4);border:1px solid var(--line);padding:3px 8px;border-radius:6px;}
+
+  /* ---------- WHAT IT CATCHES ---------- */
+  .catch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  @media(max-width:980px){.catch-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:560px){.catch-grid{grid-template-columns:1fr;}}
+  .cgcard{position:relative;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow-card);padding:20px 18px;transition:transform .15s,border-color .15s,background .2s;overflow:hidden;}
+  .cgcard:hover{transform:translateY(-3px);border-color:var(--line-strong);background:var(--panel-2);}
+  .cgcard .ico{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;margin-bottom:14px;border:1px solid var(--line);background:rgba(255,255,255,0.03);}
+  .cgcard .ico svg{width:19px;height:19px;color:var(--accent);}
+  .cgcard.danger .ico svg{color:var(--red);}
+  .cgcard.danger .ico{background:rgba(251,113,133,0.08);border-color:rgba(251,113,133,0.2);}
+  .cgcard h4{margin:0 0 7px;font-size:15px;font-weight:680;letter-spacing:-0.01em;color:var(--ink);line-height:1.3;}
+  .cgcard p{margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.55;}
+
+  /* ---------- HOW IT WORKS ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media(max-width:840px){.steps{grid-template-columns:1fr;}}
+  .step{position:relative;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow-card);padding:26px 24px;}
+  .step .num{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:11px;font-weight:800;font-size:17px;color:#fff;background:linear-gradient(135deg,var(--accent-3),var(--accent-2));box-shadow:0 8px 22px -10px rgba(124,131,255,0.8), inset 0 1px 0 rgba(255,255,255,0.25);margin-bottom:18px;}
+  .step h4{margin:0 0 9px;font-size:17px;font-weight:700;letter-spacing:-0.01em;color:var(--ink);}
+  .step p{margin:0;font-size:14.5px;color:var(--ink-mut);line-height:1.6;}
+  .step .conn{display:none;}
+
+  /* ---------- TRUTH PROTOCOL BAND ---------- */
+  .truth{position:relative;border-radius:calc(var(--radius) + 4px);overflow:hidden;border:1px solid rgba(124,131,255,0.28);background:linear-gradient(120deg,rgba(124,131,255,0.12),rgba(166,116,255,0.08) 55%,rgba(56,216,224,0.06));padding:42px 36px;text-align:center;box-shadow:0 30px 70px -40px rgba(124,131,255,0.5), inset 0 1px 0 rgba(255,255,255,0.06);}
+  .truth::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 50% 0%, rgba(166,116,255,0.16), transparent 70%);pointer-events:none;}
+  .truth-badge{position:relative;z-index:1;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:999px;border:1px solid rgba(124,131,255,0.4);background:rgba(10,11,18,0.5);font-size:12.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:20px;}
+  .truth-badge svg{width:15px;height:15px;}
+  .truth h3{position:relative;z-index:1;font-size:clamp(22px,3.4vw,30px);line-height:1.25;letter-spacing:-0.02em;font-weight:800;margin:0 auto 14px;max-width:24ch;color:#fff;}
+  .truth p{position:relative;z-index:1;font-size:16px;color:var(--ink-soft);max-width:58ch;margin:0 auto;line-height:1.65;}
+  .truth p .hl{color:#fff;font-weight:600;}
+
+  /* ---------- CLOSING CTA ---------- */
+  .closer{text-align:center;padding:30px 0 8px;}
+  .closer h2{font-size:clamp(26px,4vw,40px);letter-spacing:-0.03em;font-weight:800;margin:0 0 16px;background:linear-gradient(180deg,#fff,#c7cbe0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .closer p{font-size:17px;color:var(--ink-mut);max-width:48ch;margin:0 auto 30px;}
+
+  /* ---------- FOOTER ---------- */
+  footer.site{margin-top:72px;border-top:1px solid var(--line-soft);background:rgba(8,9,15,0.6);}
+  .foot-inner{padding:40px 0 44px;display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;justify-content:space-between;}
+  .foot-brand{max-width:320px;}
+  .foot-brand .brand{margin-bottom:12px;}
+  .foot-brand p{font-size:13.5px;color:var(--ink-mut);line-height:1.6;margin:0;}
+  .foot-cols{display:flex;gap:56px;flex-wrap:wrap;}
+  .foot-col h5{font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 14px;}
+  .foot-col a{display:flex;align-items:center;gap:8px;color:var(--ink-mut);text-decoration:none;font-size:14px;margin-bottom:11px;transition:color .15s;}
+  .foot-col a:hover{color:var(--ink);}
+  .foot-col a svg{width:15px;height:15px;}
+  .foot-bottom{border-top:1px solid var(--line-soft);padding:18px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;font-size:13px;color:var(--ink-faint);}
+  .foot-bottom a{color:var(--ink-mut);text-decoration:none;}
+  .foot-bottom a:hover{color:var(--ink);}
+  .foot-bottom .made{display:inline-flex;align-items:center;gap:7px;}
+  .foot-bottom .made .mk{width:18px;height:18px;border-radius:5px;background:linear-gradient(150deg,var(--accent-3),var(--accent-2));display:inline-grid;place-items:center;}
+  .foot-bottom .made .mk svg{width:11px;height:11px;color:#fff;}
+
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+
+  @media(max-width:560px){
+    .wrap{padding:0 18px;}
+    .hero{padding:60px 0 40px;}
+    section.block{padding:48px 0;}
+    .tab span.tlabel{display:none;}
+    .tab{padding:11px 6px;}
+    .connect-head .ch-sub{margin-left:0;flex-basis:100%;}
+    .code-body{font-size:12px;}
+    .connect-foot{flex-wrap:wrap;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important;scroll-behavior:auto !important;}
+  }
+</style>
+</head>
+<body>
+<div class="ambient"><div class="glow-c"></div></div>
+<div class="grid-overlay"></div>
+
+<!-- NAV -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="LaunchAudit home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18a8 8 0 1 1 14 0"/><path d="M12 13.5 16 9"/></svg>
+      </span>
+      LaunchAudit
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a class="nlink" href="#connect">Connect</a>
+      <a class="nlink" href="#catches">What it catches</a>
+      <a class="nlink" href="#how">How it works</a>
+      <a class="nav-cta" href="https://github.com/Fusion-Data-Company/fusion-launchaudit" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 2.5-.34c.85 0 1.7.12 2.5.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>
+
+<a id="top"></a>
+
+<!-- HERO -->
+<section class="hero wrap">
+  <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Open source · Runs in your own agent · Code never leaves your machine</span>
+  <h1 class="hero-title">The senior dev that finishes your app — and <span class="grad">refuses to lie that it's done.</span></h1>
+  <p class="subhead">LaunchAudit drives your running app in a real browser, hammers it with direct HTTP checks, and returns a 0–100 launch-readiness score with hard evidence for every check — then hands you a plain-English list of exactly what to fix.</p>
+  <div class="hero-cta">
+    <a class="btn btn-primary" href="#connect">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5l11 7-11 7z"/></svg>
+      Get started
+    </a>
+    <a class="btn btn-ghost" href="https://github.com/Fusion-Data-Company/fusion-launchaudit" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 2.5-.34c.85 0 1.7.12 2.5.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+      View on GitHub
+    </a>
+  </div>
+  <p class="hero-mini">or try the <a href="https://launch-audit-platform.vercel.app" target="_blank" rel="noopener">live demo →</a></p>
+  <div class="hero-proof">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+    Proven on a fixture with 5 planted bugs — caught all 5.
+  </div>
+</section>
+
+<!-- CONNECT / CENTERPIECE -->
+<section class="block" id="connect">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">Get started in one paste</div>
+      <h2 class="sec-title">Connect it to your agent</h2>
+      <p class="sec-sub">LaunchAudit runs as an MCP server inside the coding agent you already pay for. No API key to buy, no hosted backend, nothing to deploy. Copy one line, paste it into your agent, done.</p>
+    </div>
+
+    <div class="connect-shell">
+      <div class="connect-card">
+        <div class="connect-head">
+          <h3>Install &amp; connect</h3>
+          <span class="ch-sub">Pick your agent — the clone + install is identical; only the MCP registration differs.</span>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Choose your coding agent">
+          <button class="tab" role="tab" id="tab-claude" aria-controls="panel-claude" aria-selected="true" data-tab="claude">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
+            <span class="tlabel">Claude Code</span>
+          </button>
+          <button class="tab" role="tab" id="tab-cursor" aria-controls="panel-cursor" aria-selected="false" data-tab="cursor" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3l14 8-6 1.6L9.6 18z"/></svg>
+            <span class="tlabel">Cursor</span>
+          </button>
+          <button class="tab" role="tab" id="tab-codex" aria-controls="panel-codex" aria-selected="false" data-tab="codex" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9l-2.5 3L8 15M16 9l2.5 3L16 15"/></svg>
+            <span class="tlabel">Codex</span>
+          </button>
+        </div>
+
+        <!-- CLAUDE CODE -->
+        <div class="tabpanel" id="panel-claude" role="tabpanel" aria-labelledby="tab-claude">
+          <p class="step-line"><span class="n">1</span><span>One command clones, installs, downloads Chromium, and registers LaunchAudit with <b>Claude Code</b>.</span></p>
+          <div class="codeblock">
+            <div class="code-bar">
+              <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="code-label">terminal — claude code</span>
+              <button class="copy-btn" type="button" data-copy="cmd-claude" aria-label="Copy Claude Code install command">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                <span class="cb-label">Copy</span>
+              </button>
+            </div>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="cmd-claude"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">claude</span> mcp add launchaudit -- node <span class="tok-flag">--experimental-strip-types</span> ./runner/mcp-server.ts</code></pre>
+          </div>
+        </div>
+
+        <!-- CURSOR -->
+        <div class="tabpanel" id="panel-cursor" role="tabpanel" aria-labelledby="tab-cursor" hidden>
+          <p class="step-line"><span class="n">1</span><span>Clone and install — identical to every agent.</span></p>
+          <div class="codeblock">
+            <div class="code-bar">
+              <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="code-label">terminal</span>
+              <button class="copy-btn" type="button" data-copy="cmd-cursor" aria-label="Copy Cursor install command">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                <span class="cb-label">Copy</span>
+              </button>
+            </div>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="cmd-cursor"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium</code></pre>
+          </div>
+          <p class="json-note"><span class="n" style="display:inline-grid;width:20px;height:20px;border-radius:6px;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(124,131,255,0.14);border:1px solid rgba(124,131,255,0.3);vertical-align:-5px;margin-right:6px;">2</span>Add a server named <code>launchaudit</code> to Cursor's MCP settings at <code>~/.cursor/mcp.json</code>:</p>
+          <div class="codeblock">
+            <div class="code-bar">
+              <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="code-label">~/.cursor/mcp.json</span>
+              <button class="copy-btn" type="button" data-copy="json-cursor" aria-label="Copy Cursor MCP JSON config">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                <span class="cb-label">Copy</span>
+              </button>
+            </div>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="json-cursor"><span class="tok-key">{</span> <span class="tok-str">"mcpServers"</span>: <span class="tok-key">{</span> <span class="tok-str">"launchaudit"</span>: <span class="tok-key">{</span> <span class="tok-str">"command"</span>: <span class="tok-str">"node"</span>, <span class="tok-str">"args"</span>: [<span class="tok-str">"--experimental-strip-types"</span>, <span class="tok-str">"./runner/mcp-server.ts"</span>] <span class="tok-key">}</span> <span class="tok-key">}</span> <span class="tok-key">}</span></code></pre>
+          </div>
+        </div>
+
+        <!-- CODEX -->
+        <div class="tabpanel" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" hidden>
+          <p class="step-line"><span class="n">1</span><span>Clone and install — identical to every agent.</span></p>
+          <div class="codeblock">
+            <div class="code-bar">
+              <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="code-label">terminal</span>
+              <button class="copy-btn" type="button" data-copy="cmd-codex" aria-label="Copy Codex install command">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                <span class="cb-label">Copy</span>
+              </button>
+            </div>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="cmd-codex"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium</code></pre>
+          </div>
+          <p class="json-note"><span class="n" style="display:inline-grid;width:20px;height:20px;border-radius:6px;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(124,131,255,0.14);border:1px solid rgba(124,131,255,0.3);vertical-align:-5px;margin-right:6px;">2</span>Codex CLI speaks MCP — register the same <code>launchaudit</code> server in your Codex config (same command, same args):</p>
+          <div class="codeblock">
+            <div class="code-bar">
+              <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="code-label">codex config — mcp server</span>
+              <button class="copy-btn" type="button" data-copy="json-codex" aria-label="Copy Codex MCP config">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                <span class="cb-label">Copy</span>
+              </button>
+            </div>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="json-codex"><span class="tok-key">{</span> <span class="tok-str">"mcpServers"</span>: <span class="tok-key">{</span> <span class="tok-str">"launchaudit"</span>: <span class="tok-key">{</span> <span class="tok-str">"command"</span>: <span class="tok-str">"node"</span>, <span class="tok-str">"args"</span>: [<span class="tok-str">"--experimental-strip-types"</span>, <span class="tok-str">"./runner/mcp-server.ts"</span>] <span class="tok-key">}</span> <span class="tok-key">}</span> <span class="tok-key">}</span></code></pre>
+          </div>
+        </div>
+
+        <div class="connect-foot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10h8M8 14h5"/><path d="M21 12a9 9 0 1 1-3.5-7.1L21 3v6h-6"/></svg>
+          <span>Then just tell your agent: <b>“audit my site at <span class="cmdpill">&lt;url&gt;</span>”.</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT IT CATCHES -->
+<section class="block" id="catches">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">The stuff that ships broken</div>
+      <h2 class="sec-title">What it catches</h2>
+      <p class="sec-sub">Linters check syntax. LaunchAudit checks reality — the things AI builders confidently ship and quietly fake. It actively tries to break in, not just look around.</p>
+    </div>
+    <div class="catch-grid">
+      <div class="cgcard danger">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 8.3-7 9.5C8 19.3 5 15.4 5 11V6z"/><path d="M9.5 12l1.8 1.8 3.5-3.6"/></svg></div>
+        <h4>Broken access control (IDOR)</h4>
+        <p>Change one id in the URL and read another user's data. We try it — and flag it when it works.</p>
+      </div>
+      <div class="cgcard danger">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0"/><path d="M12 15v2"/></svg></div>
+        <h4>Admin hidden, not locked</h4>
+        <p>The button is gone from the UI, but the action still fires for anyone who calls it directly.</p>
+      </div>
+      <div class="cgcard danger">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h4M16 12h4M9 7l6 10M15 7 9 17"/><circle cx="12" cy="12" r="2"/></svg></div>
+        <h4>Unguarded privileged API</h4>
+        <p>A sensitive endpoint with no server-side authorization check — wide open behind a friendly form.</p>
+      </div>
+      <div class="cgcard">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 9v5M12 17v.5"/></svg></div>
+        <h4>500 + stack leak on bad input</h4>
+        <p>Send a malformed request and the server returns a 500 with an internal stack trace.</p>
+      </div>
+      <div class="cgcard">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+        <h4>Missing security headers</h4>
+        <p>No CSP, X-Frame-Options, or HSTS — the cheap defenses that quietly never got turned on.</p>
+      </div>
+      <div class="cgcard danger">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7a4 4 0 1 0-4 4h9"/><path d="M14 11v4M18 11v4"/></svg></div>
+        <h4>Leaked secrets in the bundle</h4>
+        <p>API keys or a stray .env shipped straight into the client bundle, readable by anyone.</p>
+      </div>
+      <div class="cgcard">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/><path d="M21 8h2M21 12h2"/></svg></div>
+        <h4>Mobile layout overflow</h4>
+        <p>Horizontal scroll and clipped content at 390px — checked in a real viewport, not guessed.</p>
+      </div>
+      <div class="cgcard">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h11l-3-3M19 17H8l3 3"/><path d="M9 12h.01M13 12h.01"/></svg></div>
+        <h4>“Says it saved but didn't”</h4>
+        <p>The success toast appears; the data never persists. We reload and verify it actually stuck.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="block" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">Three steps</div>
+      <h2 class="sec-title">How it works</h2>
+      <p class="sec-sub">From a running URL to a scored, evidence-backed punch list — and then the fixes — without leaving your editor.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h4>Connect it to your agent</h4>
+        <p>One copy-paste registers LaunchAudit as an MCP server inside Claude Code, Cursor, or Codex — on your own subscription. Nothing to host.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h4>Point it at your app</h4>
+        <p>Give it a running URL and optionally the repo. It scans the code, crawls the app, and runs real browser interactions plus direct HTTP probes.</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h4>Get the score &amp; the fixes</h4>
+        <p>A 0–100 readiness score, evidence for every check, and paste-ready fixes — then it applies them and re-verifies that they actually work.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUTH PROTOCOL -->
+<section class="block">
+  <div class="wrap">
+    <div class="truth">
+      <span class="truth-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>The Truth Protocol</span>
+      <h3>No check passes without proof.</h3>
+      <p>A watchdog independently re-verifies every single <span class="hl">“pass”</span> against fresh evidence — re-running the interaction, re-fetching the response, re-reading the state. <span class="hl">Anything it can't reproduce is flagged, never silently passed.</span> So the score you get is the truth, not a hopeful guess.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING CTA -->
+<section class="block">
+  <div class="wrap closer">
+    <h2>Ship like a senior dev reviewed it.</h2>
+    <p>Because one did. Connect LaunchAudit in under a minute and find out what's really between you and launch.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#connect">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5l11 7-11 7z"/></svg>
+        Get started
+      </a>
+      <a class="btn btn-ghost" href="https://launch-audit-platform.vercel.app" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        See a live report
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-inner">
+      <div class="foot-brand">
+        <a class="brand" href="#top" aria-label="LaunchAudit home">
+          <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18a8 8 0 1 1 14 0"/><path d="M12 13.5 16 9"/></svg></span>
+          LaunchAudit
+        </a>
+        <p>A deep, automated launch-readiness audit that runs inside your own coding agent — and refuses to lie that your app is done.</p>
+      </div>
+      <div class="foot-cols">
+        <div class="foot-col">
+          <h5>Product</h5>
+          <a href="#connect">Connect</a>
+          <a href="#catches">What it catches</a>
+          <a href="#how">How it works</a>
+        </div>
+        <div class="foot-col">
+          <h5>Resources</h5>
+          <a href="https://github.com/Fusion-Data-Company/fusion-launchaudit" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 2.5-.34c.85 0 1.7.12 2.5.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+            GitHub
+          </a>
+          <a href="https://launch-audit-platform.vercel.app" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14L21 3M21 3v7M21 3h-7"/><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>
+            Live demo
+          </a>
+          <a href="https://github.com/Fusion-Data-Company/fusion-launchaudit/blob/main/LICENSE" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+            MIT License
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span class="made">
+        <span class="mk" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18a8 8 0 1 1 14 0"/></svg></span>
+        Built by Fusion Data Company
+      </span>
+      <span>MIT licensed · Open source · Code never leaves your machine</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // ---- Tabs ----
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab[role="tab"]'));
+  function selectTab(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      var panel = document.getElementById(t.getAttribute('aria-controls'));
+      if(panel){ panel.hidden = !on; }
+    });
+  }
+  tabs.forEach(function(tab, i){
+    tab.addEventListener('click', function(){ selectTab(tab); });
+    tab.addEventListener('keydown', function(e){
+      var idx = i;
+      if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ idx = (i+1) % tabs.length; }
+      else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ idx = (i-1+tabs.length) % tabs.length; }
+      else { return; }
+      e.preventDefault();
+      tabs[idx].focus();
+      selectTab(tabs[idx]);
+    });
+  });
+
+  // ---- Copy buttons ----
+  function flip(btn){
+    var label = btn.querySelector('.cb-label');
+    var prev = label ? label.textContent : '';
+    btn.classList.add('copied');
+    if(label){ label.textContent = 'Copied ✓'; }
+    setTimeout(function(){
+      btn.classList.remove('copied');
+      if(label){ label.textContent = prev || 'Copy'; }
+    }, 1500);
+  }
+  document.querySelectorAll('.copy-btn[data-copy]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var target = document.getElementById(btn.getAttribute('data-copy'));
+      if(!target) return;
+      var text = target.innerText.replace(/ /g, ' ').trim();
+      function done(){ flip(btn); }
+      function fallback(){
+        try{
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          done();
+        }catch(err){ /* no-op */ }
+      }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else {
+        fallback();
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

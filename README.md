@@ -63,11 +63,26 @@ The pipeline is: scan repo, crawl the running app, generate test cards,
 execute them in Chromium and over HTTP, collect evidence, classify failures,
 compute readiness, render the report.
 
-### 2. MCP server (use it from any Claude Code session)
+### 2. MCP server (use it from Claude Code, Cursor, or Codex)
+
+The audit engine makes **no LLM calls of its own** — it is deterministic code
+(scan, crawl, real-browser + HTTP checks, watchdog). So any MCP-capable agent can
+drive it on your own subscription; you are not tied to one model or vendor.
+
+**Claude Code:**
 
 ```bash
 claude mcp add launchaudit -- node --experimental-strip-types ./runner/mcp-server.ts
 ```
+
+**Cursor** — add to `~/.cursor/mcp.json`:
+
+```json
+{ "mcpServers": { "launchaudit": { "command": "node", "args": ["--experimental-strip-types", "./runner/mcp-server.ts"] } } }
+```
+
+**Codex** — register the same `launchaudit` MCP server in your Codex config; the
+clone + install steps are identical, only the registration differs.
 
 This registers 10 MCP tools, including `launchaudit_run_audit` which runs the
 full pipeline in a single tool call. Your agent does the reasoning on your
@@ -136,9 +151,11 @@ stubbed or bypassed auth (a common dev-server setup), RBAC exposures are
 downgraded to `needs_verification` instead of being claimed as confirmed
 vulnerabilities.
 
-What it does not test yet (planned, tracked in
-`docs/research/GAP-ANALYSIS.md`): IDOR / object-id swaps across user boundaries,
-and verifying that a denied privileged mutation caused no state change.
+Coverage grows continuously from the sourced catalog
+(`docs/research/test-catalog/`, ~1,485 tests across 9 domains). IDOR / object-id
+swaps across user boundaries and privileged-mutation (BFLA) checks now run; see
+`docs/research/test-catalog/ROLLUP.md` for what runs today vs. the highest-leverage
+detectors still to build.
 
 ## How it compares to TestSprite
 
@@ -155,8 +172,9 @@ agent config — each finding classified for honesty rather than dumped as a bug
 Measured result on the included fixture: `fixtures/buggy-shop` has 5 planted
 bugs (an RBAC direct-URL leak, an unguarded admin API, a 500 with stack-trace
 leak, a mobile overflow, and missing security headers). The audit caught all
-5 and scored it 57/100. After the fixes (`fixtures/shop-fixed`), the same
-audit scored 100/100.
+5 (verified end-to-end) and scored it 62/100 on the current check set.
+`fixtures/shop-fixed` is the corrected version used to verify the fixes clear
+those findings.
 
 ## Optional: hosted dashboard
 
