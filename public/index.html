@@ -242,9 +242,17 @@
             <input type="url" id="nc-url" required placeholder="https://staging.acme.app" />
           </label>
           <label class="form-field">
+            <span>GitHub repo URL (optional — audited locally via your Claude)</span>
+            <input type="url" id="nc-github" placeholder="https://github.com/acme/storefront" />
+          </label>
+          <label class="form-field">
             <span>Repo path (optional, stays local)</span>
             <input type="text" id="nc-repo" placeholder="~/projects/acme-app" />
           </label>
+          <div class="form-field" id="nc-github-cmd-wrap" hidden>
+            <span>Paste this into your Claude Code — clones the repo locally, audits it, syncs evidence</span>
+            <code class="modal-code"><span id="nc-github-cmd-text"></span><button class="modal-copy" id="nc-github-cmd-copy" type="button">Copy</button></code>
+          </div>
           <div class="form-error" id="nc-error" hidden></div>
           <button class="btn btn-primary form-submit" type="submit">Create campaign</button>
         </form>

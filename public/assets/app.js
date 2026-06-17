@@ -779,9 +779,38 @@ async function reloadCampaignData(campaignId) {
   applyView();
 }
 
+function buildGithubAuditCommand(url, name, appUrl) {
+  const clean = String(url || "").trim();
+  if (!clean) return "";
+  const repo = (clean.replace(/\.git$/, "").split("/").pop() || "app").trim() || "app";
+  const dir = `~/launchaudit-targets/${repo}`;
+  const n = (name && name.trim()) || repo;
+  const app = (appUrl && appUrl.trim()) || "https://your-running-app";
+  return `git clone ${clean} ${dir} && node --experimental-strip-types runner/audit.ts --name "${n}" --repo ${dir} --app-url ${app}`;
+}
+
 function initNewCampaign() {
   const backdrop = document.getElementById("new-campaign-backdrop");
   document.getElementById("new-campaign-btn").addEventListener("click", () => backdrop.classList.add("open"));
+  const ghInput = document.getElementById("nc-github");
+  const ghWrap = document.getElementById("nc-github-cmd-wrap");
+  const ghText = document.getElementById("nc-github-cmd-text");
+  const ghName = document.getElementById("nc-name");
+  const ghUrl = document.getElementById("nc-url");
+  const refreshGhCmd = () => {
+    const cmd = buildGithubAuditCommand(ghInput?.value, ghName?.value, ghUrl?.value);
+    if (ghWrap) ghWrap.hidden = !cmd;
+    if (ghText) ghText.textContent = cmd;
+  };
+  ghInput?.addEventListener("input", refreshGhCmd);
+  ghName?.addEventListener("input", refreshGhCmd);
+  ghUrl?.addEventListener("input", refreshGhCmd);
+  document.getElementById("nc-github-cmd-copy")?.addEventListener("click", async () => {
+    const cb = document.getElementById("nc-github-cmd-copy");
+    try { await navigator.clipboard.writeText(ghText?.textContent || ""); cb.textContent = "Copied"; }
+    catch (_) { cb.textContent = "Select + copy"; }
+    setTimeout(() => { cb.textContent = "Copy"; }, 1400);
+  });
   document.getElementById("new-campaign-close").addEventListener("click", () => backdrop.classList.remove("open"));
   backdrop.addEventListener("click", (e) => { if (e.target === backdrop) backdrop.classList.remove("open"); });
 
@@ -793,6 +822,7 @@ function initNewCampaign() {
       name: document.getElementById("nc-name").value.trim(),
       app_url: document.getElementById("nc-url").value.trim(),
       repo_path_hint: document.getElementById("nc-repo").value.trim() || undefined,
+      repo_url: document.getElementById("nc-github").value.trim() || undefined,
     };
     const postCampaign = (secret) => fetch("/api/campaigns", {
       method: "POST",
