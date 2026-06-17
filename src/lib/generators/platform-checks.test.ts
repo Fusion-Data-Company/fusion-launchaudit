@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { generateApiBackend, generateMarketing, generateBlogCms } from "./platform-checks.ts";
+import { generateApiBackend, generateMarketing, generateBlogCms, generateEcommerce, generateWebApp, generateInternalTool } from "./platform-checks.ts";
 import { Counter, type AuditHints } from "./types.ts";
 import type { RepoScan } from "../../../runner/repo-scanner.ts";
 import type { RuntimeCrawl } from "../../../runner/crawler.ts";
@@ -41,4 +41,26 @@ test("blog_cms: robots.txt, well-formed sitemap, and soft-404 post checks", () =
   assert.ok(cards.some((c) => c.title.includes("robots.txt")));
   assert.ok(has(cards, (e) => (e.expectBodyIncludesAny as { needles?: string[] })?.needles?.includes("<urlset") ?? false));
   assert.ok(has(cards, (e) => Array.isArray(e.expectStatusOneOf) && (e.expectStatusOneOf as number[]).includes(404)));
+});
+
+test("ecommerce: product + checkout (with payment provider) when present, else blocked", () => {
+  const cards = generateEcommerce(scan, crawlOf(["https://x.test/product/1", "https://x.test/checkout"]), {}, new Counter());
+  assert.ok(cards.some((c) => c.title.includes("Product / catalog") && c.status === "ready"));
+  assert.ok(has(cards, (e) => (e.expectBodyIncludesAny as { needles?: string[] })?.needles?.some((n) => n.includes("stripe")) ?? false));
+  const bare = generateEcommerce(scan, crawlOf([]), {}, new Counter());
+  assert.ok(bare.filter((c) => c.status === "blocked").length >= 2);
+});
+
+test("web_app_saas: login loads + protected route blocks anonymous", () => {
+  const cards = generateWebApp(scan, crawlOf(), { loginPath: "/login", protectedRoutes: ["/dashboard"] }, new Counter());
+  assert.ok(cards.some((c) => c.title.includes("Login page loads") && c.status === "ready"));
+  assert.ok(has(cards, (e) => e.expectBlocked === true));
+  const bare = generateWebApp(scan, crawlOf(), {}, new Counter());
+  assert.ok(bare.filter((c) => c.status === "blocked").length >= 2);
+});
+
+test("internal_tool_admin: internal surface blocks anonymous; flags public signup", () => {
+  const cards = generateInternalTool(scan, crawlOf(["https://x.test/register"]), { protectedRoutes: ["/admin"] }, new Counter());
+  assert.ok(has(cards, (e) => e.expectBlocked === true));
+  assert.ok(cards.some((c) => c.title.toLowerCase().includes("self-registration")));
 });

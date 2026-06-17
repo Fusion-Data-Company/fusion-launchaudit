@@ -102,3 +102,62 @@ export function generateBlogCms(_scan: RepoScan | null, crawl: RuntimeCrawl, _hi
   }
   return cards;
 }
+
+const PAYMENT = ["js.stripe.com", "stripe(", "paypal.com/sdk", "paypalobjects", "braintreegateway", "squareup", "checkout.com", "paddle.com"];
+
+// ---- E-commerce ----------------------------------------------------------
+export function generateEcommerce(_scan: RepoScan | null, crawl: RuntimeCrawl, _hints: AuditHints, c: Counter): GeneratedCard[] {
+  const cards: GeneratedCard[] = [];
+  const paths = internalPaths(crawl);
+  const product = paths.find((p) => /(\/product|\/shop|\/store|\/api\/products)/i.test(p));
+  const checkout = paths.find((p) => /(\/checkout|\/cart|\/bag|\/basket)/i.test(p));
+
+  if (product) {
+    cards.push({ id: c.next("TC-ECOM"), title: `Product / catalog page loads: ${product}`, category: "core_workflow", status: "ready", risk: "high", goal: "If shoppers can't see products, there's no store.", steps: [`GET ${product}`, "Expect 200"], expectedEvidence: ["http_transcript"], dataNeeds: [], acceptanceCriteria: `${product} returns 200.`, exec: [{ action: "http", method: "GET", path: product, expectStatusOneOf: [200] }] });
+  } else {
+    cards.push({ id: c.next("TC-ECOM"), title: "No product/catalog page found", category: "core_workflow", status: "blocked", risk: "high", goal: "Confirm products are reachable.", steps: ["Link the product/catalog page", "Re-run"], expectedEvidence: ["http_transcript"], dataNeeds: ["a product/catalog URL"], acceptanceCriteria: "BLOCKED: no product/catalog page discovered.", exec: [] });
+  }
+  if (checkout) {
+    cards.push({ id: c.next("TC-ECOM"), title: `Checkout loads with a real payment provider: ${checkout}`, category: "integration_side_effects", status: "ready", risk: "critical", goal: "A broken checkout is lost revenue at the final step; it must load and carry a payment provider.", steps: [`GET ${checkout}`, "Expect 200 with a payment provider script"], expectedEvidence: ["http_transcript"], dataNeeds: [], acceptanceCriteria: `${checkout} returns 200 and includes a payment provider (Stripe/PayPal/etc.).`, exec: [{ action: "http", method: "GET", path: checkout, expectStatusOneOf: [200], expectBodyIncludesAny: { needles: PAYMENT, label: "a payment provider script (Stripe/PayPal/Braintree/Square/Paddle)" } }] });
+  } else {
+    cards.push({ id: c.next("TC-ECOM"), title: "No cart/checkout step found", category: "integration_side_effects", status: "blocked", risk: "critical", goal: "Confirm checkout + payment work.", steps: ["Link the cart/checkout page", "Re-run"], expectedEvidence: ["http_transcript"], dataNeeds: ["a cart/checkout URL"], acceptanceCriteria: "BLOCKED: no cart/checkout step discovered.", exec: [] });
+  }
+  cards.push({ id: c.next("TC-ECOM"), title: "Missing product returns 404 (no soft-200)", category: "core_workflow", status: "ready", risk: "medium", goal: "Out-of-stock/removed products must 404 so dead SKUs aren't indexed.", steps: [`GET /products${NONEXISTENT}`, "Expect 404"], expectedEvidence: ["http_transcript"], dataNeeds: [], acceptanceCriteria: "A missing product path returns 404.", exec: [{ action: "http", method: "GET", path: `/products${NONEXISTENT}`, expectStatusOneOf: [404] }] });
+  return cards;
+}
+
+// ---- Web app / SaaS ------------------------------------------------------
+export function generateWebApp(scan: RepoScan | null, crawl: RuntimeCrawl, hints: AuditHints, c: Counter): GeneratedCard[] {
+  const cards: GeneratedCard[] = [];
+  const login = hints.loginPath ?? internalPaths(crawl).find((p) => /(\/login|\/signin|\/sign-in)/i.test(p));
+  const protectedRoute = (hints.protectedRoutes ?? [])[0] ?? (scan?.detail?.routes ?? []).find((r) => r.kind === "page" && r.privileged)?.url_path;
+
+  if (login) {
+    cards.push({ id: c.next("TC-APP"), title: `Login page loads: ${login}`, category: "auth", status: "ready", risk: "high", goal: "The sign-in entry point must load — no app without a way in.", steps: [`GET ${login}`, "Expect 200"], expectedEvidence: ["http_transcript"], dataNeeds: [], acceptanceCriteria: `${login} returns 200.`, exec: [{ action: "http", method: "GET", path: login, expectStatusOneOf: [200] }] });
+  } else {
+    cards.push({ id: c.next("TC-APP"), title: "No login page found", category: "auth", status: "blocked", risk: "high", goal: "Confirm the auth entry point.", steps: ["Declare login_path in hints or link /login", "Re-run"], expectedEvidence: ["http_transcript"], dataNeeds: ["the login path"], acceptanceCriteria: "BLOCKED: no login page discovered.", exec: [] });
+  }
+  if (protectedRoute) {
+    cards.push({ id: c.next("TC-APP"), title: `Protected route requires sign-in (anonymous blocked): ${protectedRoute}`, category: "auth", status: "ready", risk: "critical", goal: "An app route behind auth must redirect/refuse an anonymous visitor — never render the app to the public.", steps: [`GET ${protectedRoute} with no session`, "Expect a redirect/401/403"], expectedEvidence: ["http_transcript"], dataNeeds: [], acceptanceCriteria: `Anonymous GET ${protectedRoute} is blocked (redirect/401/403). OWASP WSTG authentication.`, exec: [{ action: "http", method: "GET", path: protectedRoute, expectBlocked: true }] });
+  } else {
+    cards.push({ id: c.next("TC-APP"), title: "No protected app route declared", category: "auth", status: "blocked", risk: "high", goal: "Confirm protected routes require auth.", steps: ["Declare protected_routes in hints", "Re-run"], expectedEvidence: ["http_transcript"], dataNeeds: ["a protected route"], acceptanceCriteria: "BLOCKED: no protected app route to test anonymous access against.", exec: [] });
+  }
+  return cards;
+}
+
+// ---- Internal tool / admin ----------------------------------------------
+export function generateInternalTool(scan: RepoScan | null, crawl: RuntimeCrawl, hints: AuditHints, c: Counter): GeneratedCard[] {
+  const cards: GeneratedCard[] = [];
+  const protectedRoute = (hints.protectedRoutes ?? [])[0] ?? (scan?.detail?.routes ?? []).find((r) => r.privileged)?.url_path;
+  const signup = internalPaths(crawl).find((p) => /(\/signup|\/sign-up|\/register|\/join)/i.test(p));
+
+  if (protectedRoute) {
+    cards.push({ id: c.next("TC-INT"), title: `Internal surface is not public (anonymous blocked): ${protectedRoute}`, category: "roles_permissions", status: "ready", risk: "critical", goal: "An internal tool must not serve its surface to anonymous visitors — every privileged route refuses the public.", steps: [`GET ${protectedRoute} with no session`, "Expect a redirect/401/403"], expectedEvidence: ["http_transcript"], dataNeeds: [], acceptanceCriteria: `Anonymous GET ${protectedRoute} is blocked. OWASP WSTG authorization.`, exec: [{ action: "http", method: "GET", path: protectedRoute, expectBlocked: true }] });
+  } else {
+    cards.push({ id: c.next("TC-INT"), title: "No internal/admin route declared to gate-check", category: "roles_permissions", status: "blocked", risk: "high", goal: "Confirm the internal surface is gated.", steps: ["Declare protected_routes in hints", "Re-run"], expectedEvidence: ["http_transcript"], dataNeeds: ["an internal/admin route"], acceptanceCriteria: "BLOCKED: no internal/admin route to test.", exec: [] });
+  }
+  if (signup) {
+    cards.push({ id: c.next("TC-INT"), title: `No public self-registration: ${signup}`, category: "roles_permissions", status: "ready", risk: "high", goal: "Internal tools should not let the public create accounts — open registration on an internal tool is an exposure.", steps: [`GET ${signup} with no session`, "Expect it to NOT serve an open signup (blocked/404)"], expectedEvidence: ["http_transcript"], dataNeeds: [], acceptanceCriteria: `${signup} is not an open public signup (blocked or 404). Confirm if intentional.`, exec: [{ action: "http", method: "GET", path: signup, expectBlocked: true }] });
+  }
+  return cards;
+}
