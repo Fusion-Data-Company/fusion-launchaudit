@@ -1892,3 +1892,17 @@ code, .mono, .mono-id {
 /* aurora: dial the ambient background glow down so nothing behind glass smears */
 :root[data-theme="dark"]  { --aurora-strength: 0.40; }
 :root[data-theme="light"] { --aurora-strength: 0.30; }
+
+
+/* ============================================================================
+   CATEGORY FILTER — click a coverage card to filter Test Results
+   ============================================================================ */
+.cov-card.is-clickable { cursor: pointer; }
+.cov-card.is-clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cov-card.is-active {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--line));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 55%, transparent);
+}
+.tr-head-actions { display: inline-flex; align-items: center; gap: 10px; }
+.btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 9px; }
+.btn-sm svg { width: 13px; height: 13px; }

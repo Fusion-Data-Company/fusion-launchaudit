@@ -129,7 +129,10 @@
                     <h2><svg><use href="#i-check"/></svg>Test results</h2>
                     <p>Evidence-gated checks generated from repo truth, runtime crawl, and the risk model — grouped by category.</p>
                   </div>
-                  <span class="badge badge-info">reviewed</span>
+                  <div class="tr-head-actions">
+                    <button class="btn btn-ghost btn-sm" id="reset-filters" type="button" hidden><svg><use href="#i-x"/></svg>Reset filter</button>
+                    <span class="badge badge-info" id="tr-filter-badge">reviewed</span>
+                  </div>
                 </div>
                 <div id="test-cards"></div>
               </section>

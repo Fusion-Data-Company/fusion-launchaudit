@@ -69,6 +69,8 @@ function setTheme(theme) {
 let executedCardIds = new Set();
 let currentCampaign = null;
 let currentData = null;
+let activeGroupKey = null;
+let allTestCards = [];
 // True when the API served seed/demo data (no Postgres). Drives the "sample
 // data" labelling so placeholders are never presented as a real audit.
 let isSampleData = true;
@@ -284,7 +286,7 @@ function renderCoverage(testCards) {
         ].filter(Boolean).join("");
 
     return `
-      <article class="cov-card${empty ? " is-empty" : ""}">
+      <article class="cov-card${empty ? " is-empty" : ""}${empty ? "" : " is-clickable"}${group.key === activeGroupKey ? " is-active" : ""}"${empty ? "" : ` data-group="${group.key}" role="button" tabindex="0" aria-pressed="${group.key === activeGroupKey}"`}>
         <div class="cov-head">
           <div class="cov-icon">${icon(group.icon)}</div>
           <div>
@@ -305,8 +307,18 @@ function renderCoverage(testCards) {
    TEST RESULTS — dense list grouped by category
    ============================================================================ */
 function renderTestCards(testCards) {
+  allTestCards = testCards;
+  renderTestList();
+}
+
+function renderTestList() {
   const root = document.getElementById("test-cards");
-  if (testCards.length === 0) {
+  const grp = activeGroupKey ? COVERAGE_GROUPS.find((g) => g.key === activeGroupKey) : null;
+  const resetBtn = document.getElementById("reset-filters");
+  if (resetBtn) resetBtn.hidden = !grp;
+  const fbadge = document.getElementById("tr-filter-badge");
+  if (fbadge) { fbadge.textContent = grp ? grp.title : "reviewed"; fbadge.className = "badge " + (grp ? "badge-accent" : "badge-info"); }
+  if (allTestCards.length === 0) {
     const cmd = `node --experimental-strip-types runner/audit.ts --name "${currentCampaign?.name ?? "My audit"}" --app-url ${currentCampaign?.appUrl ?? "https://your.app"} --repo /path/to/repo`;
     root.innerHTML = emptyState(
       "i-play", "No test cards yet",
@@ -316,10 +328,12 @@ function renderTestCards(testCards) {
     return;
   }
 
+  const list = grp ? allTestCards.filter((c) => grp.categories.includes(c.category)) : allTestCards;
+
   // group by category, preserving first-seen order
   const order = [];
   const groups = new Map();
-  for (const card of testCards) {
+  for (const card of list) {
     if (!groups.has(card.category)) { groups.set(card.category, []); order.push(card.category); }
     groups.get(card.category).push(card);
   }
@@ -1093,6 +1107,26 @@ function initModals() {
 /* ============================================================================
    BOOT
    ============================================================================ */
+function initFilters() {
+  const cov = document.getElementById("coverage");
+  const trigger = (target) => {
+    const card = target.closest?.(".cov-card[data-group]");
+    if (!card) return;
+    const key = card.dataset.group;
+    activeGroupKey = activeGroupKey === key ? null : key;
+    renderCoverage(allTestCards);
+    renderTestList();
+    document.getElementById("test-cards")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  cov?.addEventListener("click", (e) => trigger(e.target));
+  cov?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { if (e.target.closest?.(".cov-card[data-group]")) { e.preventDefault(); trigger(e.target); } }
+  });
+  document.getElementById("reset-filters")?.addEventListener("click", () => {
+    activeGroupKey = null; renderCoverage(allTestCards); renderTestList();
+  });
+}
+
 loadCampaign()
   .then((data) => {
     initMotion();
@@ -1100,6 +1134,7 @@ loadCampaign()
     initModals();
     initNewCampaign();
     initCampaignSwitcher(data);
+    initFilters();
   })
   .catch((error) => {
     document.getElementById("metrics").innerHTML =
