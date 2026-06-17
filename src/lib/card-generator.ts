@@ -21,6 +21,8 @@ import { generateTlsHsts } from "./generators/tls-hsts.ts";
 import { generateInjection } from "./generators/injection.ts";
 import { type Platform } from "./platform/detect.ts";
 import { generatePlatformCards } from "./platform/registry.ts";
+import { generateDatabase } from "./generators/database.ts";
+import { generateMcpServer } from "./generators/mcp-server.ts";
 
 export type { GeneratedCard, AuditHints } from "./generators/types.ts";
 
@@ -89,6 +91,8 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateMassAssignment(scan, crawl, hints, c),
     ...generateTlsHsts(scan, crawl, hints, c),
     ...generateInjection(scan, crawl, hints, c),
+    ...generateDatabase(scan, crawl, hints, c),
+    ...generateMcpServer(scan, crawl, hints, c),
   ];
 
   // Platform-specific check set on top of the shared base (empty if no platform passed).
