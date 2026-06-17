@@ -1437,3 +1437,412 @@ code, .mono, .mono-id {
     background-position: 50% 0, 0 0 !important;
   }
 }
+
+/* ============================================================================
+   PREMIUM CARD SURFACES  — edges, corners, ambient colored glows, depth
+   Appearance-only layer, built ON TOP of the metal-chip system.
+   Adds: (1) a slow multi-hue AURORA behind the content area, (2) gradient
+   hairline rims that catch light on the top edge + an inner definition ring,
+   (3) per-card semantic colored glows keyed via :has(), (4) deeper layered
+   shadows so raised cards read as backlit glass floating over the aurora.
+   Everything degrades to static under prefers-reduced-motion.
+   ============================================================================ */
+
+/* ---- tokens : DARK ------------------------------------------------------- */
+:root,
+:root[data-theme="dark"] {
+  /* one consistent family of corner radii across cards */
+  --r-panel: 16px;
+  --r-card:  14px;
+
+  /* gradient hairline rim — bright at the top edge, fading down the sides.
+     Drawn on a pseudo via mask so it never fights the element's own border. */
+  --rim: linear-gradient(180deg,
+            rgba(255,255,255,0.46) 0%,
+            rgba(255,255,255,0.16) 16%,
+            rgba(255,255,255,0.04) 44%,
+            rgba(255,255,255,0.02) 100%);
+  /* a faint accent-tinted rim for the hero / accent cards */
+  --rim-iris: linear-gradient(180deg,
+            color-mix(in oklab, var(--accent-2) 55%, white) 0%,
+            color-mix(in oklab, var(--accent) 38%, transparent) 22%,
+            rgba(255,255,255,0.03) 52%,
+            rgba(124,131,255,0.06) 100%);
+
+  /* inner definition ring — subtle, requested verbatim */
+  --inner-ring: inset 0 0 0 1px rgba(255,255,255,0.04);
+
+  /* per-card ambient glow colors (soft, low-opacity outer pools) */
+  --glow-iris:  rgba(124,131,255,0.42);
+  --glow-violet:rgba(167,120,255,0.34);
+  --glow-rose:  rgba(240,106,106,0.40);
+  --glow-emer:  rgba(78,201,138,0.36);
+  --glow-gold:  rgba(224,178,60,0.34);
+  --glow-cool:  rgba(125,155,215,0.26);
+
+  /* deepened elevation — backlit-glass feel over the aurora */
+  --shadow-card:  var(--hi-top), var(--inner-ring), 0 1px 2px rgba(0,0,0,0.42), 0 16px 34px -18px rgba(0,0,0,0.72);
+  --shadow-card-h:var(--hi-top-2), var(--inner-ring), 0 2px 6px rgba(0,0,0,0.5), 0 30px 60px -22px rgba(0,0,0,0.86);
+  --shadow-panel: var(--hi-top), var(--inner-ring), 0 1px 2px rgba(0,0,0,0.4), 0 20px 46px -22px rgba(0,0,0,0.7);
+
+  /* aurora pool opacity (dimmed under light theme) */
+  --aurora-strength: 1;
+}
+
+/* ---- tokens : LIGHT (pastel wash, glows subtler) ------------------------ */
+:root[data-theme="light"] {
+  --rim: linear-gradient(180deg,
+            rgba(255,255,255,1) 0%,
+            rgba(255,255,255,0.7) 24%,
+            rgba(24,24,27,0.05) 70%,
+            rgba(24,24,27,0.07) 100%);
+  --rim-iris: linear-gradient(180deg,
+            color-mix(in oklab, var(--accent) 60%, white) 0%,
+            color-mix(in oklab, var(--accent) 34%, white) 26%,
+            rgba(24,24,27,0.05) 72%,
+            rgba(91,95,224,0.10) 100%);
+
+  --inner-ring: inset 0 0 0 1px rgba(255,255,255,0.6);
+
+  --glow-iris:  rgba(91,95,224,0.24);
+  --glow-violet:rgba(140,98,224,0.20);
+  --glow-rose:  rgba(214,69,63,0.20);
+  --glow-emer:  rgba(26,146,89,0.18);
+  --glow-gold:  rgba(181,129,15,0.18);
+  --glow-cool:  rgba(90,120,180,0.15);
+
+  --shadow-card:  var(--hi-top), var(--inner-ring), 0 1px 2px rgba(24,24,27,0.06), 0 16px 34px -20px rgba(24,24,27,0.20);
+  --shadow-card-h:var(--hi-top-2), var(--inner-ring), 0 2px 8px rgba(24,24,27,0.10), 0 26px 50px -22px rgba(24,24,27,0.26);
+  --shadow-panel: var(--hi-top), var(--inner-ring), 0 1px 2px rgba(24,24,27,0.06), 0 18px 40px -24px rgba(24,24,27,0.18);
+
+  --aurora-strength: 0.55;
+}
+
+/* ============================================================================
+   AURORA — living multi-hue ambient behind the whole content area.
+   Attached to .canvas via fixed pseudos so it sits under every card and the
+   page is never flat black. Two drifting layers of soft colored pools.
+   ============================================================================ */
+.canvas { position: relative; isolation: isolate; }
+.canvas::before,
+.canvas::after {
+  content: "";
+  position: fixed;
+  inset: -10vmax;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--aurora-strength);
+  will-change: transform;
+}
+/* layer 1 — indigo / violet / teal pools, slow clockwise drift */
+.canvas::before {
+  background:
+    radial-gradient(38vmax 30vmax at 16% 8%,  color-mix(in oklab, var(--accent) 26%, transparent), transparent 60%),
+    radial-gradient(34vmax 28vmax at 88% 14%, rgba(167,120,255,0.20), transparent 62%),
+    radial-gradient(40vmax 34vmax at 78% 92%, rgba(56,196,196,0.16), transparent 64%);
+  filter: blur(36px) saturate(118%);
+  animation: auroraDriftA 38s ease-in-out infinite alternate;
+}
+/* layer 2 — rose / amber pools, counter-drift, longer period for parallax */
+.canvas::after {
+  background:
+    radial-gradient(32vmax 26vmax at 10% 88%, rgba(240,106,106,0.16), transparent 62%),
+    radial-gradient(30vmax 24vmax at 64% 6%,  rgba(224,178,60,0.14), transparent 60%),
+    radial-gradient(30vmax 30vmax at 50% 56%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 66%);
+  filter: blur(44px) saturate(112%);
+  animation: auroraDriftB 52s ease-in-out infinite alternate;
+}
+:root[data-theme="light"] .canvas::before { filter: blur(40px) saturate(135%); }
+:root[data-theme="light"] .canvas::after  { filter: blur(48px) saturate(130%); }
+
+@keyframes auroraDriftA {
+  0%   { transform: translate3d(-3%, -2%, 0) rotate(0deg)   scale(1.05); }
+  50%  { transform: translate3d( 2%,  3%, 0) rotate(4deg)   scale(1.12); }
+  100% { transform: translate3d( 4%, -1%, 0) rotate(-3deg)  scale(1.06); }
+}
+@keyframes auroraDriftB {
+  0%   { transform: translate3d( 3%,  2%, 0) rotate(0deg)   scale(1.08); }
+  50%  { transform: translate3d(-3%, -3%, 0) rotate(-5deg)  scale(1.15); }
+  100% { transform: translate3d(-1%,  3%, 0) rotate(3deg)   scale(1.07); }
+}
+
+/* ============================================================================
+   GRADIENT HAIRLINE RIM + INNER RING + DEPTH
+   A masked ::before draws a 1px gradient border (brighter on top) on top of
+   each card without removing its existing border. Cards become semi-translucent
+   so the aurora glows through them like backlit glass.
+   ============================================================================ */
+.panel,
+.metric-card,
+.cov-card,
+.tile {
+  position: relative;
+}
+/* the rim ring */
+.panel::after,
+.metric-card::after,
+.cov-card::after,
+.tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--rim);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.9;
+  transition: opacity .2s ease, background .2s ease;
+}
+
+/* rounder, consistent corners + deeper shadow + translucent glass body */
+.panel {
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-panel);
+  background:
+    var(--panel-grad),
+    color-mix(in oklab, var(--panel) 88%, transparent);
+  backdrop-filter: blur(7px) saturate(118%);
+  -webkit-backdrop-filter: blur(7px) saturate(118%);
+}
+.metric-card,
+.cov-card,
+.tile {
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+  background:
+    var(--raise-grad),
+    color-mix(in oklab, var(--panel-2) 86%, transparent);
+  backdrop-filter: blur(6px) saturate(115%);
+  -webkit-backdrop-filter: blur(6px) saturate(115%);
+  transition: transform .2s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, border-color .2s ease;
+}
+:root[data-theme="light"] .panel {
+  background: var(--panel-grad), color-mix(in oklab, var(--panel) 92%, transparent);
+}
+:root[data-theme="light"] .metric-card,
+:root[data-theme="light"] .cov-card,
+:root[data-theme="light"] .tile {
+  background: var(--raise-grad), color-mix(in oklab, var(--panel-2) 90%, transparent);
+}
+
+/* hover: rim brightens, card lifts, shadow deepens */
+.metric-card:hover,
+.cov-card:hover,
+.tile:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-h);
+}
+.metric-card:hover::after,
+.cov-card:hover::after,
+.tile:hover::after { opacity: 1; }
+
+/* ============================================================================
+   PER-CARD AMBIENT COLOR GLOW  — keyed to meaning via :has()
+   A soft, low-opacity outer pool that sits just behind each card (a blurred
+   ::before), intensifying on hover. Reads premium, never neon.
+   ============================================================================ */
+.metric-card::before,
+.cov-card::before,
+.tile::before,
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 0 0 transparent;
+  transition: box-shadow .26s ease, opacity .26s ease;
+}
+
+/* default neutral cool glow for every raised card */
+.metric-card,
+.cov-card,
+.tile { --card-glow: var(--glow-cool); }
+
+/* semantic overrides via the chips each card already contains */
+.cov-card:has(.cov-tag.t-fail)            { --card-glow: var(--glow-rose); }
+.cov-card:has(.cov-tag.t-block):not(:has(.cov-tag.t-fail)) { --card-glow: var(--glow-gold); }
+.cov-card:has(.cov-tag.t-pass):not(:has(.cov-tag.t-fail)):not(:has(.cov-tag.t-block)) { --card-glow: var(--glow-emer); }
+.cov-card.is-empty                        { --card-glow: transparent; }
+
+.metric-card:has(.badge-high),
+.metric-card:has(.badge-critical)         { --card-glow: var(--glow-rose); }
+.metric-card:has(.badge-success)          { --card-glow: var(--glow-emer); }
+.metric-card:has(.badge-medium),
+.metric-card:has(.badge-muted:not(.no-dot)) { --card-glow: var(--glow-gold); }
+.metric-card:has(.badge-accent)           { --card-glow: var(--glow-iris); }
+
+/* tiles default to a faint iris identity (scorecards / features / routes) */
+.tile { --card-glow: var(--glow-iris); }
+
+/* render the glow: a soft resting pool, stronger on hover.
+   inset makes the pseudo slightly larger than the card so the blurred
+   shadow spreads out from behind it on all sides. */
+.metric-card::before,
+.cov-card::before,
+.tile::before {
+  inset: 2px;
+  box-shadow:
+    0 10px 34px -6px var(--card-glow),
+    0 2px 14px -4px var(--card-glow);
+  opacity: .8;
+}
+.metric-card:hover::before,
+.cov-card:hover::before,
+.tile:hover::before {
+  box-shadow:
+    0 18px 52px -6px var(--card-glow),
+    0 4px 22px -4px var(--card-glow),
+    0 0 0 1px color-mix(in oklab, var(--card-glow) 55%, transparent);
+  opacity: 1;
+}
+.cov-card.is-empty::before { box-shadow: none; opacity: 0; }
+
+/* ============================================================================
+   HERO — the centerpiece: indigo→violet accent glow + accent-tinted rim,
+   gauge halo gets a touch more life.
+   ============================================================================ */
+.hero {
+  border-radius: var(--r-panel);
+  box-shadow:
+    var(--hi-top-2), var(--inner-ring),
+    0 1px 2px rgba(0,0,0,0.45),
+    0 26px 60px -24px rgba(0,0,0,0.8),
+    0 20px 64px -16px var(--glow-iris),
+    0 30px 90px -24px var(--glow-violet);
+  transition: box-shadow .3s ease;
+}
+.hero:hover {
+  box-shadow:
+    var(--hi-top-2), var(--inner-ring),
+    0 1px 2px rgba(0,0,0,0.45),
+    0 26px 60px -24px rgba(0,0,0,0.8),
+    0 26px 80px -12px var(--glow-iris),
+    0 38px 110px -22px var(--glow-violet);
+}
+.hero::after {            /* accent-tinted gradient rim */
+  background: var(--rim-iris);
+}
+.hero::before { display: none; } /* hero glow lives on the element box-shadow (overflow:hidden clips pseudos) */
+/* the gauge halo: warm it up slightly so the hero feels alive */
+.hero-gauge {
+  background:
+    radial-gradient(180px 140px at 50% 36%, color-mix(in oklab, var(--accent) 17%, transparent), transparent 70%),
+    radial-gradient(120px 120px at 50% 40%, rgba(167,120,255,0.10), transparent 72%),
+    var(--panel-inset);
+}
+
+/* ============================================================================
+   RIGHT-RAIL cards (Runner truth / Findings / Repair packet) read as panels.
+   Give the repair (accent) panel an iris rim + glow; findings a faint rose
+   when failures are present, runner-truth a cool neutral.
+   ============================================================================ */
+.inspector > .panel { position: relative; }
+.inspector > .panel::before {
+  content: "";
+  position: absolute; inset: -1px; border-radius: inherit;
+  z-index: -1; pointer-events: none;
+  box-shadow: 0 10px 32px -14px var(--glow-cool);
+  opacity: .5;
+  transition: box-shadow .26s ease, opacity .26s ease;
+}
+.inspector > .panel:hover::before { box-shadow: 0 14px 40px -12px var(--glow-cool); opacity: .85; }
+
+/* findings panel: rose tint when it holds high/critical findings */
+.inspector > .panel:has(#findings-count.badge-high)::before,
+.inspector > .panel:has(.badge-critical)::before { box-shadow: 0 10px 32px -14px var(--glow-rose); }
+
+/* repair packet panel: iris identity + accent rim */
+.repair-panel::after { background: var(--rim-iris); }
+.inspector > .repair-panel::before { box-shadow: 0 12px 36px -12px var(--glow-iris); opacity: .65; }
+.inspector > .repair-panel:hover::before { box-shadow: 0 16px 46px -10px var(--glow-iris); opacity: 1; }
+
+/* ============================================================================
+   LARGE MAIN-COLUMN PANELS (Category coverage, Test results, Context contract)
+   — a whisper of cool ambient so the big containers feel alive over the aurora,
+   warming to rose when they hold failures. Kept very soft (these are big).
+   ============================================================================ */
+.main-column > .panel:not(.hero) {
+  position: relative;
+}
+.main-column > .panel:not(.hero)::before {
+  content: "";
+  position: absolute; inset: 2px; border-radius: inherit;
+  z-index: -1; pointer-events: none;
+  box-shadow: 0 16px 50px -22px var(--glow-cool);
+  opacity: .6;
+  transition: box-shadow .26s ease, opacity .26s ease;
+}
+.main-column > .panel:not(.hero):hover::before { opacity: .9; }
+/* panels that surface failures (test rows / coverage with fails) get a faint rose lean */
+.main-column > .panel:has(.cov-tag.t-fail)::before,
+.main-column > .panel:has(.risk-chip.r-high)::before,
+.main-column > .panel:has(.risk-chip.r-critical)::before,
+.main-column > .panel:has(.spill.s-failed)::before {
+  box-shadow: 0 16px 50px -22px color-mix(in oklab, var(--glow-rose) 70%, var(--glow-cool));
+}
+
+/* ============================================================================
+   MOBILE — keep the aurora tasteful and prevent any overflow.
+   ============================================================================ */
+@media (max-width: 720px) {
+  .canvas::before { filter: blur(30px) saturate(115%); opacity: calc(var(--aurora-strength) * 0.85); }
+  .canvas::after  { filter: blur(36px) saturate(110%); opacity: calc(var(--aurora-strength) * 0.8); }
+  /* lighter glass blur on mobile for perf */
+  .panel, .metric-card, .cov-card, .tile { backdrop-filter: blur(4px) saturate(110%); -webkit-backdrop-filter: blur(4px) saturate(110%); }
+}
+
+/* ============================================================================
+   reduced-motion : freeze the aurora (static colored ambience remains)
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .canvas::before, .canvas::after { animation: none !important; }
+}
+
+/* ============================================================================
+   RESULTS FEED — TEXT LEGIBILITY PASS
+   Kills the "messy text": title leads, the id folds to a faint right-aligned
+   tag (no wasted line), the description reads at a real contrast step, the
+   mono "accept" glitch-prefix is removed, section headers become legible.
+   Layout + typography only — the chips' metal sheen is left untouched.
+   ============================================================================ */
+.cat-group-head { padding: 15px 18px 9px; }
+.cat-group-head .cat-name {
+  font-size: 11px; letter-spacing: 0.085em; color: var(--fg-2); font-weight: 600;
+}
+
+.trow { padding: 15px 18px; column-gap: 14px; }
+
+/* main column: a tidy two-line block →  [ title ............ id ]
+                                          [ description            ] */
+.trow-main {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "title id" "desc desc";
+  align-items: baseline; column-gap: 12px; row-gap: 0;
+}
+.trow-title {
+  grid-area: title;
+  font-size: 14px; font-weight: 580; color: var(--fg);
+  line-height: 1.45; letter-spacing: -0.011em;
+}
+.trow-idline { grid-area: id; margin: 0; justify-self: end; flex-wrap: nowrap; }
+.trow-idline .mono-id { font-size: 10.5px; color: var(--fg-4); }
+
+/* description: one clean, readable line — no mono "accept" prefix */
+.trow-accept {
+  grid-area: desc; display: block; margin-top: 5px;
+  font-size: 12px; line-height: 1.55; color: var(--fg-2); max-width: 66ch;
+}
+.trow-accept .ac-label { display: none; }
