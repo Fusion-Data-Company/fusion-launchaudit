@@ -238,23 +238,23 @@ function renderMetrics(campaign, testCards, findings, runStats) {
 const COVERAGE_GROUPS = [
   {
     key: "frontend", title: "Frontend", icon: "i-frontend",
-    scope: "UI · flows · a11y · perf",
-    categories: ["core_workflow", "responsive_visual", "console_network", "forms_validation", "accessibility", "performance", "state_persistence", "error_empty_states"],
+    scope: "UI · a11y · perf · SEO · content",
+    categories: ["core_workflow", "responsive_visual", "console_network", "forms_validation", "accessibility", "performance", "state_persistence", "error_empty_states", "seo", "content_integrity", "mobile", "funnel"],
   },
   {
     key: "backend", title: "Backend & API", icon: "i-backend",
     scope: "endpoints · input · injection",
-    categories: ["api_contract", "injection"],
+    categories: ["api_contract", "injection", "voice_agent"],
   },
   {
     key: "rbac", title: "Access control", icon: "i-rbac",
-    scope: "roles · IDOR · mutations",
-    categories: ["roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment"],
+    scope: "roles · IDOR · writes",
+    categories: ["roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment", "write_authz", "write_authz_unverified"],
   },
   {
     key: "security", title: "Security & hardening", icon: "i-db",
     scope: "headers · secrets · cookies · CORS · TLS",
-    categories: ["security_headers", "secrets_exposure", "cookie_security", "cors", "tls_hsts"],
+    categories: ["security_headers", "secrets_exposure", "cookie_security", "cors", "tls_hsts", "browser_extension"],
   },
   {
     key: "middleware", title: "Middleware & integrations", icon: "i-middleware",
