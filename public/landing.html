@@ -143,6 +143,8 @@
   /* ---------- ANIMATED HERO ---------- */
   .hero{position:relative;overflow:hidden;padding:104px 0 84px;text-align:center;}
   .hero-stage{position:absolute;inset:0;z-index:0;pointer-events:none;}
+  .hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.42;z-index:0;}
+  .hero-stage::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 30%,transparent 30%,rgba(6,7,13,.82) 100%);}
   .ha{position:absolute;border-radius:50%;filter:blur(72px);mix-blend-mode:screen;will-change:transform;}
   .ha1{width:560px;height:560px;left:6%;top:-20%;background:#4b50e0;opacity:.5;animation:haD1 17s ease-in-out infinite;}
   .ha2{width:520px;height:520px;right:4%;top:-12%;background:#9a5cff;opacity:.42;animation:haD2 21s ease-in-out infinite;}
@@ -343,6 +345,7 @@
 <!-- HERO -->
 <section class="hero" id="top-hero">
   <div class="hero-stage" aria-hidden="true">
+    <video class="hero-video" autoplay muted loop playsinline preload="auto"><source src="https://d8j0ntlcm91z4.cloudfront.net/user_3F2tNGuWpCUNCmvTpTN3rwIvoDi/hf_20260617_202109_a20e6109-b8f8-405d-81dc-e8396880df6b.mp4" type="video/mp4"></video>
     <span class="ha ha1"></span><span class="ha ha2"></span><span class="ha ha3"></span>
     <div class="hero-grid"></div>
     <div class="hero-rings"><i></i><i></i><i></i></div>
