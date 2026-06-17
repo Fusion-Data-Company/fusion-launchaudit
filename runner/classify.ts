@@ -80,6 +80,23 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
     }
     return { type: "needs_verification", confidence: "low", reason: "a public-page SEO/structured-data element is missing (or a noindex is present) — a real gap if this is a public/marketing page, not applicable to an internal tool; confirm which this is" };
   }
+  // Object-level authorization (IDOR/BOLA). A normal user served another owner's
+  // object is a confirmed hole — unless auth is stubbed here (can't conclude).
+  if (cat === "object_authz") {
+    if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed in this environment, so cross-user object access here doesn't prove a production IDOR — re-run with real auth active" };
+    return { type: "product_bug", confidence: "high", reason: "an authenticated normal user was served another owner's object by swapping the id — object-level authorization (IDOR/BOLA) is missing (WSTG-ATHZ-04 / CWE-639)" };
+  }
+  // Function-level authorization on a privileged mutation by a normal user.
+  if (cat === "mutation_authz") {
+    if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed here, so a normal user reaching this mutation doesn't prove a production hole — re-run with real auth active" };
+    return { type: "product_bug", confidence: "high", reason: "a normal user's privileged mutation was not rejected (no 401/403) — function-level authorization is missing; the denial that would prove no state change never happened (OWASP API5 / CWE-285)" };
+  }
+  if (cat === "cors") {
+    return { type: "product_bug", confidence: "high", reason: "CORS reflects an arbitrary Origin together with Access-Control-Allow-Credentials: true — any site can make credentialed cross-origin requests (CWE-942)" };
+  }
+  if (cat === "cookie_security") {
+    return { type: "product_bug", confidence: "medium", reason: "the session cookie is missing a hardening attribute (HttpOnly/Secure/SameSite) — exposes it to XSS theft, cleartext leakage, or CSRF (CWE-1004 / CWE-614)" };
+  }
   // Accessibility (axe-core). The generator only fails on serious/critical WCAG
   // violations, so a failure here is a real defect — confirmed, not speculative.
   if (cat === "accessibility") {

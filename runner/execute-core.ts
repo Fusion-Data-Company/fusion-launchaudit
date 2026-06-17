@@ -47,6 +47,7 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
   const target = resolveUrl(appUrl, step);
   const headers: Record<string, string> = { ...(step.headers ?? {}) };
   if (step.cookie) headers["cookie"] = step.cookie;
+  if (step.corsProbeOrigin) headers["origin"] = step.corsProbeOrigin;
   let body: string | undefined;
   if (step.body !== undefined) {
     body = typeof step.body === "string" ? step.body : JSON.stringify(step.body);
@@ -95,6 +96,34 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
   if (step.expectBodyExcludes) {
     for (const frag of step.expectBodyExcludes) {
       if (text.includes(frag)) throw new Error(`${target}: response leaks "${frag}" (likely a stack trace or sensitive data)`);
+    }
+  }
+  if (step.expectBodyExcludesCI) {
+    const lower = text.toLowerCase();
+    for (const frag of step.expectBodyExcludesCI) {
+      if (lower.includes(frag.toLowerCase())) throw new Error(`${target}: response reflected/leaked "${frag}" (injection signature — unescaped reflection or a DB/engine error)`);
+    }
+  }
+  if (step.expectCookieFlags) {
+    // Node 22's getSetCookie() returns each Set-Cookie separately; fall back to the combined header.
+    const getSetCookie = (res.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie;
+    const cookies = typeof getSetCookie === "function" ? getSetCookie.call(res.headers) : [res.headers.get("set-cookie") ?? ""];
+    const joined = cookies.join(" ; ");
+    if (!joined.trim()) throw new Error(`${target}: no Set-Cookie on the response — cannot evaluate session-cookie flags`);
+    for (const flag of step.expectCookieFlags) {
+      // SameSite needs a value; HttpOnly/Secure are bare attributes.
+      const present = flag.toLowerCase() === "samesite"
+        ? /;\s*samesite\s*=/i.test(joined)
+        : new RegExp(`;\\s*${flag.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\b`, "i").test(joined);
+      if (!present) throw new Error(`${target}: session cookie is missing the "${flag}" attribute — Set-Cookie: ${joined.slice(0, 160)}`);
+    }
+  }
+  if (step.corsProbeOrigin) {
+    const acao = res.headers.get("access-control-allow-origin") ?? "";
+    const acac = (res.headers.get("access-control-allow-credentials") ?? "").toLowerCase() === "true";
+    const reflectsProbe = acao === step.corsProbeOrigin || acao === "*";
+    if (reflectsProbe && acac) {
+      throw new Error(`${target}: CORS reflects Origin "${acao}" together with Access-Control-Allow-Credentials: true — any site can make credentialed cross-origin requests`);
     }
   }
 }

@@ -3,5 +3,7 @@
   "protected_apis": [{ "path": "/api/admin/delete-user", "method": "POST" }],
   "post_endpoints": [{ "path": "/api/orders" }],
   "security_paths": ["/"],
-  "login_path": "/login"
+  "login_path": "/login",
+  "admin_creds": { "username": "admin", "password": "admin" },
+  "user_creds": { "username": "user", "password": "user" }
 }

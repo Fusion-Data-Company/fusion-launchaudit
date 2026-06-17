@@ -91,6 +91,15 @@ async function buildHints(appUrl: string, crawl: { links: Array<{ href: string }
           } catch (e) { console.error(`      (auth capture failed for ${role}: ${e instanceof Error ? e.message : "?"})`); }
         }
       }
+      // A re-runnable login request for the cookie-security detector to inspect live Set-Cookie flags.
+      const probeCreds = raw.user_creds ?? raw.admin_creds;
+      if (raw.login_path && probeCreds?.username && probeCreds?.password) {
+        hints.loginProbe = {
+          path: raw.login_path,
+          body: `username=${encodeURIComponent(probeCreds.username)}&password=${encodeURIComponent(probeCreds.password)}`,
+          contentType: "application/x-www-form-urlencoded",
+        };
+      }
     } catch (e) { console.error(`      (hints file unreadable: ${e instanceof Error ? e.message : "?"})`); }
   }
 

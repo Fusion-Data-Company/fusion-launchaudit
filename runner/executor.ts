@@ -52,6 +52,12 @@ export type ExecStep =
       expectHeaderAbsent?: string[];
       expectJsonKeys?: string[];
       expectBodyExcludes?: string[];
+      /** case-insensitive variant of expectBodyExcludes (injection error/reflection signatures) */
+      expectBodyExcludesCI?: string[];
+      /** assert each flag (HttpOnly/Secure/SameSite) is present on the response's Set-Cookie */
+      expectCookieFlags?: string[];
+      /** send `Origin: <value>` and assert it is NOT reflected with Access-Control-Allow-Credentials: true */
+      corsProbeOrigin?: string;
     }
   | {
       action: "elevenlabs";

@@ -35,6 +35,8 @@ export type AuditHints = {
   /** ElevenLabs agents to audit, plus the env var holding the xi-api-key. */
   elevenLabsAgents?: ElevenLabsAgent[];
   elevenLabsApiKeyEnv?: string;
+  /** A re-runnable login request so cookie-security can inspect the live Set-Cookie flags. */
+  loginProbe?: { path: string; body: string; contentType: string };
 };
 
 export class Counter {

@@ -70,6 +70,21 @@ test("a front-end expectation that survived retries is a product bug", () => {
   assert.equal(classifyFailure(result("responsive_visual", "horizontal overflow at 390px"), ctx()).type, "product_bug");
 });
 
+test("IDOR served object is a product bug with real auth, needs_verification under stub auth", () => {
+  assert.equal(classifyFailure(result("object_authz", "expected status in [401,403,404], got 200"), ctx(false)).type, "product_bug");
+  assert.equal(classifyFailure(result("object_authz", "got 200"), ctx(true)).type, "needs_verification");
+});
+
+test("a normal user's allowed privileged mutation is a product bug (verify under stub auth)", () => {
+  assert.equal(classifyFailure(result("mutation_authz", "got 200"), ctx(false)).type, "product_bug");
+  assert.equal(classifyFailure(result("mutation_authz", "got 200"), ctx(true)).type, "needs_verification");
+});
+
+test("credentialed CORS reflection is a product bug; a missing cookie flag is a product bug", () => {
+  assert.equal(classifyFailure(result("cors", "reflects Origin with credentials"), ctx()).type, "product_bug");
+  assert.equal(classifyFailure(result("cookie_security", 'missing the "Secure" attribute'), ctx()).type, "product_bug");
+});
+
 test("a serious/critical accessibility violation is a confirmed product bug", () => {
   assert.equal(classifyFailure(result("accessibility", "2 accessibility violation type(s) at or above serious"), ctx()).type, "product_bug");
 });
