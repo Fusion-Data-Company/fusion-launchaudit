@@ -239,18 +239,23 @@ const COVERAGE_GROUPS = [
     categories: ["core_workflow", "responsive_visual", "console_network", "forms_validation", "accessibility", "performance", "state_persistence", "error_empty_states"],
   },
   {
-    key: "backend", title: "Backend", icon: "i-backend",
-    scope: "api_contract · side-effects",
-    categories: ["api_contract"],
+    key: "backend", title: "Backend & API", icon: "i-backend",
+    scope: "endpoints · input · injection",
+    categories: ["api_contract", "injection"],
   },
   {
-    key: "rbac", title: "Admin & RBAC", icon: "i-rbac",
-    scope: "roles · auth · access",
-    categories: ["roles_permissions", "auth"],
+    key: "rbac", title: "Access control", icon: "i-rbac",
+    scope: "roles · IDOR · mutations",
+    categories: ["roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment"],
   },
   {
-    key: "middleware", title: "Middleware", icon: "i-middleware",
-    scope: "integrations · security",
+    key: "security", title: "Security & hardening", icon: "i-db",
+    scope: "headers · secrets · cookies · CORS · TLS",
+    categories: ["security_headers", "secrets_exposure", "cookie_security", "cors", "tls_hsts"],
+  },
+  {
+    key: "middleware", title: "Middleware & integrations", icon: "i-middleware",
+    scope: "guards · third-party",
     categories: ["integration_side_effects"],
   },
 ];
