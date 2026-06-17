@@ -174,19 +174,135 @@ appeared in a Perplexity answer or its citations, plus a standard reference wher
 
 ---
 
+## A2. MOBILE — Additional MASTG test enumeration (gap-fill, raw 06)
+
+> Strict provenance: when asked to map MASTG-TEST IDs to PLATFORM/CODE/RESILIENCE/NETWORK, Perplexity
+> confirmed **only one** explicit MASVS↔MASTG-TEST mapping (PLATFORM → MASTG-TEST-0029); it stated the
+> official MASTG test-index does not publish populated MASVS-mapping columns for CODE/RESILIENCE/NETWORK
+> and **refused to guess** the category mapping. The rows below reflect that: row 100 is a confirmed
+> mapping; rows 101–105 are real MASTG-TEST IDs + titles that exist in the official index but whose
+> MASVS-category linkage is NOT officially confirmed — marked **[category UNCONFIRMED]** accordingly.
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 100 | Sensitive functionality exposure through IPC | App's IPC (exported components, bound services) doesn't expose sensitive functionality to other apps without authorization | PLATFORM | MASTG-TEST-0029 (→ MASVS-PLATFORM-1) | OWASP MASTG | https://mas.owasp.org/MASTG-TEST-0029/ | Partial — static + device analysis |
+| 101 | Testing for debugging symbols | Release binary doesn't ship debugging symbols | CODE [category UNCONFIRMED] | MASTG-TEST-0040 (title only; MASVS link not official) | OWASP MASTG index | https://mas.owasp.org/MASTG/tests/ | Partial — binary analysis |
+| 102 | Insufficient obfuscation of security-relevant code | Security-relevant Java/Kotlin code is sufficiently obfuscated | CODE/RESILIENCE [category UNCONFIRMED] | MASTG-TEST-0368 (title only; MASVS link not official) | OWASP MASTG index | https://mas.owasp.org/MASTG/tests/ | Partial — binary analysis |
+| 103 | Testing root detection | App detects rooted/jailbroken devices | RESILIENCE [category UNCONFIRMED] | MASTG-TEST-0045 (title only; MASVS link not official) | OWASP MASTG index | https://mas.owasp.org/MASTG/tests/ | No — runtime defense check |
+| 104 | Testing anti-debugging detection | App detects/resists attached debuggers | RESILIENCE [category UNCONFIRMED] | MASTG-TEST-0046 (title only; MASVS link not official) | OWASP MASTG index | https://mas.owasp.org/MASTG/tests/ | No — runtime defense check |
+| 105 | Testing reverse-engineering tools detection | App detects reverse-engineering/instrumentation tools (e.g. Frida) | RESILIENCE [category UNCONFIRMED] | MASTG-TEST-0048 (title only; MASVS link not official) | OWASP MASTG index | https://mas.owasp.org/MASTG/tests/ | No — runtime defense check |
+
+---
+
+## B2. AI / VOICE — Prompt-injection & jailbreak taxonomy (gap-fill, raw 07)
+
+> Standard refs use **MITRE ATLAS** technique IDs (authoritative) + **OWASP GenAI LLM01** (authoritative).
+> Named jailbreak sub-classes (role-play/DAN, obfuscation, payload-splitting, adversarial-suffix,
+> instruction-manipulation) come from **vendor/research taxonomies** (Arthur, Promptfoo, CrowdStrike,
+> Pangea) — these are recognized but NOT standards; they are labeled as such in the Source column.
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 106 | Direct prompt-injection technique | User input directly overrides system/developer instructions | Prompt Injection | MITRE ATLAS AML.T0051.000; OWASP LLM01 | MITRE ATLAS / OWASP GenAI | https://genai.owasp.org/llmrisk/llm01-prompt-injection/ | Yes — probe suite |
+| 107 | Indirect prompt-injection technique | Malicious instructions embedded in fetched external content (web/PDF/email/RAG) alter behavior | Prompt Injection | MITRE ATLAS AML.T0051.001; OWASP LLM01 | MITRE ATLAS / OWASP GenAI | https://genai.owasp.org/llmrisk/llm01-prompt-injection/ | Yes — seeded-content tests |
+| 108 | Direct jailbreak injection | Attempts to make model disregard safety protocols | Jailbreak | MITRE ATLAS AML.T0054 | MITRE ATLAS / OWASP GenAI | https://genai.owasp.org/llmrisk/llm01-prompt-injection/ | Yes — jailbreak probe suite |
+| 109 | Role-play / persona jailbreak (DAN, "act as") | Model persuaded to adopt rule-exempt persona then respond unsafely | Jailbreak | AML.T0054 (ATLAS); Arthur 5-class taxonomy (vendor) | Arthur (vendor taxonomy) | https://www.arthur.ai/blog/from-jailbreaks-to-gibberish-understanding-the-different-types-of-prompt-injections | Yes — probe suite |
+| 110 | Hypothetical / story / counterfactual jailbreak | Harmful request cast as fiction/"for research" bypasses safeguards | Jailbreak | AML.T0054 (ATLAS); Promptfoo (tool) | Promptfoo (tool docs) | https://www.promptfoo.dev/blog/jailbreaking-vs-prompt-injection/ | Yes — probe suite |
+| 111 | Gradual / many-step / multi-turn jailbreak | Guardrails fail when attacker builds up incrementally over turns | Jailbreak | AML.T0054 (ATLAS); Promptfoo (tool) | Promptfoo (tool docs) | https://www.promptfoo.dev/blog/jailbreaking-vs-prompt-injection/ | Partial — multi-turn harness |
+| 112 | Obfuscation / encoding jailbreak | Base64/leetspeak/emoji/ASCII-art encoding bypasses content filters | Jailbreak | AML.T0051.000/AML.T0054 (ATLAS); Arthur (vendor) | Arthur (vendor taxonomy) | https://www.arthur.ai/blog/from-jailbreaks-to-gibberish-understanding-the-different-types-of-prompt-injections | Yes — probe suite |
+| 113 | Payload-splitting injection | Malicious instruction split into benign segments recombined by model | Prompt Injection | AML.T0051.000 (ATLAS); Arthur (vendor) | Arthur (vendor taxonomy) | https://www.arthur.ai/blog/from-jailbreaks-to-gibberish-understanding-the-different-types-of-prompt-injections | Yes — probe suite |
+| 114 | Adversarial-suffix attack | Appended gibberish/adversarial strings break refusal mechanisms (transferable) | Jailbreak | AML.T0054 (ATLAS); Arthur (vendor) | Arthur (vendor taxonomy) | https://www.arthur.ai/blog/from-jailbreaks-to-gibberish-understanding-the-different-types-of-prompt-injections | Partial — needs suffix dataset |
+| 115 | Refusal-suppression / instruction manipulation | "Ignore prior instructions"/"always reply" overrides system policy | Prompt Injection | AML.T0051.000 (ATLAS); OWASP LLM01 | MITRE ATLAS / OWASP GenAI | https://genai.owasp.org/llmrisk/llm01-prompt-injection/ | Yes — probe suite |
+| 116 | System-prompt extraction / prompt leakage | Hidden system prompt/tool schemas exposed via prompting | Prompt Injection | AML.T0051.x (ATLAS); OWASP LLM01/LLM07 | MITRE ATLAS / OWASP GenAI | https://genai.owasp.org/llmrisk/llm01-prompt-injection/ | Yes — exfil probe suite |
+| 117 | Tool-use / function-calling injection | Injection causes misuse of tools/plugins/APIs (exfiltration, arbitrary requests) | Prompt Injection | AML.T0051.000/.001 (ATLAS); OWASP LLM01 | MITRE ATLAS / OWASP GenAI | https://genai.owasp.org/llmrisk/llm01-prompt-injection/ | Partial — needs tool harness |
+| 118 | Indirect injection via RAG/browsing/multi-chain | Injected content survives chain transformations and triggers tool/data misuse | Prompt Injection | AML.T0051.001 (ATLAS); OWASP LLM01 | MITRE ATLAS / OWASP GenAI | https://genai.owasp.org/llmrisk/llm01-prompt-injection/ | Yes — seeded-content tests |
+
+---
+
+## B3. AI / VOICE — RAG / hallucination / groundedness evaluation metrics (gap-fill, raw 08)
+
+> Source-type is explicit: **RAGAS, DeepEval, TruLens = open-source evaluation frameworks** (not
+> standards bodies). The RAG triad is defined by TruLens. These are the recognized de-facto methods;
+> there is no ISO/NIST-level standard for these specific metrics yet.
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 119 | Faithfulness | Answer is supported by retrieved context (fraction of claims supported); no hallucination beyond context | RAG eval | RAGAS / DeepEval metric (OSS framework) | RAGAS docs | https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/ | Yes — LLM-as-judge harness |
+| 120 | Answer relevance | Final answer addresses the user's question | RAG eval | RAGAS / DeepEval metric (OSS framework) | DeepEval docs | https://deepeval.com/docs/metrics-contextual-precision | Yes |
+| 121 | Context precision | Retrieved chunks relevant + well-ranked (relevant chunks ranked higher) | RAG eval | RAGAS Context Precision (OSS framework) | RAGAS docs | https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/context_precision/ | Yes |
+| 122 | Context recall | Retrieved context contains the info needed to answer (vs gold chunks) | RAG eval | RAGAS / DeepEval metric (OSS framework) | DeepEval docs | https://deepeval.com/docs/metrics-contextual-precision | Yes |
+| 123 | Context relevance | Retrieved context is relevant to the query (chunk-level judge) | RAG eval | TruLens RAG-triad / RAGAS (OSS framework) | DeepEval docs | https://deepeval.com/docs/metrics-contextual-precision | Yes |
+| 124 | Groundedness | Answer anchored in source context, sentence/claim-level support | RAG eval | TruLens RAG-triad (OSS framework) | TruLens (via DeepEval/RAGAS docs) | https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/ | Yes — LLM-as-judge harness |
+| 125 | RAG triad coverage | All 3 dimensions (context relevance + groundedness + answer relevance) evaluated together | RAG eval | TruLens RAG triad (OSS framework) | TruLens (RAG triad) | https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/ | Yes |
+| 126 | Factual consistency / hallucination rate | Output facts consistent with source; hallucination rate = unsupported/contradictory claim rate (often 1 − faithfulness) | RAG eval | Measurement concept (RAGAS/DeepEval impl, OSS) | RAGAS docs | https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/ | Yes |
+| 127 | Citation accuracy | Cited source actually supports the cited claim; citations placed correctly | RAG eval | Research/eval practice (attribution) | RAGAS docs (groundedness/citation support) | https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/ | Partial — needs labeled set |
+
+---
+
+## B4. AI / VOICE — NIST AI RMF testable controls (gap-fill, raw 09)
+
+> Standard refs: **NIST AI 100-1** (AI RMF 1.0) and **NIST AI 600-1** (Generative AI Profile). NIST
+> defines risk *characteristics*, not pass/fail test specs — these rows are the testable checks a tester
+> derives from each characteristic (per raw 09's tester-oriented mapping).
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 128 | Validity check | Model does what it's supposed to on representative tasks / golden datasets | MEASURE | NIST AI 100-1; AI 600-1 | NIST AI RMF | https://www.nist.gov/itl/ai-risk-management-framework | Partial — needs golden set |
+| 129 | Reliability check | Consistency across repeated runs, seeds, paraphrases, sessions, versions | MEASURE | NIST AI 100-1 | NIST AI RMF | https://www.nist.gov/itl/ai-risk-management-framework | Yes — repeatability harness |
+| 130 | Robustness check | Performance under noisy/adversarial/OOD inputs, context truncation, tool failures | MEASURE | NIST AI 100-1; AI 600-1 | NIST AI RMF | https://www.nist.gov/itl/ai-risk-management-framework | Yes — perturbation suite |
+| 131 | Safety check | Harmful content, unsafe advice, policy violations, refusal behavior on disallowed prompts | MEASURE | NIST AI 100-1; AI 600-1 | NIST AI RMF | https://www.nist.gov/itl/ai-risk-management-framework | Yes — safety probe suite |
+| 132 | Security/resilience check | Prompt-injection, jailbreak, exfiltration, tool-abuse + recovery under failure | MEASURE | NIST AI 100-1; AI 600-1 | NIST AI RMF | https://www.nist.gov/itl/ai-risk-management-framework | Yes — maps to rows 56-118 |
+| 133 | Accountability/transparency check | Logging, output→input traceability, model/version attribution, auditability | MEASURE/GOVERN | NIST AI 100-1; AI 600-1 | NIST AI RMF | https://www.nist.gov/itl/ai-risk-management-framework | Partial — log/audit review |
+| 134 | Explainability/interpretability check | System exposes usable rationale/citations/decision traces matching actual behavior | MEASURE | NIST AI 100-1; AI 600-1 | NIST AI RMF | https://www.nist.gov/itl/ai-risk-management-framework | Partial |
+| 135 | Privacy check | Memorization, sensitive-data leakage, training-data regurgitation, prompt-based PII exposure | MEASURE | NIST AI 100-1; AI 600-1 | NIST AI RMF | https://www.nist.gov/itl/ai-risk-management-framework | Yes — leakage probe suite |
+| 136 | Fairness/bias check | Subgroup performance disparity, error-rate disparity, toxic stereotyping across demographics | MEASURE | NIST AI 100-1; AI 600-1 | NIST AI RMF | https://www.nist.gov/itl/ai-risk-management-framework | Partial — needs labeled subgroups |
+
+---
+
+## B5. AI / VOICE — Conversational & voice-agent QA (gap-fill, raw 10)
+
+> **Weak standardization — read source labels carefully.** The QA *categories* below come mostly from
+> industry/vendor QA frameworks (WebRTC.Ventures, Hamming AI, Braintrust, Bluejay, Zendesk, Cekura) —
+> recognized practice, NOT standards. The only formal standards in this section are the **metrics**:
+> **WER** (de-facto ASR standard via NIST/academic benchmarks) and **MOS / objective speech-quality**
+> (ITU-T P.800 for MOS, ITU-T P.862/POLQA). Category rows are tagged `[industry framework]`; metric
+> rows carry the real standard. ElevenLabs ConvAI-specific config checks remain in [MODEL-SUGGESTED].
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 137 | Intent recognition accuracy | Utterance → correct intent/slots/action (robust to paraphrase, accents, noise) | Voice/NLU [industry framework] | Intent accuracy / precision-recall-F1 / slot-F1 | Braintrust (industry) | https://www.braintrust.dev/articles/how-to-evaluate-voice-agents | Yes — labeled test set |
+| 138 | Dialog & state management | Agent maintains dialog state, branching, clarification, repair across turns | Voice/dialog [industry framework] | Task-completion rate / avg turns / state-consistency | Hamming AI (industry) | https://hamming.ai/resources/guide-to-ai-voice-agents-quality-assurance | Partial — conversation sim |
+| 139 | Turn-taking | Agent starts promptly after user, doesn't talk over user, detects end-of-utterance | Voice/timing [industry framework] | Turn-transition delay / overlap rate / turn-taking error rate | WebRTC.Ventures (industry) | https://webrtc.ventures/2026/03/qa-testing-for-ai-voice-agents/ | Partial — RTC test harness |
+| 140 | Barge-in / interruption handling | User interrupts mid-TTS → agent stops, processes, responds appropriately | Voice/timing [industry framework] | Barge-in detection rate / barge-in success rate | WebRTC.Ventures (industry) | https://webrtc.ventures/2026/03/qa-testing-for-ai-voice-agents/ | Partial — RTC test harness |
+| 141 | Latency / response time | End-to-end (user end-of-speech → agent start-of-speech) + per-component (ASR/LLM/TTS) | Voice/perf [industry framework] | End-to-end latency / time-to-first-audio / P95-P99 | WebRTC.Ventures (industry) | https://webrtc.ventures/2026/03/qa-testing-for-ai-voice-agents/ | Yes — timing instrumentation |
+| 142 | ASR accuracy (WER) | Speech-to-text quality under noise/accents/channels | Voice/ASR | **WER = (S+D+I)/N** (de-facto ASR standard; NIST/academic) | NIST/academic WER (via Braintrust) | https://www.braintrust.dev/articles/how-to-evaluate-voice-agents | Yes — WER vs reference transcripts |
+| 143 | TTS quality | Naturalness/intelligibility/prosody/voice consistency of synthesized speech | Voice/TTS | **MOS (ITU-T P.800)**; objective: ITU-T P.862/POLQA | ITU-T (standards) via Braintrust | https://www.braintrust.dev/articles/how-to-evaluate-voice-agents | Partial — MOS needs human raters |
+| 144 | Function / tool-call correctness | Correct tool chosen, args reflect user intent, tool-failure handling | Voice/tools [industry framework] | Tool-selection accuracy / argument-correctness rate | Hamming AI (industry) | https://hamming.ai/resources/guide-to-ai-voice-agents-quality-assurance | Partial — needs tool harness |
+| 145 | Fallback / error handling | Graceful recovery on ASR/NLU/tool failure: clarify, partial answer, escalate | Voice/robustness [industry framework] | Fallback rate / recovery-success rate / escalation rate | Zendesk (vendor) | https://www.zendesk.com/service/quality-assurance/qa-for-ai-agents/ | Partial — scenario sim |
+| 146 | Context retention across turns | Agent remembers/uses prior-turn context (referents, slots, preferences) | Voice/dialog [industry framework] | Context carry-over accuracy / coreference accuracy / multi-turn success | Hamming AI (industry) | https://hamming.ai/resources/guide-to-ai-voice-agents-quality-assurance | Partial — multi-turn sim |
+| 147 | Multilingual & cross-lingual handling | ASR/intent/TTS parity per language; code-switch robustness; language-ID | Voice/i18n [industry framework] | WER/CER per language / intent accuracy per language / multilingual MOS | Bluejay (industry) | https://getbluejay.ai/resources/voice-agent-qa-vs-software-testing | Partial — per-locale test sets |
+
+---
+
 ## Unverified / needs a source
 
-These were intended for enumeration passes that did NOT complete (raw 06 RAG/jailbreak-eval call
-failed with a network reset; an ElevenLabs ConvAI official-docs call never ran). They are real, widely
-used in practice, but are listed here because no Perplexity-returned source was captured for them in
-this run. **Re-run the Perplexity passes once disk space is restored to source these properly.**
+Gap-fill passes (raws 06–10) sourced most of what was previously unverified: RAGAS/DeepEval/TruLens
+are now in section B3 (with official docs URLs), the prompt-injection/jailbreak taxonomy is in B2 (MITRE
+ATLAS + OWASP + vendor taxonomies), NIST AI RMF testable controls are in B4, and voice-agent QA is in
+B5. The items still genuinely unsourced or sourced only to weaker references:
 
-- RAGAS — RAG evaluation metrics (faithfulness, answer relevance, context precision/recall). [UNVERIFIED — needs source URL]
-- DeepEval / `trydeepteam` — LLM eval + OWASP-LLM red-teaming test harness. (Appeared as a *citation domain* `trydeepteam.com` in raw 05 search_results but was not described as a test source in the answer body — confirm before cataloguing.) [UNVERIFIED]
-- garak — LLM vulnerability/jailbreak scanner (NVIDIA). [UNVERIFIED — needs source]
-- Promptfoo — prompt regression + guardrail + RAG-correctness eval. (Appeared as citation domain `promptfoo.dev` in raws 02 & 05; flagged in raw 02 as a de-facto tool, not a standard.) [UNVERIFIED as a test source]
-- LangSmith — tracing + eval (correctness/latency/cost/safety). (Citation domain only.) [UNVERIFIED as a test source]
-- Conversational-AI / voice-agent functional QA taxonomy (intent accuracy, dialog management, contextual consistency, barge-in/turn-taking, ASR/TTS quality, latency). Raw 02 cited a single vendor blog (Rhesis AI) — **vendor blog, not authoritative**; do not catalogue until a stronger source is found. [UNVERIFIED]
+- **garak** (NVIDIA LLM vuln/jailbreak scanner) — named in raw 07's narrative as a recognized tool but its
+  detailed probe taxonomy "is in tool docs/code rather than a formal taxonomy paper"; **no official garak
+  docs URL was returned** in any pass. [UNVERIFIED — needs official garak/NVIDIA docs URL before cataloguing]
+- **CrowdStrike (185+ technique) / Pangea (145+ technique) / Lasso prompt-injection taxonomies** — real,
+  cited in raw 07, but they are vendor catalogs, not standards. Usable as coverage checklists; not added
+  as individual test rows. [vendor taxonomy — confirm desired granularity before expanding]
+- **TruLens RAG-triad** — the triad concept is well-attested (raw 08), but the rows above cite the RAGAS/
+  DeepEval docs URLs for the metric definitions; a direct TruLens docs URL was not captured. [partial-source]
+- **Voice-agent QA categories (rows 137–141, 144–147)** — sourced to industry/vendor QA frameworks
+  (WebRTC.Ventures, Hamming AI, Braintrust, Bluejay, Zendesk), explicitly **not standards bodies**. Only
+  the WER and MOS/POLQA *metrics* (rows 142–143) rest on real standards (NIST/academic WER; ITU-T P.800/
+  P.862). Treat the category rows as recognized-practice, not normative.
 
 ## [MODEL-SUGGESTED — confirm]
 
@@ -212,5 +328,12 @@ them in the main table until confirmed against https://elevenlabs.io/docs (ConvA
 - `docs/research/test-catalog/raw/mobile-ai-03.json` — MASVS/MASTG enumeration: STORAGE (full MASTG-TEST IDs), CRYPTO/AUTH/NETWORK (legacy MSTG IDs, with explicit caveats) — HTTP 200
 - `docs/research/test-catalog/raw/mobile-ai-04.json` — MASVS enumeration: PLATFORM/CODE/RESILIENCE/PRIVACY controls + MAS Testing Profiles (L1/L2/R/P) — HTTP 200
 - `docs/research/test-catalog/raw/mobile-ai-05.json` — OWASP LLM Top 10 2025 per-item concrete tests (authoritative 2025 names from OWASP PDF) — HTTP 200
-- `mobile-ai-06.json` — RAG/hallucination/jailbreak-eval enumeration — **FAILED (network reset, then disk ENOSPC); not saved**
-- (planned) ElevenLabs ConvAI official-docs pass — **NEVER RAN (disk ENOSPC blocked all curl calls)**
+- `docs/research/test-catalog/raw/mobile-ai-06.json` — MASTG test-ID enumeration for PLATFORM/CODE/RESILIENCE/NETWORK (only PLATFORM→MASTG-TEST-0029 confirmed; others title-only, category unconfirmed) — HTTP 200
+- `docs/research/test-catalog/raw/mobile-ai-07.json` — Prompt-injection & jailbreak taxonomy (MITRE ATLAS AML.T0051.x / AML.T0054, OWASP LLM01, vendor taxonomies Arthur/Promptfoo/CrowdStrike/Pangea) — HTTP 200
+- `docs/research/test-catalog/raw/mobile-ai-08.json` — RAG/hallucination/groundedness eval metrics (RAGAS/DeepEval/TruLens OSS frameworks; faithfulness, answer/context relevance, precision/recall, groundedness, RAG triad, citation accuracy) — HTTP 200
+- `docs/research/test-catalog/raw/mobile-ai-09.json` — NIST AI RMF testable controls (NIST AI 100-1 + Generative AI Profile AI 600-1; 9 characteristics × GOVERN/MAP/MEASURE/MANAGE) — HTTP 200
+- `docs/research/test-catalog/raw/mobile-ai-10.json` — Conversational/voice-agent QA categories (11 categories; industry frameworks + WER/MOS/POLQA standards) — HTTP 200
+
+### Still open (re-run when prioritized)
+- **ElevenLabs ConvAI official-docs pass** — still NOT run; the [MODEL-SUGGESTED] ConvAI config checks above remain model-knowledge only, unconfirmed against https://elevenlabs.io/docs.
+- **garak official docs** — needed to source the one remaining [UNVERIFIED] tool taxonomy.

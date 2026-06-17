@@ -2,12 +2,17 @@
 
 Provenance-first catalog compiled per `RESEARCH-PROTOCOL.md`. Every row traces to a
 Perplexity (`sonar-pro`) answer and its cited sources, saved in
-`docs/research/test-catalog/raw/web-security-*.json`. Standard reference IDs (WSTG-*,
-CWE-*, Axx:2021) are taken from OWASP's own materials as surfaced and cited by those
-calls. Where a canonical per-test URL was *inferred from the WSTG section/URL pattern*
-rather than directly fetched, it is flagged in the Notes column; the row is still
-source-backed (the test ID + name came from an OWASP checklist/reporting table), only
-the exact slug is pattern-derived.
+`docs/research/test-catalog/raw/web-security-01..13.json`. Standard reference IDs
+(WSTG-*, CWE-*, Axx:2021, APIx:2023, ASVS Vx.y) are taken from OWASP/MITRE/PortSwigger
+materials as surfaced and cited by those calls. **164 test rows across 7 sources**,
+covering all 12 WSTG v4.2 categories, OWASP Top 10:2021, OWASP API Security Top 10:2023,
+OWASP ASVS v4.0.3 (key chapters), and the PortSwigger Web Security Academy topic set.
+
+A dedicated confirmation pass (`web-security-10.json`) verified the previously
+slug-inferred WSTG URLs and the WSTG-INPV numbering against OWASP's v4.2 checklist;
+corrections are applied in-table and documented under "Provenance & numbering notes".
+The only remaining slug-inferred row is WSTG-ATHN-11 (MFA, `/latest/`-only). The
+`Automatable by LaunchAudit?` column flags Yes / Partial / No for build prioritization.
 
 ## Sources used
 
@@ -17,6 +22,7 @@ the exact slug is pattern-derived.
 | OWASP WSTG checklist (checklist.md / checklist.xlsx) | OWASP Foundation | Authoritative per-test IDs + names for every WSTG category | https://github.com/OWASP/wstg/blob/master/checklists/checklist.md |
 | OWASP Top 10:2021 | OWASP Foundation | 10 web app security risk categories `A01:2021`–`A10:2021` (risk classification, used to prioritize/map WSTG tests) | https://owasp.org/www-project-top-ten/ |
 | OWASP Application Security Verification Standard (ASVS) | OWASP Foundation | Verification requirements V1–V13 (`Vx.y` IDs), used to define test scope | https://owasp.org/www-project-application-security-verification-standard/ |
+| OWASP API Security Top 10:2023 | OWASP Foundation | 10 API-specific risk categories `API1:2023`–`API10:2023` | https://owasp.org/API-Security/ |
 | MITRE Common Weakness Enumeration (CWE) | MITRE | Formal taxonomy of software weaknesses (`CWE-NNN`), used to classify findings | https://cwe.mitre.org/ |
 | PortSwigger Web Security Academy | PortSwigger Ltd. | De-facto reference catalog of web vuln topics + labs (training, not a normative standard) | https://portswigger.net/web-security |
 
@@ -56,17 +62,17 @@ Business Logic · `WSTG-CLNT` Client-side · `WSTG-APIT` API Testing.
 | 24 | Test account provisioning process | Accounts provisioned only via authorized workflows; provisioning auditable | Identity Mgmt | WSTG-IDNT-03 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/03-Identity_Management_Testing/03-Test_Account_Provisioning_Process | No (manual) — slug pattern-inferred |
 | 25 | Account enumeration & guessable user account | App doesn't leak valid usernames via differing responses/timing | Identity Mgmt | WSTG-IDNT-04 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/03-Identity_Management_Testing/04-Testing_for_Account_Enumeration_and_Guessable_User_Account | Yes (compare valid/invalid responses + timing) |
 | 26 | Weak or unenforced username policy | Username pattern not predictable/enumerable; policy enforced | Identity Mgmt | WSTG-IDNT-05 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/03-Identity_Management_Testing/05-Testing_for_Weak_or_Unenforced_Username_Policy | Partial (pattern analysis) |
-| 27 | Credentials transported over encrypted channel | Credentials only sent over TLS; no HTTP/query-string/downgrade exposure | Authentication | WSTG-ATHN-01 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/01-Testing_for_Credentials_Transported_over_an_Encrypted_Channel | Yes (inspect login transport) — slug pattern-inferred |
-| 28 | Default credentials | No default/vendor/sample creds active (admin/admin, test accounts) | Authentication | WSTG-ATHN-02 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/02-Testing_for_Default_Credentials | Yes (try known default sets) — slug pattern-inferred |
-| 29 | Weak lockout mechanism | Lockout/throttling after failed logins; not DoS-abusable | Authentication | WSTG-ATHN-03 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/03-Testing_for_Weak_Lock_Out_Mechanism | Yes (repeated-attempt probe) — slug pattern-inferred |
-| 30 | Bypassing authentication schema | Protected resources not reachable without auth (forced browse, tampering) | Authentication | WSTG-ATHN-04 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/04-Testing_for_Bypassing_Authentication_Schema | Partial (direct-access probes) — slug pattern-inferred |
-| 31 | Vulnerable "remember password" | Persistent-login tokens strong, device-bound, revocable; no plaintext storage | Authentication | WSTG-ATHN-05 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/05-Testing_for_Vulnerable_Remember_Password | Partial (token inspection) — slug pattern-inferred |
-| 32 | Browser cache weakness | Sensitive post-login pages send no-store/no-cache; no back-button leak | Authentication | WSTG-ATHN-06 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/06-Testing_for_Browser_Cache_Weakness | Yes (cache-header check) — slug pattern-inferred |
-| 33 | Weak password policy | Length/complexity/leaked-password checks enforced server-side | Authentication | WSTG-ATHN-07 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/07-Testing_for_Weak_Password_Policy | Partial (submit weak passwords) — slug pattern-inferred |
-| 34 | Weak security question/answer | Recovery questions not publicly researchable/guessable; attempt-limited | Authentication | WSTG-ATHN-08 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/08-Testing_for_Weak_Security_Question_Answer | No (manual) — slug pattern-inferred |
-| 35 | Weak password change/reset functionality | Reset uses strong single-use time-limited tokens; change requires re-auth | Authentication | WSTG-ATHN-09 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/09-Testing_for_Weak_Password_Change_or_Reset_Functionalities | Partial (token entropy/replay) — slug pattern-inferred |
-| 36 | Weaker authentication in alternative channel | Mobile/API/legacy channels not weaker than main login (MFA parity) | Authentication | WSTG-ATHN-10 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/10-Testing_for_Weaker_Authentication_in_Alternative_Channel | Partial — slug pattern-inferred |
-| 37 | Multi-factor authentication (MFA) | MFA factors independent, enforced, non-bypassable; tokens single-use | Authentication | WSTG-ATHN-11 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/11-Testing_Multi-Factor_Authentication | Partial — slug pattern-inferred |
+| 27 | Credentials transported over encrypted channel | Credentials only sent over TLS; no HTTP/query-string/downgrade exposure | Authentication | WSTG-ATHN-01 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/01-Testing_for_Credentials_Transported_over_an_Encrypted_Channel | Yes (inspect login transport) — URL CONFIRMED (v4.2) |
+| 28 | Default credentials | No default/vendor/sample creds active (admin/admin, test accounts) | Authentication | WSTG-ATHN-02 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/02-Testing_for_Default_Credentials | Yes (try known default sets) — URL CONFIRMED (v4.2) |
+| 29 | Weak lockout mechanism | Lockout/throttling after failed logins; not DoS-abusable | Authentication | WSTG-ATHN-03 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/03-Testing_for_Weak_Lock_Out_Mechanism | Yes (repeated-attempt probe) — URL CONFIRMED (v4.2) |
+| 30 | Bypassing authentication schema | Protected resources not reachable without auth (forced browse, tampering) | Authentication | WSTG-ATHN-04 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/04-Testing_for_Bypassing_Authentication_Schema | Partial (direct-access probes) — URL CONFIRMED (v4.2) |
+| 31 | Vulnerable "remember password" | Persistent-login tokens strong, device-bound, revocable; no plaintext storage | Authentication | WSTG-ATHN-05 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/05-Testing_for_Vulnerable_Remember_Password | Partial (token inspection) — URL CONFIRMED (v4.2) |
+| 32 | Browser cache weaknesses | Sensitive post-login pages send no-store/no-cache; no back-button leak | Authentication | WSTG-ATHN-06 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/06-Testing_for_Browser_Cache_Weaknesses | Yes (cache-header check) — URL+name CONFIRMED (v4.2) |
+| 33 | Weak password policy | Length/complexity/leaked-password checks enforced server-side | Authentication | WSTG-ATHN-07 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/07-Testing_for_Weak_Password_Policy | Partial (submit weak passwords) — URL CONFIRMED (v4.2) |
+| 34 | Weak security question/answer | Recovery questions not publicly researchable/guessable; attempt-limited | Authentication | WSTG-ATHN-08 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/08-Testing_for_Weak_Security_Question_Answer | No (manual) — URL CONFIRMED (v4.2) |
+| 35 | Weak password change/reset functionality | Reset uses strong single-use time-limited tokens; change requires re-auth | Authentication | WSTG-ATHN-09 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/09-Testing_for_Weak_Password_Change_or_Reset_Functionalities | Partial (token entropy/replay) — URL CONFIRMED (v4.2) |
+| 36 | Weaker authentication in alternative channel | Mobile/API/legacy channels not weaker than main login (MFA parity) | Authentication | WSTG-ATHN-10 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/10-Testing_for_Weaker_Authentication_in_Alternative_Channel | Partial — URL CONFIRMED (v4.2) |
+| 37 | Multi-factor authentication (MFA) | MFA factors independent, enforced, non-bypassable; tokens single-use | Authentication | WSTG-ATHN-11 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/11-Testing_Multi-Factor_Authentication | Partial — slug pattern-inferred (ATHN-11 is a 'latest'-only test, not in v4.2 confirmation set) |
 | 38 | Directory traversal / file include | Path traversal / LFI/RFI cannot access unauthorized files | Authorization | WSTG-ATHZ-01 · CWE-22 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/01-Testing_Directory_Traversal_File_Include | Yes (traversal payload fuzz) |
 | 39 | Bypassing authorization schema | Authz controls can't be bypassed to reach unpermitted functions/resources | Authorization | WSTG-ATHZ-02 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/02-Testing_for_Bypassing_Authorization_Schema | Partial (multi-role request replay) |
 | 40 | Privilege escalation | No horizontal/vertical escalation above intended role | Authorization | WSTG-ATHZ-03 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/03-Testing_for_Privilege_Escalation | Partial (role-diff probing) |
@@ -96,77 +102,166 @@ Business Logic · `WSTG-CLNT` Client-side · `WSTG-APIT` API Testing.
 | 64 | Command Injection | OS-command construction safe; no arbitrary command execution | Input Validation | WSTG-INPV-12 · CWE-78 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/12-Testing_for_Command_Injection | Yes (command-injection fuzz) |
 | 65 | Format String Injection | User input not used as printf-style format string | Input Validation | WSTG-INPV-13 · CWE-134 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/13-Testing_for_Format_String_Injection | Partial |
 | 66 | HTTP Splitting / Smuggling | No CRLF response splitting; no front/back-end request desync | Input Validation | WSTG-INPV-15 · CWE-113 · CWE-444 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/15-Testing_for_HTTP_Splitting_Smuggling | Partial (CL/TE desync probes) |
-| 67 | HTTP Verb Tampering | Method change / override header doesn't bypass access control | Input Validation | WSTG-INPV-16 · CWE-284 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/16-Testing_for_HTTP_Verb_Tampering | Yes (per-verb access probes) |
+| 67 | HTTP Incoming Requests (HTTP parameter pollution / overriding) | Server's handling of incoming request parameters/headers can't be abused to override or pollute values | Input Validation | WSTG-INPV-16 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/16-Testing_for_HTTP_Incoming_Requests | Partial — name corrected per v4.2 (was mislabeled "HTTP Verb Tampering"; that test is not in canonical v4.2 INPV) |
 | 68 | Incubated Vulnerability | Persisted malicious input later triggers a delayed/second-order exploit | Input Validation | WSTG-INPV-14 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/14-Testing_for_Incubated_Vulnerability | Partial — see numbering note |
 | 69 | Host Header Injection | Untrusted `Host` not used in URL gen / reset links / cache keys | Input Validation | WSTG-INPV-17 · CWE-644 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/17-Testing_for_Host_Header_Injection | Yes (Host-header manipulation) |
-| 70 | File Upload | Upload validates type/content/size/location; no web-shell/exec | Input Validation | WSTG-INPV-18 · CWE-434 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/18-Testing_for_File_Upload | Partial (malicious-upload attempts) |
+| 70 | Server-side Template Injection (SSTI) | Untrusted input not evaluated by server-side template engine (no RCE/data access) | Input Validation | WSTG-INPV-18 · CWE-1336 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/18-Testing_for_Server-side_Template_Injection | Yes (SSTI payload fuzz) — ID corrected per v4.2 (slot 18 is SSTI, not File Upload; File Upload is covered under WSTG-BUSL-08/09, rows 96-97) |
 | 71 | Server-Side Request Forgery (SSRF) | App can't be coerced into requests to arbitrary internal/external hosts | Input Validation | WSTG-INPV-19 · CWE-918 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/19-Testing_for_Server_Side_Request_Forgery | Yes (SSRF payloads + OOB callback) |
 | 72 | Mass Assignment | Framework binding can't set unintended fields (`isAdmin`, `role`) | Input Validation | WSTG-INPV-20 · CWE-915 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/20-Testing_for_Mass_Assignment | Partial (inject extra fields) |
-| 73 | Buffer Overflow | Native components not overflowable via long/malformed input | Input Validation | WSTG-INPV (Buffer Overflow) · CWE-120 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/ | No (rare for web stacks) — see numbering note |
+| 73 | Buffer Overflow (DEPRECATED in WSTG v4.2) | Native components not overflowable via long/malformed input — retained for legacy coverage only | Input Validation | (no v4.2 INPV ID) · CWE-120 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/ | No — CONFIRMED removed in v4.2: the former Buffer Overflow test was renamed/repurposed to WSTG-INPV-13 Format String Injection (row 65). Keep only if auditing legacy native components. |
 | 74 | Improper error handling | App/server don't expose excessive info via error responses (404/403/malformed) | Error Handling | WSTG-ERRH-01 · CWE-728 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/08-Testing_for_Error_Handling/01-Testing_For_Improper_Error_Handling | Yes (trigger errors + inspect responses) |
-| 75 | Stack traces | No stack traces / debug output leaked to client in production | Error Handling | WSTG-ERRH-02 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/08-Testing_for_Error_Handling/02-Testing_for_Stack_Traces | Yes (provoke exceptions, scan output) — slug pattern-inferred |
-| 76 | Weak SSL/TLS ciphers / transport protection | Strong TLS versions/ciphers; valid certs; no downgrade/mixed content | Weak Cryptography | WSTG-CRYP-01 · CWE-326 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/01-Testing_for_Weak_SSL-TLS_Ciphers_Insufficient_Transport_Layer_Protection | Yes (TLS scan: testssl-style) — slug pattern-inferred |
-| 77 | Padding oracle | CBC-mode crypto not distinguishable by padding-error oracle | Weak Cryptography | WSTG-CRYP-02 · CWE-209 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/02-Testing_for_Padding_Oracle | Partial — slug pattern-inferred |
-| 78 | Sensitive info sent via unencrypted channels | No sensitive data over HTTP/plaintext/mixed-content | Weak Cryptography | WSTG-CRYP-03 · CWE-319 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/03-Testing_for_Sensitive_Information_Sent_Via_Unencrypted_Channels | Yes (traffic/mixed-content scan) — slug pattern-inferred |
-| 79 | Weak encryption | No obsolete algorithms (MD5/SHA-1/DES/ECB); adequate key sizes/mgmt | Weak Cryptography | WSTG-CRYP-04 · CWE-327 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/04-Testing_for_Weak_Encryption | Partial — slug pattern-inferred |
-| 80 | Business logic data validation | Server-side business-rule validation can't be bypassed (ranges, relationships) | Business Logic | WSTG-BUSL-01 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/10-Testing_for_Business_Logic/01-Test_Business_Logic_Data_Validation | No (manual logic) — slug pattern-inferred |
-| 81 | Ability to forge requests | Forged/replayed requests outside intended workflow are rejected | Business Logic | WSTG-BUSL-02 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/10-Testing_for_Business_Logic/02-Test_Ability_to_Forge_Requests | Partial — slug pattern-inferred |
-| 82 | Integrity checks | Business-critical params (price/qty/IDs) recalculated/verified server-side | Business Logic | WSTG-BUSL-03 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/10-Testing_for_Business_Logic/03-Test_Integrity_Checks | Partial — slug pattern-inferred |
-| 83 | Process timing | Robust against race conditions / timing abuse (double-spend, coupon reuse) | Business Logic | WSTG-BUSL-04 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/10-Testing_for_Business_Logic/04-Test_for_Process_Timing | Partial (parallel-request probe) — slug pattern-inferred |
+| 75 | Stack traces | No stack traces / debug output leaked to client in production | Error Handling | WSTG-ERRH-02 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Error_Handling/02-Testing_for_Stack_Traces | Yes (provoke exceptions, scan output) — URL CONFIRMED (v4.2) |
+| 76 | Weak Transport Layer Security | Strong TLS versions/ciphers; valid certs; no downgrade/mixed content | Weak Cryptography | WSTG-CRYP-01 · CWE-326 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/06-Cryptography/01-Testing_for_Weak_Transport_Layer_Security | Yes (TLS scan: testssl-style) — URL+name CONFIRMED (v4.2) |
+| 77 | Padding oracle | CBC-mode crypto not distinguishable by padding-error oracle | Weak Cryptography | WSTG-CRYP-02 · CWE-209 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/06-Cryptography/02-Testing_for_Padding_Oracle | Partial — URL CONFIRMED (v4.2) |
+| 78 | Sensitive info sent via unencrypted channels | No sensitive data over HTTP/plaintext/mixed-content | Weak Cryptography | WSTG-CRYP-03 · CWE-319 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/06-Cryptography/03-Testing_for_Sensitive_Information_Sent_via_Unencrypted_Channels | Yes (traffic/mixed-content scan) — URL CONFIRMED (v4.2) |
+| 79 | Weak encryption | No obsolete algorithms (MD5/SHA-1/DES/ECB); adequate key sizes/mgmt | Weak Cryptography | WSTG-CRYP-04 · CWE-327 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/06-Cryptography/04-Testing_for_Weak_Encryption | Partial — URL CONFIRMED (v4.2) |
+| 80 | Business logic data validation | Server-side business-rule validation can't be bypassed (ranges, relationships) | Business Logic | WSTG-BUSL-01 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/08-Business_Logic_Testing/01-Testing_for_Business_Logic_Data_Validation | No (manual logic) — URL CONFIRMED (v4.2) |
+| 81 | Ability to forge requests | Forged/replayed requests outside intended workflow are rejected | Business Logic | WSTG-BUSL-02 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/08-Business_Logic_Testing/02-Testing_for_Ability_to_Forge_Requests | Partial — URL CONFIRMED (v4.2) |
+| 82 | Integrity checks | Business-critical params (price/qty/IDs) recalculated/verified server-side | Business Logic | WSTG-BUSL-03 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/08-Business_Logic_Testing/03-Testing_for_Integrity_Checks | Partial — URL CONFIRMED (v4.2) |
+| 83 | Process timing | Robust against race conditions / timing abuse (double-spend, coupon reuse) | Business Logic | WSTG-BUSL-04 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/08-Business_Logic_Testing/04-Testing_for_Process_Timing | Partial (parallel-request probe) — URL CONFIRMED (v4.2) |
+| 84 | Test number of times a function can be used / limits | One-time/limited functions enforce server-side count limits (no coupon/action replay) | Business Logic | WSTG-BUSL-05 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/05-Test_Number_of_Times_a_Function_Can_Be_Used_Limits | Partial (replay/loop probe) |
+| 85 | Circumvention of workflows | Required workflow steps can't be skipped/reordered via parameter or URL manipulation | Business Logic | WSTG-BUSL-06 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/06-Testing_for_the_Circumvention_of_Work_Flows | Partial (step-skip probe) |
+| 86 | Defenses against application misuse | App detects/limits abuse of legitimate features (bulk actions, spam, automation) | Business Logic | WSTG-BUSL-07 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/07-Test_Defenses_Against_Application_Misuse | Partial (rate-limit/quota probe) |
+| 87 | Upload of unexpected file types | Upload accepts only intended types; rejects disallowed via server-side (not extension) checks | Business Logic | WSTG-BUSL-08 · CWE-434 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/08-Test_Upload_of_Unexpected_File_Types | Yes (upload disallowed types) |
+| 88 | Upload of malicious files | Malicious content detected/blocked (EICAR test, content validation, no exec) | Business Logic | WSTG-BUSL-09 · CWE-434 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/09-Test_Upload_of_Malicious_Files | Yes (EICAR + web-shell upload attempts) |
+| 89 | DOM-based Cross-Site Scripting | DOM sources→sinks don't execute attacker-controlled script (client-side) | Client-side | WSTG-CLNT-01 · CWE-79 · CWE-20 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/01-Testing_for_DOM-based_Cross_Site_Scripting | Partial (source/sink crawl) |
+| 90 | JavaScript execution | No arbitrary JS injection executed in victim browser | Client-side | WSTG-CLNT-02 · CWE-79 · CWE-94 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/02-Testing_for_JavaScript_Execution | Partial (JS-injection fuzz) |
+| 91 | HTML injection | Untrusted input not rendered as arbitrary HTML markup | Client-side | WSTG-CLNT-03 · CWE-79 · CWE-116 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/03-Testing_for_HTML_Injection | Yes (HTML-injection payloads) |
+| 92 | Client-side URL redirect | Client-side location/redirect can't be set to attacker domain (open redirect) | Client-side | WSTG-CLNT-04 · CWE-601 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/04-Testing_for_Client-side_URL_Redirect | Yes (redirect-param fuzz) |
+| 93 | CSS injection | Untrusted input not injected into CSS contexts (layout/exfil/escalation) | Client-side | WSTG-CLNT-05 · CWE-79 · CWE-116 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/05-Testing_for_CSS_Injection | Partial |
+| 94 | Client-side resource manipulation | Client-built resource URLs/paths can't be manipulated to load untrusted resources | Client-side | WSTG-CLNT-06 · CWE-610 · CWE-73 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/06-Testing_for_Client-side_Resource_Manipulation | Partial |
+| 95 | Cross-Origin Resource Sharing (CORS) | CORS not overly permissive (no `*`+credentials, no arbitrary origin reflection) | Client-side | WSTG-CLNT-07 · CWE-346 · CWE-942 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Yes (ACAO/ACAC header probe) |
+| 96 | Cross-site flashing | Legacy Flash (SWF) cross-domain interactions not exploitable | Client-side | WSTG-CLNT-08 · CWE-346 · CWE-942 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/08-Testing_for_Cross_Site_Flashing | No (legacy Flash; rare) |
+| 97 | Clickjacking | Frame-busting present (`X-Frame-Options`/CSP frame-ancestors); not bypassable | Client-side | WSTG-CLNT-09 · CWE-1021 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/09-Testing_for_Clickjacking | Yes (frame-header check + framing test) |
+| 98 | WebSockets | WS endpoints authenticated/authorized; messages validated; `wss://` used | Client-side | WSTG-CLNT-10 · CWE-306 · CWE-862 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/10-Testing_WebSockets | Partial |
+| 99 | Web messaging (postMessage) | Message origin strictly validated; handlers don't trust untrusted messages | Client-side | WSTG-CLNT-11 · CWE-346 · CWE-20 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/11-Testing_Web_Messaging | Partial (static analysis of handlers) |
+| 100 | Browser storage | No sensitive data in localStorage/sessionStorage/IndexedDB accessible to XSS | Client-side | WSTG-CLNT-12 · CWE-922 · CWE-359 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/12-Testing_Browser_Storage | Yes (inspect client storage) |
+| 101 | Cross-Site Script Inclusion (XSSI) | Script/JSONP responses with sensitive data not includable by other origins | Client-side | WSTG-CLNT-13 · CWE-201 · CWE-346 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/13-Testing_for_Cross_Site_Script_Inclusion | Partial |
+| 102 | GraphQL API testing | GraphQL endpoint secure: introspection, authz/IDOR, over-exposure, query-depth/rate limits, console exposure, error verbosity | API Testing | WSTG-APIT-01 | OWASP WSTG | https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/12-API_Testing.html | Partial (introspection + depth/rate probes) |
+| 103 | Broken Object Level Authorization (BOLA) | Object-level authz enforced; user can't access others' objects by ID | API Security | API1:2023 · CWE-639 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/ | Partial (ID tampering with auth context) |
+| 104 | Broken Authentication (API) | API auth mechanisms not bypassable (weak tokens, credential stuffing) | API Security | API2:2023 · CWE-287 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Partial |
+| 105 | Broken Object Property Level Authorization | No mass-assignment / excessive-data-exposure at property level | API Security | API3:2023 · CWE-915 · CWE-213 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xa3-broken-object-property-level-authorization/ | Partial |
+| 106 | Unrestricted Resource Consumption | Rate/size/timeout/quota limits prevent resource exhaustion (DoS) | API Security | API4:2023 · CWE-770 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial (load/rate probe) |
+| 107 | Broken Function Level Authorization | Function/endpoint-level authz enforced (no admin-function access by non-admin) | API Security | API5:2023 · CWE-285 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xa5-broken-function-level-authorization/ | Partial |
+| 108 | Unrestricted Access to Sensitive Business Flows | Sensitive flows (purchase, signup) protected from automated abuse | API Security | API6:2023 · CWE-840 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/ | Partial |
+| 109 | Server Side Request Forgery (API) | API can't be coerced to fetch attacker-controlled URLs | API Security | API7:2023 · CWE-918 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Yes (SSRF payloads) |
+| 110 | Security Misconfiguration (API) | No insecure defaults, verbose errors, missing headers, unpatched components | API Security | API8:2023 · CWE-16 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes (config/header scan) |
+| 111 | Improper Inventory Management | No undocumented/old API versions or hosts exposed (shadow/zombie APIs) | API Security | API9:2023 · CWE-1059 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/ | Partial (version/host enumeration) |
+| 112 | Unsafe Consumption of APIs | Third-party API responses validated; not blindly trusted | API Security | API10:2023 | OWASP API Security | https://owasp.org/API-Security/editions/2023/en/0xaa-unsafe-consumption-of-apis/ | No (design/code review) |
+| 113 | Broken Access Control (risk) | No acting outside privileges (IDOR, forced browse, priv-esc, method tamper) | OWASP Top 10 | A01:2021 · CWE-862 · CWE-863 · CWE-639 | OWASP Top 10 | https://owasp.org/Top10/A01_2021-Broken_Access_Control/ | Partial |
+| 114 | Cryptographic Failures (risk) | Sensitive data protected in transit/at rest; strong crypto, safe password storage | OWASP Top 10 | A02:2021 · CWE-327 · CWE-798 · CWE-916 | OWASP Top 10 | https://owasp.org/Top10/A02_2021-Cryptographic_Failures/ | Partial |
+| 115 | Injection (risk) | Untrusted input can't alter queries/commands/templates (SQLi/NoSQLi/OS/XSS) | OWASP Top 10 | A03:2021 · CWE-79 · CWE-89 · CWE-77 · CWE-94 | OWASP Top 10 | https://owasp.org/Top10/A03_2021-Injection/ | Yes (injection fuzz suite) |
+| 116 | Insecure Design (risk) | Security controls present in design (threat modeling, abuse cases, rate limiting) | OWASP Top 10 | A04:2021 · CWE-1008 · CWE-1173 | OWASP Top 10 | https://owasp.org/Top10/A04_2021-Insecure_Design/ | No (design review) |
+| 117 | Security Misconfiguration (risk) | No insecure defaults, verbose errors, missing hardening/headers/CORS/cloud-storage | OWASP Top 10 | A05:2021 · CWE-16 · CWE-611 · CWE-942 · CWE-1004 | OWASP Top 10 | https://owasp.org/Top10/A05_2021-Security_Misconfiguration/ | Yes (config/header scan) |
+| 118 | Vulnerable and Outdated Components (risk) | No components with known CVEs / unsupported versions; SBOM discipline | OWASP Top 10 | A06:2021 · CWE-1104 · CWE-937 | OWASP Top 10 | https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/ | Yes (dependency/SCA scan) |
+| 119 | Identification & Authentication Failures (risk) | Strong auth, credential-stuffing resistance, MFA, session fixation/timeout handling | OWASP Top 10 | A07:2021 · CWE-287 · CWE-384 · CWE-613 | OWASP Top 10 | https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/ | Partial |
+| 120 | Software & Data Integrity Failures (risk) | Code/updates/serialized data/CI-CD artifacts verified before use | OWASP Top 10 | A08:2021 · CWE-502 · CWE-494 · CWE-829 | OWASP Top 10 | https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/ | Partial (SCA + deserialization probe) |
+| 121 | Security Logging & Monitoring Failures (risk) | Security events logged, protected, alertable; no sensitive data in logs | OWASP Top 10 | A09:2021 · CWE-778 · CWE-532 · CWE-223 | OWASP Top 10 | https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/ | No (requires log access) |
+| 122 | Server-Side Request Forgery (risk) | Server can't be induced to make attacker-controlled outbound requests | OWASP Top 10 | A10:2021 · CWE-918 | OWASP Top 10 | https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_(SSRF)/ | Yes (SSRF payloads + OOB) |
+| 123 | Auth required on protected pages | All auth-required resources enforce auth; anon access redirected/401 | ASVS Authentication | ASVS V2.1.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (crawl auth vs anon) |
+| 124 | No credentials/tokens in URL | Credentials/session tokens absent from URL, query params, logs | ASVS Authentication | ASVS V2.1.2 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (scan URLs/redirects/referrers) |
+| 125 | Standard authentication mechanisms | App uses industry-standard auth (no insecure home-grown scheme) | ASVS Authentication | ASVS V2.1.5 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial |
+| 126 | No fallback to insecure auth protocols | Auth doesn't fall back to HTTP/unauthenticated connections | ASVS Authentication | ASVS V2.1.7 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (force HTTP probe) |
+| 127 | Secure password storage (adaptive hashing) | Passwords stored with Argon2/PBKDF2/bcrypt/scrypt at adequate work factor | ASVS Authentication | ASVS V2.2.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | No (DB/code inspection) |
+| 128 | Minimum password length ≥12 | Min password length at least 12 chars (or org policy) | ASVS Authentication | ASVS V2.2.2 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (submit short passwords) |
+| 129 | No password truncation, ≥64 chars supported | Passwords up to 64 chars accepted, not truncated | ASVS Authentication | ASVS V2.2.3 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (submit long password) |
+| 130 | No counterproductive composition rules | No forced complex composition rules; length encouraged | ASVS Authentication | ASVS V2.2.5 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial (UI policy inspection) |
+| 131 | Account lockout / throttling | Lockout or exponential back-off after failed auth attempts | ASVS Authentication | ASVS V2.3.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (failed-login script) |
+| 132 | Secure "remember me" tokens | Persistent-login tokens secure, random, revocable; not long-lived passwords/session IDs | ASVS Authentication | ASVS V2.5.1 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial (cookie inspection) |
+| 133 | MFA supported/enforced | MFA enforced per risk profile for sensitive actions/high-value accounts | ASVS Authentication | ASVS V2.7.1 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial |
+| 134 | Strong session ID generation | Session IDs cryptographically random, ≥64 bits entropy | ASVS Session Mgmt | ASVS V3.1.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial (entropy sampling) |
+| 135 | Session ID not in URL | Session IDs not exposed in URL/query/logs | ASVS Session Mgmt | ASVS V3.1.2 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (scan URLs/logs) |
+| 136 | Secure cookie flags (HttpOnly, Secure) | Session cookies set Secure + HttpOnly; not needlessly persistent | ASVS Session Mgmt | ASVS V3.2.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (Set-Cookie inspection) |
+| 137 | SameSite cookie attribute | Session cookies marked SameSite=lax/strict unless cross-site needed | ASVS Session Mgmt | ASVS V3.2.2 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (cookie inspection) |
+| 138 | Session invalidation at logout | Logout terminates server session and clears client cookie | ASVS Session Mgmt | ASVS V3.3.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (replay token post-logout) |
+| 139 | Session renewal after auth/privilege change | Session ID renewed after login/privilege-elevation/password change | ASVS Session Mgmt | ASVS V3.3.2 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (pre/post-login cookie compare) |
+| 140 | Session timeout / inactivity | Sessions expire after inactivity + absolute max lifetime | ASVS Session Mgmt | ASVS V3.4.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (idle-then-reuse) |
+| 141 | Server-side access control enforcement | Access checks enforced server-side for every protected resource | ASVS Access Control | ASVS V4.1.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial (priv-diff fuzz) |
+| 142 | Deny-by-default access control | Deny-by-default; access only to explicitly authorized resources | ASVS Access Control | ASVS V4.1.2 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial (unlinked-endpoint probe) |
+| 143 | API/REST endpoint authorization | API endpoints enforce same authz as UI; no client-side filtering reliance | ASVS Access Control | ASVS V4.2.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial (direct API calls per role) |
+| 144 | IDOR protection | Authz check on every object access; IDs not directly referenceable | ASVS Access Control | ASVS V4.2.2 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial (ID tampering) |
+| 145 | Parameterized queries (SQLi defense) | DB access uses parameterized queries/stored procs; no concatenation | ASVS Validation | ASVS V5.3.4 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (SQLi fuzz + SAST) |
+| 146 | Contextual output encoding (XSS defense) | Untrusted data contextually encoded for HTML/JS/CSS/URL sinks | ASVS Validation | ASVS V5.3.3 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (XSS fuzz) |
+| 147 | TLS for all sensitive comms | Sensitive comms encrypted via TLS; no plaintext fallback | ASVS Communications | ASVS V9.1.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (HTTPS-only/HSTS scan) |
+| 148 | Strong TLS configuration | No obsolete protocols (SSLv3/TLS1.0); strong ciphers/key sizes | ASVS Communications | ASVS V9.1.2 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (TLS scanner) |
+| 149 | HSTS header | HSTS set with appropriate max-age + includeSubDomains | ASVS Communications | ASVS V9.2.1 (L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (header check) |
+| 150 | Security HTTP headers | X-Frame-Options/CSP frame-ancestors, X-Content-Type-Options nosniff, Referrer-Policy, CSP set | ASVS Configuration | ASVS V14.4.x (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (header scan) |
+| 151 | Unused HTTP methods disabled | Only required methods enabled; TRACE/TRACK/DEBUG disabled | ASVS Configuration | ASVS V14.x (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (method probe) |
+| 152 | Debug/verbose modes off in prod | No debug endpoints, stack traces, verbose errors, dir listings in prod | ASVS Configuration | ASVS V14.2.x (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (error/banner scan) |
+| 153 | No default credentials in components | Admin consoles/DBs/brokers don't use default creds | ASVS Configuration | ASVS V14.x (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Yes (default-cred probe) |
+| 154 | CSRF protection on state-changing requests | POST/PUT/DELETE protected via synchronizer token/double-submit/SameSite, validated server-side | ASVS Configuration | ASVS V14.4.1 (L1/L2/L3) | OWASP ASVS | https://owasp.org/www-project-application-security-verification-standard/ | Partial (CSRF token + replay test) |
+| 155 | XXE (XML External Entity injection) | XML parsers don't resolve external entities; no file/SSRF exfil | Server-side (PortSwigger) | CWE-611 | PortSwigger | https://portswigger.net/web-security/xxe | Yes (XXE payload fuzz) |
+| 156 | NoSQL injection | NoSQL query/filter input not injectable | Server-side (PortSwigger) | CWE-943 | PortSwigger | https://portswigger.net/web-security/nosql-injection | Yes (NoSQLi fuzz) |
+| 157 | Web cache poisoning | Cache keys/unkeyed inputs can't poison cached responses | Server-side (PortSwigger) | CWE-525 | PortSwigger | https://portswigger.net/web-security/web-cache-poisoning | Partial (cache-key probe) |
+| 158 | Web cache deception | Dynamic user content not cacheable as static (no PII exposure) | Server-side (PortSwigger) | CWE-525 | PortSwigger | https://portswigger.net/web-security/web-cache-deception | Partial |
+| 159 | Information disclosure | No sensitive data exposed via errors/debug/metadata/misconfig | Server-side (PortSwigger) | CWE-200 | PortSwigger | https://portswigger.net/web-security/information-disclosure | Yes (error/metadata scan) |
+| 160 | Insecure deserialization | Untrusted serialized objects not deserialized into code execution | Advanced (PortSwigger) | CWE-502 | PortSwigger | https://portswigger.net/web-security/insecure-deserialization | Partial (deserialization payloads) |
+| 161 | Prototype pollution | JS prototype can't be polluted to alter app behavior (client/server) | Advanced (PortSwigger) | CWE-1321 | PortSwigger | https://portswigger.net/web-security/prototype-pollution | Partial |
+| 162 | JWT attacks | JWT signature/validation/alg robust (no alg:none, weak secret, kid abuse) | Advanced (PortSwigger) | CWE-347 · CWE-345 | PortSwigger | https://portswigger.net/web-security/jwt | Yes (JWT tampering tests) |
+| 163 | OAuth flaws | OAuth grant/redirect/state flows not exploitable (no open-redirect/CSRF) | Advanced (PortSwigger) | CWE-601 · CWE-287 | PortSwigger | https://portswigger.net/web-security/oauth | Partial (redirect_uri/state checks) |
+| 164 | Web LLM attacks | LLM-integrated apps resist prompt injection / data leakage | Advanced (PortSwigger) | CWE-74 · CWE-200 | PortSwigger | https://portswigger.net/web-security/llm-attacks | Partial |
 
 ## Provenance & numbering notes
 
-- **WSTG-INPV numbering (rows 54–73):** The Perplexity source (`web-security-05.json`)
-  flagged its own internal inconsistencies between third-party summaries and the
-  authoritative `OWASP/wstg checklist.xlsx`. I adopted the canonical checklist ordering
-  the source named as the source of truth, with each test's CWE as given. Two items
-  carry caveats:
-  - **Row 68 (Incubated Vulnerability, WSTG-INPV-14):** The checklist slot 14 is
-    Incubated Vulnerability; the source described slot 14 as "HTTP Splitting/Smuggling"
-    in one pass and elsewhere placed Splitting/Smuggling at 15. I mapped Splitting/
-    Smuggling to INPV-15 (row 66, the more consistent reference) and Incubated
-    Vulnerability to INPV-14 per the OWASP checklist. **Verify both IDs against the live
-    checklist.xlsx before relying on the exact numbers.**
-  - **Row 73 (Buffer Overflow):** The source listed Buffer Overflow but its numeric slot
-    conflicted across passes; OWASP folded several buffer/overflow items in v4.2. ID left
-    as category-level pending confirmation. **Test name + category are source-backed; the
-    exact INPV number is not.**
-  - SQL Injection: rendered as **WSTG-INPV-05** per the most-cited mapping; the source
-    noted some references use INPV-04. Confirm against checklist.xlsx.
-- **"slug pattern-inferred" URLs:** For WSTG-ATHN (rows 27–37), WSTG-ERRH-02,
-  WSTG-CRYP-01..04, and WSTG-BUSL-01..04, the source provided the test ID + name from
-  OWASP's official checklist/reporting tables but derived the per-test page URL from the
-  WSTG section URL pattern rather than fetching that exact page. The ID and name are
-  source-backed; the exact slug should be confirmed by opening the page.
-- **CWE mappings:** Many CWE IDs in the table (CWE-79/89/90/91/643/96/78/94/134/918/915/
-  434/352/384/1004/347 etc.) were given by the source as the canonical/standard CWE for
-  that test type; where the source explicitly tagged a mapping "inferred," treat the CWE
-  as the standard umbrella rather than an OWASP-published exact mapping.
+- **WSTG-INPV numbering — RESOLVED (rows 54–73):** A dedicated confirmation pass
+  (`web-security-10.json`) verified the canonical WSTG v4.2 INPV ordering against OWASP's
+  checklist and v4.2 change log. Corrections applied to the table:
+  - **WSTG-INPV-13 = Format String Injection** (row 65) — the former "Buffer Overflow"
+    test was renamed/repurposed to this in v4.2.
+  - **WSTG-INPV-14 = Incubated Vulnerability** (row 68) — confirmed.
+  - **WSTG-INPV-15 = HTTP Splitting Smuggling** (row 66) — confirmed.
+  - **WSTG-INPV-16 = HTTP Incoming Requests** (row 67) — CORRECTED. The previous label
+    "HTTP Verb Tampering" was wrong; that test is not in the canonical v4.2 INPV set.
+  - **WSTG-INPV-17 = Host Header Injection** (row 69) — confirmed.
+  - **WSTG-INPV-18 = Server-side Template Injection** (row 70) — CORRECTED from "File
+    Upload". File-upload coverage lives under WSTG-BUSL-08/09 (rows 87–88).
+  - **WSTG-INPV-19 = Server-Side Request Forgery** (row 71) — confirmed.
+  - **Buffer Overflow** (row 73) — CONFIRMED removed from v4.2 as a standalone INPV test;
+    row retained only as deprecated/legacy with no v4.2 ID.
+  - SQL Injection rendered as **WSTG-INPV-05** per the most-cited mapping; some references
+    use INPV-04. Numbering within INPV-04..12 (LDAP/XML/SSI/XPath/IMAP-SMTP/Code/Command)
+    follows the checklist.xlsx ordering surfaced in `web-security-05.json`.
+- **URL confirmation — RESOLVED:** A confirmation pass (`web-security-10.json`) fetched and
+  corrected the previously slug-inferred URLs. Now CONFIRMED to canonical v4.2 paths:
+  WSTG-ATHN-01..10 (rows 27–36, incl. ATHN-06 name fix to "Browser Cache Weaknesses"),
+  WSTG-ERRH-02 (row 75, section is `07-Error_Handling`), WSTG-CRYP-01..04 (rows 76–79,
+  section is `06-Cryptography`; CRYP-01 name is "Weak Transport Layer Security"), and
+  WSTG-BUSL-01..04 (rows 80–83, section is `08-Business_Logic_Testing`). Only **WSTG-ATHN-11
+  (MFA, row 37)** remains slug-inferred — it is a `/latest/`-only test, not present in the
+  v4.2 confirmation set.
+- **CWE mappings:** CWE IDs are the canonical/standard CWE for each test type as surfaced by
+  the sources. OWASP Top 10:2021 rows carry the official CWE lists from the OWASP Top 10
+  category pages (`web-security-11.json`). Where a source tagged a CWE "context-dependent"
+  (e.g. PortSwigger WebSockets/GraphQL), the listed CWE is the primary representative.
+- **API Security Top 10 URLs (rows 103–112):** the per-item slugs (e.g.
+  `/editions/2023/en/0xa1-broken-object-level-authorization/`) follow OWASP's published
+  edition URL pattern; the canonical project page `https://owasp.org/API-Security/` is the
+  source-confirmed anchor (`web-security-08.json`). Confirm individual edition slugs if exact
+  deep-links are needed.
+- **ASVS rows (123–154):** IDs, requirement text, and L1/L2/L3 levels are from ASVS v4.0.3
+  as surfaced in `web-security-12.json`. The source gave the canonical project URL (not
+  per-requirement deep-links), so all ASVS rows cite that project URL. Rows 150–153 use
+  chapter-level IDs (V14.x) where the source grouped multiple sub-requirements.
 
 ## Unverified / needs a source
 
-- None added. Every row above traces to an OWASP WSTG checklist/reporting table or a
-  fetched OWASP test page in the raw JSON. Items with weaker provenance are kept in the
-  main table but explicitly flagged ("slug pattern-inferred" / numbering caveats) rather
-  than removed, because their **ID + name + category** are source-backed even where the
-  exact URL slug or numeric slot is pattern-derived.
+- None. Every row traces to an OWASP WSTG checklist/reporting table, a fetched OWASP test
+  page, the OWASP Top 10 / API Security project pages, the ASVS v4.0.3 standard, or the
+  PortSwigger Web Security Academy topic index — all captured in the raw JSON.
 
-## Known gaps (not invented — flagged for a future sourcing pass when disk/API allow)
+## Known gaps (remaining)
 
-These were NOT enumerated by the saved raw calls and are deliberately omitted rather than
-fabricated:
-- **WSTG-CLNT (Client-side Testing)** — entire category (DOM manipulation, JS execution,
-  CSS injection, clickjacking, WebSockets, web messaging, CSP, etc.). Call #7 never
-  completed due to the disk-full event.
-- **WSTG-APIT (API Testing)** — entire category. Same failed call #7.
-- **WSTG-BUSL-05 through BUSL-09** — v4.2 Business Logic has 9 tests; the source surfaced
-  only BUSL-01..04 from the v4.1 reporting table (BUSL-05 Function Misuse, BUSL-06
-  Unlimited File Upload, BUSL-07 Circumvention of Work Flows, BUSL-08 Defenses Against
-  Application Misuse, BUSL-09 Upload of Unexpected File Types are named in the live guide
-  but were NOT in the saved JSON — left out to honor the no-invented-tests rule).
-- **OWASP Top 10:2021 → WSTG mapping rows, ASVS Vx.y enumeration, OWASP API Security
-  Top 10, and PortSwigger topic-level checks** — sources confirmed in `web-security-01.json`
-  but per-item enumeration passes were not run before the blocker.
+Substantially closed by passes 07–13. What remains:
+- **ASVS deep-link URLs** — ASVS rows cite the project URL, not per-requirement anchors
+  (the standard is distributed as PDF/markdown, not per-requirement web pages). IDs +
+  text + levels are exact; only stable per-item URLs are absent.
+- **API Security Top 10 edition slugs** — anchored to the project page + pattern-derived
+  edition deep-links; confirm exact slugs if deep-linking is required.
+- **WSTG-ATHN-11 (MFA)** — exists in `/latest/` but not the v4.2 confirmation set; URL
+  remains slug-inferred (flagged in row 37).
+- **PortSwigger sub-topics/labs** — only topic-level entries catalogued (rows 155–164 add
+  the topics not already covered by WSTG/CWE rows above); individual lab-level checks per
+  topic are not enumerated.
 
 ## Raw evidence
 
@@ -177,3 +272,10 @@ fabricated:
 - `docs/research/test-catalog/raw/web-security-04.json` — WSTG-ATHZ-01..05 + WSTG-SESS-01..11
 - `docs/research/test-catalog/raw/web-security-05.json` — WSTG-INPV-01..20 (input validation/injection)
 - `docs/research/test-catalog/raw/web-security-06.json` — WSTG-ERRH-01..02 + WSTG-CRYP-01..04 + WSTG-BUSL-01..04
+- `docs/research/test-catalog/raw/web-security-07.json` — WSTG-CLNT-01..13 (client-side, full category)
+- `docs/research/test-catalog/raw/web-security-08.json` — WSTG-APIT-01 (GraphQL) + OWASP API Security Top 10:2023 (API1..API10)
+- `docs/research/test-catalog/raw/web-security-09.json` — WSTG-BUSL-05..09 (confirmed against OWASP checklist)
+- `docs/research/test-catalog/raw/web-security-10.json` — URL/ID confirmation pass (ATHN-01..10, ERRH-02, CRYP-01..04, BUSL-01..04 canonical v4.2 URLs; INPV-13/14/15/16/17/18/19 numbering)
+- `docs/research/test-catalog/raw/web-security-11.json` — OWASP Top 10:2021 A01..A10 with official CWE lists + canonical URLs
+- `docs/research/test-catalog/raw/web-security-12.json` — OWASP ASVS v4.0.3, 46 requirements across V2/V3/V4/V5/V6/V7/V9/V14
+- `docs/research/test-catalog/raw/web-security-13.json` — PortSwigger Web Security Academy topic enumeration (server-side, client-side, advanced)

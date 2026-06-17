@@ -3,12 +3,9 @@
 Domain owner: functional, UI, and end-to-end testing, plus the overall test-type / test-level taxonomy.
 Every row below is traceable to a named source surfaced by Perplexity (`sonar-pro`) and saved in `raw/functional-NN.json`.
 
-> Status note: 7 of a planned 10 Perplexity passes completed before the machine's
-> disk filled and blocked all further `curl` calls (see "Incomplete passes"
-> below). This file catalogs everything sourced in passes 01-07. Passes 08-10
-> (UI states, navigation/responsive, visual-regression/cross-browser detail) were
-> NOT retrieved and are listed as gaps. No new API calls were made when writing
-> this file — it is compiled entirely from the saved raw JSON.
+> Status note: all 10 Perplexity passes completed (passes 08-10 were initially
+> blocked by a full disk and run later). This file catalogs everything sourced in
+> passes 01-10. Every row is compiled from the saved raw JSON.
 
 ## Sources used
 
@@ -27,6 +24,13 @@ Every row below is traceable to a named source surfaced by Perplexity (`sonar-pr
 | Baymard Institute | Baymard | Inline form-validation usability | https://baymard.com/blog/inline-form-validation |
 | web.dev | Google | Sign-in/sign-up form best practices, autofill, masking | https://web.dev/articles/sign-in-form-best-practices |
 | W3C / WHATWG + Web Platform Tests | W3C / WHATWG | Rendering/conformance baseline for visual & cross-browser | https://wpt.fyi |
+| WCAG 2.1 / 2.2 | W3C (WAI) | Success criteria for states, navigation, responsive, target size, reflow | https://www.w3.org/TR/WCAG22/ |
+| WAI-ARIA Authoring Practices (APG) | W3C (WAI) | Dialog/focus-trap, pagination, button, keyboard-interface patterns | https://www.w3.org/WAI/ARIA/apg/ |
+| MDN HTTP status / History / img | Mozilla (MDN) | 404/500 semantics, scroll restoration, broken-image, feature detection, engines, graceful degradation, progressive enhancement | https://developer.mozilla.org/ |
+| Can I use | caniuse.com | CSS/JS feature support matrices across browsers | https://caniuse.com/ |
+| Applitools / Chromatic / BrowserStack Percy / Sauce Labs | vendors | Visual-regression & cross-browser/device tool approaches | https://applitools.com/blog/visual-regression-testing/ |
+| Apple Human Interface Guidelines | Apple | 44pt minimum touch-target | https://developer.apple.com/design/human-interface-guidelines |
+| Section 508 ICT Testing Baseline | U.S. Access Board | Web baseline tests for bypass blocks, consistent nav, focus | https://ictbaseline.access-board.gov/allwebbaselines.html |
 
 ---
 
@@ -197,33 +201,129 @@ Source: `raw/functional-07.json` (MDN, OWASP WSTG, ISTQB, NN/g, Baymard, web.dev
 
 ---
 
-## Incomplete passes (NOT yet sourced — must be run when disk space allows)
+## Part G — UI States & Page Behavior
 
-The machine disk filled mid-run, blocking all `curl`/Bash. These three planned
-Perplexity passes did NOT complete and their raw JSON does not exist. The
-corresponding catalog sections are therefore **absent and unsourced**:
+Source: `raw/functional-08.json` (NN/g, web.dev, MDN, WCAG 2.2, WAI-ARIA APG). Standard ref = WCAG SC where applicable, else doc/guideline.
 
-- **functional-08** — UI states & page behavior (loading/skeleton, empty, error,
-  success, offline, broken-image, overflow/truncation, pagination, infinite
-  scroll, sort/filter, modal/focus-trap, toast dismissal, hover/focus/active/
-  disabled states, keyboard nav, scroll restoration, back/forward, deep-linking,
-  404 page, redirect correctness). Intended sources: NN/g, web.dev, MDN, WCAG.
-- **functional-09** — Navigation/link tests + responsive/cross-device (broken-link
-  detection, anchor targets, breadcrumb, active nav state, redirect chains,
-  canonical link, breakpoints 320/375/768/1024/1440, no horizontal scroll, touch
-  target size WCAG 2.5.8 / Apple HIG, viewport meta, reflow WCAG 1.4.10, zoom 400%
-  WCAG 1.4.4). Intended sources: WCAG success criteria, web.dev, MDN, Google.
-- **functional-10** — Visual-regression detail + cross-browser compatibility detail
-  (baseline capture, pixel-diff, per-component/full-page snapshots, threshold
-  tolerance, dynamic-content masking, font/anti-aliasing; browser matrix, feature
-  detection vs sniffing, caniuse, polyfill verification, JS API support, rendering
-  differences, mobile browsers, graceful degradation). Intended sources:
-  Playwright/Cypress docs, BrowserStack/Sauce, web.dev, MDN, caniuse, ISTQB.
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable? |
+|---|---|---|---|---|---|---|---|
+| S1 | Loading / skeleton state | Immediate "loading" feedback; stable layout; content not shown as finished early | Loading | web.dev / NN/g | web.dev / NN/g | https://web.dev/articles/skeleton-screens | Yes |
+| S2 | Empty state: no data | Clearly explains no content exists; offers next action; not "broken" | Empty | NN/g | NN/g | https://www.nngroup.com/articles/empty-state/ | Yes |
+| S3 | Empty state: zero results | Distinguishes "no matching results" from "no data"; guides query/filter change | Empty | NN/g | NN/g | https://www.nngroup.com/articles/empty-state/ | Yes |
+| S4 | Error state: failed fetch | Clear non-technical error + recovery action; page stays usable, not blank/frozen | Error | web.dev / NN/g | web.dev / NN/g | https://web.dev/articles/error-handling-best-practices | Yes |
+| S5 | Error state: 404 | Useful "page not found" with nav/search recovery, not generic failure | Error | MDN 404 | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404 | Yes |
+| S6 | Error state: 500 | Server failure treated as recoverable; not misrepresented as client issue | Error | MDN 500 | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500 | Yes |
+| S7 | Error state: network timeout | Communicates wait threshold exceeded; gives retry path | Error | web.dev | web.dev | https://web.dev/articles/reliable | Yes |
+| S8 | Success / confirmation state | Confirms action completion; reduces uncertainty | Success | NN/g | NN/g | https://www.nngroup.com/articles/response-times-3-important-limits/ | Yes |
+| S9 | Success message accessibility | Status messages perceivable by assistive tech without focus change | Success | WCAG 4.1.3 Status Messages | W3C WCAG | https://www.w3.org/TR/WCAG22/#status-messages | Yes |
+| S10 | Partial / optimistic-update state | UI reflects partial update; reconciles on server accept/reject; no stale-as-final | State | web.dev | web.dev | https://web.dev/articles/optimistic-updates | Partial |
+| S11 | Offline state | Detects connectivity loss; informs user actions may be unavailable; cached content handled | Offline | web.dev | web.dev | https://web.dev/articles/offline | Partial |
+| S12 | Slow-network state | Communicates progress/partial readiness; progressive rendering keeps page useful | Performance | web.dev | web.dev | https://web.dev/articles/slow-connection | Partial |
+| S13 | Broken-image fallback | Missing/failed images get meaningful fallback; text alternative exists | Media | WCAG 1.1.1 / MDN img | W3C WCAG / MDN | https://www.w3.org/TR/WCAG22/#non-text-content | Yes |
+| S14 | Long-text overflow / truncation | Long labels/content don't break layout/overlap; full text reachable; resizable | Layout | WCAG 1.4.10 / 1.4.4 / NN/g | W3C WCAG / NN/g | https://www.w3.org/TR/WCAG22/#reflow | Yes |
+| S15 | Pagination | Predictable page-to-page movement; current/total/controls shown; keyboard accessible | Navigation | NN/g / WAI-ARIA APG | NN/g / W3C | https://www.nngroup.com/articles/pagination/ | Yes |
+| S16 | Infinite scroll | Content loads near list end; no duplicates/skips; position remains understandable | Navigation | NN/g | NN/g | https://www.nngroup.com/articles/infinite-scrolling/ | Yes |
+| S17 | Sort behavior | Sorting reorders results correctly per criterion; control shows state; keyboard-operable | Data | WCAG 3.2.2 / WAI-ARIA APG | W3C WCAG | https://www.w3.org/TR/WCAG22/#on-input | Yes |
+| S18 | Filter behavior | Filters refine result set correctly; preserve criteria; no disruptive context change | Data | WCAG 3.2.2 / NN/g | W3C WCAG / NN/g | https://www.nngroup.com/articles/faceted-search/ | Yes |
+| S19 | Modal/dialog open-close + focus restore | Opens/closes correctly; returns focus on close; background non-interactive; accessible name | Dialog | WAI-ARIA APG Dialog (Modal) | W3C WAI | https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/ | Yes |
+| S20 | Modal/dialog focus trap | Keyboard focus stays inside modal until dismissed | Dialog | WAI-ARIA APG Dialog (Modal) | W3C WAI | https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/ | Yes |
+| S21 | Toast / notification dismissal | Status exposed to AT without disruptive focus; dismissable/timed perceptibly | Notification | WCAG 4.1.3 / NN/g | W3C WCAG / NN/g | https://www.w3.org/TR/WCAG22/#status-messages | Yes |
+| S22 | Focus-visible state | Interactive elements show visible focus indicator for keyboard users | Visual state | WCAG 2.4.7 Focus Visible | W3C WCAG | https://www.w3.org/TR/WCAG22/#focus-visible | Yes |
+| S23 | Content on hover/focus | Hover-only content not the sole access path; dismissable/hoverable/persistent | Visual state | WCAG 1.4.13 Content on Hover or Focus | W3C WCAG | https://www.w3.org/TR/WCAG22/#content-on-hover-or-focus | Yes |
+| S24 | Disabled-state distinction | Disabled controls distinguishable from enabled; not falsely presented as interactive | Visual state | WAI-ARIA APG Button | W3C WAI | https://www.w3.org/WAI/ARIA/apg/patterns/button/ | Yes |
+| S25 | Keyboard navigation (reachable) | Every interactive element reachable & operable via keyboard in logical order | Keyboard | WCAG 2.1.1 Keyboard | W3C WCAG | https://www.w3.org/TR/WCAG22/#keyboard | Yes |
+| S26 | Focus order | Focus order preserves meaning and operability | Keyboard | WCAG 2.4.3 Focus Order | W3C WCAG | https://www.w3.org/TR/WCAG22/#focus-order | Yes |
+| S27 | Widget keyboard interface | Tab/arrow/escape/enter/space behavior matches expected widget pattern | Keyboard | WAI-ARIA APG Keyboard Interface | W3C WAI | https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/ | Yes |
+| S28 | Scroll restoration | Navigation returns expected scroll position; back/forward preserves context | Navigation | MDN History.scrollRestoration | MDN | https://developer.mozilla.org/en-US/docs/Web/API/History/scrollRestoration | Yes |
 
-(High-level pointers to these areas exist in `raw/functional-01.json` — the
-sources pass already named WCAG, Web Platform Tests, caniuse, and the
-Playwright/Cypress cross-browser doc pages — but the per-check enumeration was
-not retrieved, so no rows are claimed here.)
+---
+
+## Part H — Navigation / Link & Responsive / Cross-Device
+
+Source: `raw/functional-09.json` (W3C WCAG 2.1/2.2, Section 508 ICT Baseline, Apple HIG, USWDS). Standard ref = WCAG SC number where applicable.
+
+### Navigation / Link tests
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable? |
+|---|---|---|---|---|---|---|---|
+| N1 | Broken internal/external link detection | All links resolve (no 404/500); destinations match stated purpose | Links | WCAG 2.4.4 / 3.2.4 | W3C WCAG | https://www.w3.org/WAI/WCAG21/Understanding/link-purpose-in-context | Yes |
+| N2 | Correct anchor targets | Fragment links (#section) move focus/viewport to existing target IDs | Links | WCAG 2.4.1 / 2.4.3 / 2.4.4 | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| N3 | Breadcrumb correctness | Trail reflects hierarchy; items are working links; consistent across pages | Navigation | WCAG 2.4.8 / 3.2.3 | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| N4 | Nav active-state / current page | Current page indicated visually + programmatically (aria-current); only one current | Navigation | WCAG 1.3.1 / 2.4.4 / 2.4.8 | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| N5 | Redirect chains / canonical link | No excessive redirect chains; canonical tag indicates preferred URL | SEO/Links | (no direct SC; indirect 2.4.4/3.2.3) | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| N6 | Hash / deep-link navigation | Deep links open correct view/state; focus placed; no lost content/function | Routing | WCAG 2.4.1 / 2.4.3 / 4.1.2 | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| N7 | Browser back/forward behavior | Returns to expected state; no lost input/context; focus stays logical | Routing | WCAG 2.4.3 / 3.2.1 / 3.2.2 | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| N8 | 404 / error page existence | Custom 404 reachable for invalid URLs; clear message; nav/search recovery; titled | Error | WCAG 2.4.1 / 2.4.2 / 2.4.5 / 3.3.1 | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| N9 | Skip-to-content link | "Skip to main content" present, keyboard-focusable, visible on focus, moves focus to main | Navigation | WCAG 2.4.1 Bypass Blocks | W3C WCAG / Sec 508 | https://www.w3.org/TR/WCAG21/ | Yes |
+| N10 | Consistent navigation & naming | Repeated nav in same relative order; same function identified consistently | Navigation | WCAG 3.2.3 / 3.2.4 | W3C WCAG / Sec 508 | https://ictbaseline.access-board.gov/allwebbaselines.html | Partial |
+| N11 | Keyboard navigation of menus/links | Operable via keyboard alone; no keyboard trap; logical focus order | Keyboard | WCAG 2.1.1 / 2.1.2 / 2.4.3 | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| N12 | Link text clarity & purpose | Link text (alone or in context) conveys destination; no bare "click here" | Links | WCAG 2.4.4 / 2.4.9 | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Partial |
+
+### Responsive / Cross-device tests
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable? |
+|---|---|---|---|---|---|---|---|
+| R1 | Viewport meta tag | `<meta name="viewport" width=device-width, initial-scale=1>` present so layout adapts | Responsive | WCAG 1.4.10 (technique) | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| R2 | Breakpoint coverage (320/375, 768, 1024/1440) | Layout usable at key widths; no hidden/lost content or overlap; reading order preserved | Responsive | WCAG 1.4.10 / 1.3.2 (320 is normative; others industry) | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| R3 | No horizontal scroll at 320px | Text reflows at 320 CSS px without 2-D scrolling (exempt: images, tables) | Responsive | WCAG 1.4.10 Reflow | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| R4 | Orientation support | Content/function not locked to single orientation unless essential | Responsive | WCAG 1.3.4 Orientation | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| R5 | Reflow at 320px incl. zoom 400% | At 320 CSS px OR 400% zoom on 1280px: no 2-D scrolling; all content/function available | Responsive | WCAG 1.4.10 Reflow | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| R6 | Resize text to 200% | Text resizable to 200% without AT; no loss of content/function; no clipping/overlap | Responsive | WCAG 1.4.4 Resize Text | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| R7 | Text spacing override | Readable when user overrides line-height 1.5×, paragraph 2×, letter 0.12×, word 0.16× | Responsive | WCAG 1.4.12 Text Spacing | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| R8 | Target size minimum (24×24) | Pointer targets ≥ 24×24 CSS px (with exceptions) | Touch | WCAG 2.5.8 Target Size (Minimum, AA, WCAG 2.2) | W3C WCAG | https://www.w3.org/TR/WCAG22/#target-size-minimum | Yes |
+| R9 | Target size enhanced (44×44) | Pointer targets ≥ 44×44 CSS px | Touch | WCAG 2.5.5 Target Size (Enhanced, AAA) | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Yes |
+| R10 | Apple HIG 44pt touch target | Interactive controls ≥ 44×44 pt on iOS/touch devices | Touch | Apple HIG (aligns WCAG 2.5.5) | Apple | https://developer.apple.com/design/human-interface-guidelines | Yes |
+| R11 | Responsive nav behavior | Menus/in-page nav usable at all breakpoints & zoom; keyboard + screen-reader friendly; no clip/overlap | Responsive | WCAG 1.4.10 / 2.1.1 / 4.1.2 | W3C WCAG / USWDS | https://designsystem.digital.gov/components/in-page-navigation/accessibility-tests/ | Partial |
+| R12 | Logical reading order at breakpoints | DOM/reading order matches visual order; related items grouped logically as layout changes | Responsive | WCAG 1.3.1 / 1.3.2 | W3C WCAG | https://www.w3.org/TR/WCAG21/ | Partial |
+| R13 | Cross-device focus visibility | Visible focus indicator on all sizes; no focus loss on rotate/resize | Responsive | WCAG 2.4.3 / 2.4.7 | W3C WCAG / Sec 508 | https://www.w3.org/TR/WCAG21/ | Yes |
+
+---
+
+## Part I — Visual Regression & Cross-Browser / Cross-Device Compatibility
+
+Source: `raw/functional-10.json` (Playwright, Cypress, Applitools, Chromatic, BrowserStack Percy, Sauce Labs, MDN, caniuse, Chrome DevTools, ISTQB).
+
+### Visual regression approaches
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable? |
+|---|---|---|---|---|---|---|---|
+| V1 | Baseline screenshot capture | Current UI matches approved baseline (golden master); unintended changes caught | Visual regression | Applitools / Ranorex | Applitools | https://applitools.com/blog/visual-regression-testing/ | Yes |
+| V2 | Pixel-by-pixel image diff | Exact pixel equality baseline vs current (color/layout/shift) | Visual regression | Applitools | Applitools | https://applitools.com/blog/visual-regression-testing/ | Yes |
+| V3 | Per-component visual snapshots | Individual components (Storybook stories) render consistently; regressions isolated | Visual regression | Chromatic | Chromatic | https://www.chromatic.com/blog/visual-testing/ | Yes |
+| V4 | Full-page visual snapshots | Entire page layout (header/footer/content/grid) renders as expected | Visual regression | Applitools / Ranorex | Applitools | https://applitools.com/blog/visual-regression-testing/ | Yes |
+| V5 | Cross-viewport / responsive snapshots | UI correct at multiple viewport sizes (mobile/tablet/desktop) | Visual regression | BrowserStack Percy | BrowserStack | https://www.browserstack.com/percy/visual-regression-testing | Yes |
+| V6 | Threshold / tolerance config | Only significant diffs fail; minor pixel noise tolerated (reduce false positives) | Visual regression | Applitools / Keploy | Applitools | https://applitools.com/blog/visual-regression-testing/ | Yes |
+| V7 | Dynamic-content masking / ignore regions | Non-deterministic areas (ads/timestamps) excluded; reduces flakiness | Visual regression | BrowserStack Percy / Keploy | BrowserStack | https://www.browserstack.com/percy/visual-regression-testing | Yes |
+| V8 | Font-render / anti-aliasing tolerance | Robust to minor font/AA differences across platforms; still catches real changes | Visual regression | Applitools / Keploy | Applitools | https://applitools.com/blog/visual-regression-testing/ | Yes |
+| V9 | Animation freezing / stabilization | Snapshots taken at stable state (animations paused, spinners gone, network idle) | Visual regression | BrowserStack Percy | BrowserStack | https://www.browserstack.com/percy/visual-regression-testing | Yes |
+| V10 | Visual AI / perceptual comparison | Human-perceptible diffs via computer vision rather than strict pixel diff | Visual regression | Applitools Eyes | Applitools | https://applitools.com/blog/visual-regression-testing/ | Yes |
+| V11 | Git-integrated snapshots in CI | PR changes don't introduce regressions; cloud diffs per commit with review workflow | Visual regression | BrowserStack Percy / Sauce Labs | BrowserStack | https://www.browserstack.com/percy/visual-regression-testing | Yes |
+| V12 | Playwright `toHaveScreenshot` | Page/locator screenshots match stored snapshots (thresholds/regions) | Visual regression | Playwright Visual comparisons | Playwright | https://playwright.dev/docs/test-snapshots | Yes |
+| V13 | Cypress visual testing (Percy/Applitools) | Cypress pages/components look correct via snapshot integrations | Visual regression | Cypress Visual Testing | Cypress | https://docs.cypress.io/guides/tooling/visual-testing | Yes |
+
+### Cross-browser / cross-device compatibility
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable? |
+|---|---|---|---|---|---|---|---|
+| X1 | Browser test matrix (Chrome/Firefox/Safari·WebKit/Edge) | App functions/renders correctly across representative browsers & engines | Compatibility | ISTQB compatibility / BrowserStack | ISTQB / BrowserStack | https://www.browserstack.com/guide/browser-compatibility-testing | Yes |
+| X2 | Mobile browser coverage (iOS Safari, Chrome Android) | Correct behavior/render in mobile browsers incl. touch & viewport handling | Compatibility | BrowserStack / Sauce Labs | BrowserStack | https://www.browserstack.com/guide/mobile-browser-compatibility-testing | Yes |
+| X3 | Feature detection vs browser sniffing | App adapts on actual feature support, not unreliable UA checks | Compatibility | MDN / web.dev | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent | Yes |
+| X4 | CSS feature support analysis (caniuse) | Chosen CSS features supported in targets; fallbacks/progressive enhancement where not | Compatibility | Can I use / MDN | caniuse | https://caniuse.com/ | Partial |
+| X5 | JS API support & polyfill verification | Required JS APIs (fetch/Promise/IntersectionObserver) supported or polyfilled | Compatibility | Can I use / MDN | caniuse / MDN | https://caniuse.com/ | Partial |
+| X6 | Rendering-engine differences (Blink/Gecko/WebKit) | Layout/CSS/paint acceptable across engines; engine-specific quirks caught | Compatibility | MDN / web.dev | MDN | https://developer.mozilla.org/en-US/docs/Glossary/Layout_engine | Yes |
+| X7 | Graceful degradation | App still works in reduced form when newer features unavailable | Compatibility | MDN | MDN | https://developer.mozilla.org/en-US/docs/Glossary/Graceful_degradation | Partial |
+| X8 | Progressive enhancement | Core experience works on basic tech; enhancements layered when supported | Compatibility | MDN / web.dev | MDN | https://developer.mozilla.org/en-US/docs/Glossary/Progressive_enhancement | Partial |
+| X9 | Device emulation | UI correct in simulated device conditions (viewport/DPR/UA) for early responsive checks | Compatibility | Chrome DevTools / Playwright | Chrome / Playwright | https://playwright.dev/docs/emulation | Yes |
+| X10 | Real-device testing (device cloud) | App works on actual devices/browsers (real GPU/touch/OS behavior) | Compatibility | BrowserStack / Sauce Labs | BrowserStack | https://www.browserstack.com/real-device-cloud | Partial |
+| X11 | Cross-browser cloud grid in CI | App renders/behaves across browser/version/OS/device matrix automatically | Compatibility | BrowserStack / Sauce Labs | BrowserStack | https://www.browserstack.com/cross-browser-testing | Yes |
+| X12 | Compatibility testing (ISTQB) | System meets compatibility reqs across browsers/OS/hardware/network; interoperability + co-existence | Compatibility | ISTQB Glossary (compatibility testing) | ISTQB | https://www.istqb.org/ | Partial |
+
+---
+
+## Incomplete passes
+None. All 10 planned Perplexity passes completed (passes 08-10 were initially
+blocked by a full disk and have since been run; see Parts G, H, I). No documented
+gaps remain.
 
 ## Unverified / needs a source
 None. Every row above carries a Perplexity-surfaced source + URL. Items that were
@@ -240,6 +340,6 @@ None added. Per protocol, no rows were inserted from model training knowledge.
 - `raw/functional-05.json` — Playwright best-practices enumeration
 - `raw/functional-06.json` — Cypress best-practices & anti-patterns
 - `raw/functional-07.json` — Form & input validation tests (MDN/OWASP/NN/g/Baymard/web.dev)
-- `raw/functional-08.json` — NOT PRODUCED (disk full; UI states pass)
-- `raw/functional-09.json` — NOT PRODUCED (disk full; navigation/responsive pass)
-- `raw/functional-10.json` — NOT PRODUCED (disk full; visual/cross-browser pass)
+- `raw/functional-08.json` — UI states & page behavior (NN/g, web.dev, MDN, WCAG, WAI-ARIA APG)
+- `raw/functional-09.json` — Navigation/link + responsive/cross-device (WCAG 2.1/2.2, Section 508, Apple HIG, USWDS)
+- `raw/functional-10.json` — Visual-regression + cross-browser/device (Playwright, Cypress, Applitools, Chromatic, BrowserStack/Percy, Sauce Labs, MDN, caniuse, ISTQB)

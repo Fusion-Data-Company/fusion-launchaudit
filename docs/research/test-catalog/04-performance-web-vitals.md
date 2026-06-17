@@ -44,7 +44,13 @@
 | HTTP/1.1 Messaging (RFC 9112) | IETF | Persistent connections (keep-alive) | https://www.rfc-editor.org/rfc/rfc9112 |
 | HTTP/2 (RFC 9113) | IETF | Multiplexing, header compression | https://www.rfc-editor.org/rfc/rfc9113 |
 | HTTP/3 (RFC 9114) | IETF | QUIC transport, connection setup | https://www.rfc-editor.org/rfc/rfc9114 |
-| HTML Living Standard | WHATWG | Resource-hint link types | https://html.spec.whatwg.org/ |
+| HTML Living Standard | WHATWG | Resource-hint link types; `loading` attr; bfcache; Speculation Rules; modulepreload | https://html.spec.whatwg.org/ |
+| GoogleChrome/lighthouse (repo) | Google | Canonical audit IDs (Performance + Best Practices config) | https://github.com/GoogleChrome/lighthouse |
+| CSS Fonts Module Level 4 | W3C | `font-display`, `size-adjust`, metric overrides | https://www.w3.org/TR/css-fonts-4/ |
+| HTTP 103 Early Hints (RFC 8297) | IETF | Early Hints with `Link: rel=preload` | https://www.rfc-editor.org/rfc/rfc8297 |
+| Brotli Compressed Data Format (RFC 7932) | IETF | Brotli (`br`) content-encoding | https://www.rfc-editor.org/rfc/rfc7932 |
+| Lighthouse CI budgets | Google | `budget.json` resourceSizes/Counts/timings | https://web.dev/articles/performance-budgets |
+| web.dev — facade / fonts / lazy / bfcache / code-split / tree-shake / speculation rules | Google | Commonly-missed perf practices | https://web.dev/articles/optimize-long-tasks |
 
 ---
 
@@ -157,37 +163,108 @@ Partial = automatable signal exists but needs human judgment on the fix.
 | 56 | Layout Instability entries | LayoutShift entries observed (CLS basis) | Measurement | W3C Layout Instability | W3C | https://www.w3.org/TR/layout-instability/ | Yes (RUM) |
 | 57 | Event Timing entries | Interaction timing observed (INP/FID basis) | Measurement | W3C Event Timing | W3C | https://www.w3.org/TR/event-timing/ | Field |
 
+### I. Additional Lighthouse Performance diagnostics & opportunities (canonical IDs)
+
+> IDs confirmed as real Lighthouse Performance-category audits via the GoogleChrome/lighthouse
+> repo + Chrome docs (`performance-08`). Per Lighthouse scoring docs, these diagnostics/
+> opportunities do NOT directly contribute to the Performance score (only the 6 metrics do),
+> but they are the actionable launch checks.
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable? |
+|---|---|---|---|---|---|---|---|
+| 58 | Avoid an excessive DOM size | DOM tree not overly large/deep | Diagnostic | LH `dom-size` | Lighthouse repo; Chrome docs | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 59 | Reduce impact of third-party code | Summarizes third-party JS cost on load | Diagnostic | LH `third-party-summary` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 60 | Avoid chaining critical requests | Critical dependency chains delaying render | Diagnostic | LH `critical-request-chains` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 61 | Avoid serving legacy JS to modern browsers | Detects legacy (transpiled) JS shipped to modern browsers | Opportunity | LH `legacy-javascript` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 62 | Remove duplicate modules in JS bundles | Duplicated JS shipped multiple times | Opportunity | LH `duplicated-javascript` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 63 | Avoid long main-thread tasks | Long main-thread tasks (>50ms) blocking responsiveness | Diagnostic | LH `long-tasks`; W3C Long Tasks | Lighthouse repo; W3C | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 64 | Network round-trip times | Connection latency / RTT to origins | Diagnostic | LH `network-rtt` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 65 | Server backend latencies | Server response latency (backend delay) | Diagnostic | LH `network-server-latency` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 66 | User Timing marks and measures | Surfaces `performance.mark`/`measure` entries | Diagnostic | LH `user-timings` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 67 | Resource summary | Fetched resources by type/size/count | Diagnostic | LH `resource-summary` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 68 | Has a `<meta name=viewport>` | Proper mobile viewport meta configured | Diagnostic | LH `viewport` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 69 | Preload LCP image (prioritize) | LCP image discovered & prioritized early | Opportunity | LH `prioritize-lcp-image` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 70 | Avoid `unload` listeners | No `unload` listeners (harms bfcache/responsiveness) | Diagnostic | LH `no-unload-listeners` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 71 | Avoid non-composited animations | Animations not compositor-friendly (cause jank) | Diagnostic | LH `non-composited-animations` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 72 | Preload fonts | Critical web fonts preloaded (`<link rel=preload as=font>`) | Opportunity | LH `preload-fonts` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 73 | Display images with correct aspect ratio | Images have explicit dimensions / correct aspect ratio (CLS) | Diagnostic | LH `image-aspect-ratio` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+| 74 | Serve images with correct resolution | Images not excessively large for displayed size | Opportunity | LH `image-size-responsive` | Lighthouse repo | https://developer.chrome.com/docs/lighthouse/performance/performance-scoring | Yes |
+
+### J. Lighthouse Best Practices category audits (canonical, grouped)
+
+> Confirmed against the GoogleChrome/lighthouse repo config (`performance-09`). Best
+> Practices audits are equally weighted and pass/fail. Grouped per the report UI
+> subcategories. (Note: `image-aspect-ratio`, `image-size-responsive`, `preload-fonts`
+> are Performance audits, NOT Best Practices — catalogued in section I above.)
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable? |
+|---|---|---|---|---|---|---|---|
+| 75 | Uses HTTPS | Main document served over HTTPS | Trust & Safety | LH `is-on-https` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 76 | HTTP→HTTPS redirect | `http://` redirects to `https://` | Trust & Safety | LH `redirects-http` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 77 | No vulnerable libraries | No front-end libs with known vulnerabilities | Trust & Safety | LH `no-vulnerable-libraries` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 78 | CSP effective against XSS | A meaningful Content-Security-Policy mitigates XSS | Trust & Safety | LH `csp-xss` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 79 | Avoid third-party cookies | No reliance on (phasing-out) third-party cookies | Trust & Safety | LH `third-party-cookies` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 80 | No browser errors in console | No JS runtime errors logged during load | General / Trust & Safety | LH `errors-in-console` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 81 | No DevTools issues | No unresolved Chrome DevTools "Issues" for the page | General / Trust & Safety | LH `inspector-issues` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 82 | Valid source maps | JS source maps referenced are valid & parse | General | LH `valid-source-maps` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 83 | No geolocation request on load | No geolocation permission prompt on page load | User Experience | LH `geolocation-on-start` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 84 | No notification request on load | No Notifications permission prompt on page load | User Experience | LH `notification-on-start` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 85 | Password inputs allow paste | Password fields do not disable paste | User Experience | LH `password-inputs-can-be-pasted-into` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 86 | Inputs do not block paste | Form inputs do not prevent pasting | User Experience | LH `paste-preventing-inputs` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 87 | Has a valid doctype | Document declares `<!doctype html>` (avoid quirks mode) | General / Browser Compat | LH `doctype` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 88 | Charset declared early | `<meta charset>` declared early in `<head>` | General / Browser Compat | LH `charset` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 89 | No `unload` listeners (BP) | No `unload`/`beforeunload` listeners (page lifecycle/bfcache) | General / Browser Compat | LH `no-unload-listeners` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 90 | Detected JS libraries | Reports which JS libraries are in use (feeds vuln check) | General | LH `js-libraries` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+| 91 | Avoids deprecated APIs | No deprecated/soon-removed browser APIs used | Browser Compatibility | LH `deprecations` | Lighthouse repo | https://github.com/GoogleChrome/lighthouse | Yes |
+
+### K. Completeness sweep — commonly-missed performance checks
+
+> Areas frequently omitted from Lighthouse-only checklists, each with a canonical source
+> (`performance-10`). These extend beyond what a single Lighthouse run surfaces.
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable? |
+|---|---|---|---|---|---|---|---|
+| 92 | TTFB breakdown | Decompose TTFB into DNS/TLS/redirect/backend (not just "slow server") | Network diagnostics | W3C Navigation Timing L2 | W3C; CrUX | https://www.w3.org/TR/navigation-timing-2/ | Yes (RUM) |
+| 93 | `font-display` strategy | Critical fonts use swap/fallback/optional (avoid FOIT) | Font loading | CSS Fonts 4 `font-display` | W3C; web.dev | https://www.w3.org/TR/css-fonts-4/ | Yes |
+| 94 | Font preload correctness | Above-the-fold fonts preloaded with `as=font` + `crossorigin` | Font loading | W3C Preload; web.dev | web.dev | https://web.dev/articles/preload-critical-assets | Partial |
+| 95 | `size-adjust` / metric override | `@font-face` size-adjust aligns fallback↔webfont metrics (reduce CLS) | Font loading | CSS Fonts 4 `size-adjust` | W3C | https://www.w3.org/TR/css-fonts-4/ | Partial |
+| 96 | Third-party facade pattern | Heavy embeds (video/maps/social) replaced with lightweight facades | Third-party | web.dev facade pattern | web.dev | https://web.dev/articles/third-party-facades | Partial |
+| 97 | Field TBT / long tasks via RUM | Long-task / blocking data gathered in the field, mapped to INP | Responsiveness | web.dev Optimize long tasks; W3C Long Tasks | web.dev | https://web.dev/articles/optimize-long-tasks | Field |
+| 98 | `modulepreload` for module graphs | ES module graphs preloaded via `rel=modulepreload` | Resource hint | WHATWG HTML `modulepreload` | WHATWG; web.dev | https://html.spec.whatwg.org/multipage/links.html | Partial |
+| 99 | 103 Early Hints | Server/CDN sends 103 Early Hints with `Link: rel=preload` for critical assets | Resource hint | IETF RFC 8297 | IETF; web.dev | https://www.rfc-editor.org/rfc/rfc8297 | Partial |
+| 100 | Preload actually used | Preloaded resources are matched/used (no DevTools preload warnings) | Resource hint | web.dev Preload critical assets | web.dev | https://web.dev/articles/preload-critical-assets | Partial |
+| 101 | Production protocol is h2/h3 | The real CDN→browser path serves HTTP/2 or HTTP/3 | Transport | IETF RFC 9113 / 9114 | IETF; web.dev | https://www.rfc-editor.org/rfc/rfc9114 | Yes |
+| 102 | LCP image not lazy-loaded | LCP element is eager-loaded, in initial HTML, with srcset/sizes | Image / LCP | WHATWG HTML `loading`; web.dev LCP | WHATWG; web.dev | https://web.dev/articles/lcp | Yes |
+| 103 | CDN cache-hit ratio | High edge cache-hit ratio for static assets; correct `Cache-Control`/`Vary` | Caching | IETF RFC 9111; web.dev CDN | IETF; web.dev | https://www.rfc-editor.org/rfc/rfc9111 | Partial |
+| 104 | Performance budgets in CI | `budget.json` enforces resourceSizes/resourceCounts/timings; fails CI | Budgets | Lighthouse CI budgets | Chrome docs; web.dev | https://web.dev/articles/performance-budgets | Yes |
+| 105 | bfcache eligibility | Page eligible for back/forward cache (no unload handlers, etc.) | Page lifecycle | WHATWG HTML page lifecycle; web.dev bfcache | WHATWG; web.dev | https://web.dev/articles/bfcache | Partial |
+| 106 | Speculation Rules prefetch/prerender | High-probability next navigations prefetched/prerendered via Speculation Rules | Navigation | WHATWG HTML Speculation Rules | WHATWG; web.dev | https://web.dev/articles/speculation-rules | Partial |
+| 107 | Code-splitting in place | Route/feature-level JS splitting (no single oversized bundle) | JS delivery | web.dev Code splitting | web.dev | https://web.dev/articles/reduce-javascript-payloads-with-code-splitting | Partial |
+| 108 | Tree-shaking verified | Unused exports eliminated; `sideEffects` configured | JS delivery | web.dev Tree shaking | web.dev | https://web.dev/articles/reduce-javascript-payloads-with-tree-shaking | Partial |
+| 109 | Brotli compression | Text resources served `content-encoding: br` where supported (gzip fallback) | Compression | IETF RFC 7932 (Brotli); RFC 9110 | IETF; web.dev | https://www.rfc-editor.org/rfc/rfc7932 | Yes |
+| 110 | JS hydration cost (SSR/CSR) | Hydration time measured separately; impact on INP/TBT evaluated | Rendering | web.dev interaction readiness | web.dev | https://web.dev/articles/optimize-long-tasks | Partial |
+| 111 | Field vs lab CWV cross-check | CrUX field LCP/INP/CLS compared to Lighthouse lab; prioritize field regressions | Field gate | web.dev Vitals; CrUX methodology | web.dev; CrUX | https://web.dev/articles/vitals | Field |
+
 ---
 
 ## Unverified / needs a source
 
-These were surfaced by Perplexity but lacked a clean canonical source in the returned
-citations, or the research call was blocked before a properly-sourced answer was
-obtained. Do NOT promote to the main table without a confirming canonical source
-(Lighthouse audit reference / GitHub config / web.dev).
+The originally-open gaps (Best Practices enumeration; JS/CSS opportunity IDs) have since
+been CLOSED with canonical-sourced calls — see sections I, J, K above (`performance-08`,
+`-09`, `-10`). Remaining caveats:
 
-- **Lighthouse Best Practices category audits (full enumeration).** The dedicated call
-  (`performance-03`) correctly REFUSED to enumerate because the returned citations did
-  not include the official Lighthouse audit catalog — only general docs + the scoring
-  note (GoogleChrome/lighthouse `docs/scoring.md`). Confirmed-from-that-call facts only:
-  Best Practices audits are *equally weighted* and *pass/fail*. The individual audit
-  IDs (commonly cited elsewhere as `uses-http2`, `no-document-write`, `geolocation-on-start`,
-  `notification-on-start`, `errors-in-console`, `image-aspect-ratio`, `deprecations`,
-  `js-libraries`, `csp-xss`, `uses-passive-event-listeners`, etc.) are NOT yet sourced
-  in this catalog. **Re-run** against `https://github.com/GoogleChrome/lighthouse` audit
-  config / `https://developer.chrome.com/docs/lighthouse/` when an API call is approved.
-- **JS/CSS opportunity pass (planned `performance-08`).** Did not run. Several IDs in
-  section F above are confirmed via the web.dev sources pass, but these additional
-  commonly-cited audit IDs still need a dedicated sourced call before cataloguing:
-  `dom-size` (Avoid an excessive DOM size), `legacy-javascript` (Avoid serving legacy JS
-  to modern browsers), `duplicated-javascript`, `long-tasks` (Avoid long main-thread
-  tasks), `third-party-summary` (Reduce impact of third-party code), `critical-request-chains`
-  (Avoid chaining critical requests), `network-rtt`, `network-server-latency`,
-  `user-timings`, `resource-summary`, `viewport`. The blog-sourced `performance-02` call
-  listed most of these but also MISLABELED some (e.g. it titled `efficient-animated-content`
-  as "Avoid large layout shifts" and `duplicated-javascript` as the legacy-JS audit), so
-  its titles are not trustworthy — the IDs must be re-confirmed against the canonical
-  Lighthouse config before use.
+- **`lcp-lazy-loaded` exact slug.** The web.dev call (`performance-06`) cited this audit
+  ("Largest Contentful Paint image was lazily loaded"); the canonical-ID call
+  (`performance-08`) could NOT confirm the exact slug from the repo text it had. The
+  *check* is real and sourced (catalog #16 / #102); the precise audit-ID string should be
+  re-confirmed against the GoogleChrome/lighthouse config before relying on it
+  programmatically.
+- **Exact current titles for some `performance-02` IDs.** The first Performance-audit
+  enumeration (`performance-02`) was blog-sourced and MISLABELED some titles (e.g. it
+  titled `efficient-animated-content` as "Avoid large layout shifts" and `duplicated-javascript`
+  as the legacy-JS audit). The IDs themselves are corroborated by the canonical call
+  (`performance-08`); only the human-readable titles from `performance-02` should be
+  distrusted. Titles used in this catalog were taken from the web.dev / canonical calls.
 
 ## [MODEL-SUGGESTED — confirm]
 
@@ -205,3 +282,6 @@ Raw Perplexity JSON saved under `docs/research/test-catalog/raw/`:
 - `performance-05.json` — CrUX field metrics + p75 methodology; RAIL four phases + numeric budgets.
 - `performance-06.json` — Image/media optimization audits with exact audit IDs (web.dev Optimize-Vitals).
 - `performance-07.json` — Network/delivery audits with exact audit IDs + HTTP standards mapping (web.dev + IETF RFCs).
+- `performance-08.json` — Canonical confirmation of Lighthouse Performance diagnostic/opportunity audit IDs (GoogleChrome/lighthouse repo + Chrome docs).
+- `performance-09.json` — Lighthouse Best Practices category audits, exact IDs, grouped by subcategory, with mis-categorization corrections (GoogleChrome/lighthouse repo).
+- `performance-10.json` — Completeness sweep of commonly-missed perf checks (fonts/font-display/size-adjust, third-party facades, modulepreload, 103 Early Hints, HTTP/3, bfcache, Speculation Rules, budgets, Brotli, hydration) with canonical sources (W3C CSS Fonts 4, IETF RFC 8297/7932/9111, WHATWG HTML, web.dev).

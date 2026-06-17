@@ -98,6 +98,52 @@
 | R66 | Peak-traffic + slow-dependency scenario | Combined load + degraded deps keeps core journeys within SLO | End-to-end chaos | Principles of Chaos; GCP | Google Cloud Chaos | https://cloud.google.com/blog/products/devops-sre/getting-started-with-chaos-engineering | Partial |
 | R67 | Integrated DR & observability incident drill | Region/dep failure → alerts fire, runbooks, failover in RTO, good observability | End-to-end DR | Google SRE GameDays | The Site Reliability Workbook | https://sre.google/books/ | No |
 
+### Reliability — Front-end & Infrastructure checks (live-URL automatable)
+
+Added sources for this block: **web.dev / Lighthouse** (Google — Core Web Vitals, performance audits) https://web.dev ; **MDN** (Mozilla — HTTP headers/caching/negotiation) https://developer.mozilla.org ; **IETF RFCs** (HTTP/2 RFC 7540, HTTP/3 RFC 9114, QUIC RFC 9000, HTTP semantics RFC 9110, caching RFC 9111, conditional RFC 9110, TLS RFC 8446) https://www.rfc-editor.org ; **Kubernetes/Google Cloud** (liveness/readiness probes) https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ .
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| R68 | LCP threshold | Largest Contentful Paint ≤2.5s good / 2.5-4s NI / >4s poor | Core Web Vitals | web.dev CWV LCP | web.dev | https://web.dev/articles/lcp | Yes |
+| R69 | INP threshold | Interaction to Next Paint ≤200ms good / 200-500 NI / >500 poor | Core Web Vitals | web.dev CWV INP | web.dev | https://web.dev/articles/inp | Yes |
+| R70 | CLS threshold | Cumulative Layout Shift ≤0.1 good / 0.1-0.25 NI / >0.25 poor | Core Web Vitals | web.dev CWV CLS | web.dev | https://web.dev/articles/cls | Yes |
+| R71 | First Contentful Paint (FCP) | FCP timing vs Lighthouse scoring ranges | Loading perf | Lighthouse FCP | web.dev | https://web.dev/articles/fcp | Yes |
+| R72 | Time To First Byte (TTFB) | Server response time within budget | Backend latency | Lighthouse "Reduce server response time" | web.dev | https://web.dev/articles/ttfb | Yes |
+| R73 | Lighthouse performance score | Aggregate perf score ≥ configured threshold | Aggregate perf | Lighthouse scoring | web.dev | https://web.dev/articles/performance-scoring | Yes |
+| R74 | Eliminate render-blocking resources | No CSS/JS in critical path blocking first paint | Loading optimization | Lighthouse audit | web.dev | https://web.dev/articles/render-blocking-resources | Yes |
+| R75 | Minify CSS | CSS minified (no extra whitespace/comments) | Asset optimization | Lighthouse "Minify CSS" | web.dev | https://web.dev/articles/unminified-css | Yes |
+| R76 | Minify JavaScript | JS bundles minified | Asset optimization | Lighthouse "Minify JavaScript" | web.dev | https://web.dev/articles/unminified-javascript | Yes |
+| R77 | Reduce unused CSS | Flag excessive unused CSS rules | Code elimination | Lighthouse audit | web.dev | https://web.dev/articles/unused-css-rules | Yes |
+| R78 | Reduce unused JavaScript | Flag unused JS bytes; suggest code-split/treeshake | Code elimination | Lighthouse audit | web.dev | https://web.dev/articles/unused-javascript | Yes |
+| R79 | Minimize main-thread work | JS exec/style/layout within budget | Runtime perf | Lighthouse audit | web.dev | https://web.dev/articles/mainthread-work-breakdown | Yes |
+| R80 | Avoid long tasks | No main-thread tasks >50ms harming INP/TBT | Runtime responsiveness | Lighthouse audit | web.dev | https://web.dev/articles/long-tasks-devtools | Yes |
+| R81 | Enable text compression | HTML/CSS/JS/JSON served gzip or brotli via Content-Encoding | Compression | Lighthouse "Enable text compression" | web.dev | https://web.dev/articles/uses-text-compression | Yes |
+| R82 | Serve images in next-gen formats | WebP/AVIF used where supported | Media optimization | Lighthouse audit | web.dev | https://web.dev/articles/uses-webp-images | Yes |
+| R83 | Properly size images | Images not larger than rendered size; srcset/sizes used | Media optimization | Lighthouse audit | web.dev | https://web.dev/articles/uses-responsive-images | Yes |
+| R84 | Efficiently encode images | Images compressed without quality loss | Media optimization | Lighthouse audit | web.dev | https://web.dev/articles/uses-optimized-images | Yes |
+| R85 | Defer offscreen images (lazy-load) | Below-the-fold images lazy-loaded | Loading strategy | Lighthouse audit | web.dev | https://web.dev/articles/offscreen-images | Yes |
+| R86 | Preload key requests | Critical early resources preloaded | Resource prioritization | Lighthouse audit | web.dev | https://web.dev/articles/uses-rel-preload | Yes |
+| R87 | Avoid enormous network payloads | Total bytes under budget (Lighthouse flags >~4MB) | Page weight | Lighthouse audit | web.dev | https://web.dev/articles/total-byte-weight | Yes |
+| R88 | Performance budget compliance | Custom budgets (LCP/FCP/TBT/JS size/image bytes) enforced | Perf governance | Lighthouse Budgets | web.dev | https://web.dev/articles/performance-budgets-101 | Yes |
+| R89 | Reduce third-party code impact | Third-party scripts deferred/async; cost surfaced | Third-party impact | Lighthouse audit | web.dev | https://web.dev/articles/optimizing-content-efficiency-loading-third-party-javascript | Yes |
+| R90 | HTTP/2 availability | Origin/CDN serves over HTTP/2 (h2 ALPN) | Protocol support | IETF RFC 7540 | IETF | https://www.rfc-editor.org/rfc/rfc7540 | Yes |
+| R91 | HTTP/3 (QUIC) availability | Server/CDN supports HTTP/3 (h3 ALPN) | Protocol support | IETF RFC 9114 / RFC 9000 | IETF | https://www.rfc-editor.org/rfc/rfc9114 | Yes |
+| R92 | HTTP keep-alive / connection reuse | Persistent connections reduce TCP/TLS handshakes | Transport efficiency | RFC 9110/9112 | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection | Yes |
+| R93 | Modern TLS version | HTTPS uses TLS 1.2+ with strong ciphers | Transport security | IETF RFC 8446 (TLS 1.3) | IETF | https://www.rfc-editor.org/rfc/rfc8446 | Yes |
+| R94 | Cache-Control policy | Correct Cache-Control directives for HTML/static assets | HTTP caching | RFC 9111 | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control | Yes |
+| R95 | ETag conditional caching | ETag present; server returns 304 on If-None-Match | HTTP caching | RFC 9110 | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag | Yes |
+| R96 | Last-Modified / If-Modified-Since | Last-Modified set; 304 handled correctly | HTTP caching | RFC 9110 | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Last-Modified | Yes |
+| R97 | CDN presence & edge caching | Served via CDN; static assets edge-cached with s-maxage | Content delivery | RFC 9111 (shared caches) | web.dev | https://web.dev/articles/content-delivery-networks | Yes |
+| R98 | Correct Vary headers | Vary: Accept-Encoding/Accept-Language keeps caches correct | Caching correctness | RFC 9110 | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary | Yes |
+| R99 | Resource hints (preconnect/dns-prefetch) | preconnect/dns-prefetch for critical cross-origin resources | Network optimization | Lighthouse "Preconnect" | web.dev | https://web.dev/articles/uses-rel-preconnect | Yes |
+| R100 | HTTP uptime / availability monitoring | Synthetic checks return 2xx/3xx; track SLO error budget | Reliability monitoring | Google SRE SLI/SLO | Google SRE | https://sre.google/books/ | Yes |
+| R101 | Health-check endpoints | /healthz, /readyz return 200 when healthy | Health checks | K8s liveness/readiness | Kubernetes | https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ | Yes |
+| R102 | Graceful 5xx handling | 5xx serves friendly page, no stack trace, no caching transient errors | Failure handling | Google SRE; MDN status codes | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Status | Yes |
+| R103 | Retry-After on 429/503 | 429/503 include Retry-After (date or seconds) | Overload protection | RFC 9110 Retry-After | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After | Yes |
+| R104 | Streaming for large responses | Chunked/streaming reduces TTFB; progressive render | Transfer optimization | RFC 9112 chunked | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding | Partial |
+| R105 | Service worker offline resilience | SW caches static assets / offline fallback without harming freshness | Offline/resilience | Service Worker spec; web.dev | web.dev | https://web.dev/articles/service-worker-lifecycle | Partial |
+| R106 | Safe retry semantics (GET/HEAD) | Idempotent methods retryable without side effects | HTTP semantics | RFC 9110 safe methods | MDN | https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods | Yes |
+
 ---
 
 # B. Privacy / Compliance
@@ -171,6 +217,83 @@
 | P45 | Security of processing (TOMs) | Appropriate technical/organizational measures protect PII | Security | GDPR Art. 32 | GDPR (EU) 2016/679 | https://eur-lex.europa.eu/eli/reg/2016/679/oj | Partial |
 | P46 | Records of processing / DPIA presence | RoPA + DPIA for high-risk processing documented | Accountability | GDPR Art. 30, 35–36 | GDPR (EU) 2016/679 | https://eur-lex.europa.eu/eli/reg/2016/679/oj | No |
 
+### PCI DSS v4.0 / v4.0.1 SAQ A — per-requirement line items
+
+Source: **PCI DSS v4.0 SAQ A** (PCI SSC) https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf and the **PCI SSC v4.0.1 SAQ A update announcement** https://blog.pcisecuritystandards.org/important-updates-announced-for-merchants-validating-to-self-assessment-questionnaire-a . Applies to fully-outsourced card-not-present e-commerce merchants (redirect / iFrame / hosted payment page).
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| P47 | SAQ A eligibility met | Only CNP txns; all account-data functions outsourced to validated TPSP; no electronic CHD stored | Scope/eligibility | PCI SAQ A v4.0 eligibility | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | Partial |
+| P48 | Change vendor defaults | Default passwords/parameters changed on in-scope web server (redirect/iframe host) | System config | PCI DSS Req. 2.1 | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P49 | Secure system configuration | In-scope systems hardened to industry standards; only necessary services enabled | Hardening | PCI DSS Req. 2.2.x | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P50 | No SAD stored after authorization | No full track / CVV / PIN stored (incl. paper) | Data protection | PCI DSS Req. 3.2 | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P51 | PAN masked on display | PAN truncated/masked on any merchant-controlled paper reports/receipts | Data protection | PCI DSS Req. 3.3 | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P52 | Secure storage of paper PAN | Paper CHD physically protected; retention/destruction processes exist | Data lifecycle | PCI DSS Req. 3.4.x | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P53 | Strong crypto for CHD transmission | Strong crypto/TLS for any merchant-controlled CHD transmission (often N/A but must confirm) | Secure transmission | PCI DSS Req. 4.2.1 | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | Yes (TLS check) |
+| P54 | Timely security patching | In-scope web servers patched; critical patches within one month | Patch mgmt | PCI DSS Req. 6.2 | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P55 | Secure SDLC / change control | Custom in-scope web app code developed securely w/ change control | Secure dev | PCI DSS Req. 6.3.x | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P56 | Payment-page script security | Payment-page scripts inventoried, authorized, integrity-protected (v4.0 SAQ A; removed in v4.0.1) | E-commerce script integrity | PCI DSS Req. 6.4.3 (v4.0) | PCI DSS SAQ A | https://blog.pcisecuritystandards.org/important-updates-announced-for-merchants-validating-to-self-assessment-questionnaire-a | Partial |
+| P57 | Payment-page tamper detection | Change-and-tamper detection on payment page HTTP headers/content (v4.0 SAQ A; removed in v4.0.1) | E-commerce monitoring | PCI DSS Req. 11.6.1 (v4.0) | PCI DSS SAQ A | https://blog.pcisecuritystandards.org/important-updates-announced-for-merchants-validating-to-self-assessment-questionnaire-a | Partial |
+| P58 | Script-attack-resilience eligibility (v4.0.1) | Embedded-iframe merchants confirm site not susceptible to payment-page script attacks (or TPSP confirms) | E-commerce eligibility | PCI SAQ A v4.0.1 new criterion | PCI DSS SAQ A | https://blog.pcisecuritystandards.org/important-updates-announced-for-merchants-validating-to-self-assessment-questionnaire-a | Partial |
+| P59 | Unique user IDs | All users of in-scope systems have unique IDs; no shared interactive logins | Identity | PCI DSS Req. 8.2.x | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P60 | Strong authentication credentials | Passwords meet complexity/length/lockout requirements | Auth strength | PCI DSS Req. 8.3.x | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P61 | Physical security of paper CHD | Paper CHD in secure/locked storage; secure transport & destruction | Physical security | PCI DSS Req. 9.5–9.8 | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P62 | External vulnerability scanning (ASV) | In-scope external web servers ASV-scanned quarterly & after changes | Vuln mgmt | PCI DSS Req. 11.2.x | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | Partial |
+| P63 | Information security policy | Documented infosec policy, in use, known to relevant personnel | Governance | PCI DSS Req. 12.1 | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P64 | TPSP management | List of TPSPs, written agreements w/ PCI responsibilities, compliance monitoring | Third-party mgmt | PCI DSS Req. 12.8 | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+| P65 | Incident response plan | Documented IR plan covering CHD compromise, roles, reporting to brands/acquirers | Incident response | PCI DSS Req. 12.10 | PCI DSS SAQ A | https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf | No |
+
+### US state privacy laws beyond California (VCDPA / CPA / CTDPA / UCPA)
+
+Sources: **Virginia VCDPA** (Va. Code Title 59.1 Ch. 52.1) https://law.lis.virginia.gov/vacode/title59.1/chapter52.1/ ; **Colorado CPA** (C.R.S. §§6-1-1301 et seq.) https://leg.colorado.gov ; **Connecticut CTDPA** (Conn. Gen. Stat. Ch. 743dd) https://www.cga.ct.gov/current/pub/chap_743dd.htm ; **Utah UCPA** (Utah Code Title 13 Ch. 61) https://le.utah.gov/xcode/Title13/Chapter61/13-61.html .
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| P66 | Privacy notice publicly available (state) | Reasonably accessible, clear, meaningful privacy notice w/o login | Notice | VCDPA §59.1-578; CPA §6-1-1308; CTDPA §42-521; UCPA §13-61-302 | VA/CO/CT/UT statutes | https://law.lis.virginia.gov/vacode/59.1-578/ | Yes |
+| P67 | Notice lists categories of data processed | Notice enumerates categories of personal data | Notice content | VCDPA §59.1-578.A.1; CPA §6-1-1308(1)(a); CTDPA §42-521(a)(1); UCPA §13-61-302(1)(a) | VA/CO/CT/UT statutes | https://law.lis.virginia.gov/vacode/59.1-578/ | Partial |
+| P68 | Notice states processing purposes | Notice explains purposes of processing | Notice content | VCDPA §59.1-578.A.2; CPA §6-1-1308(1)(b); CTDPA §42-521(a)(2); UCPA §13-61-302(1)(b) | VA/CO/CT/UT statutes | https://law.lis.virginia.gov/vacode/59.1-578/ | Partial |
+| P69 | Notice describes rights & how to exercise | Lists consumer rights + at least one submission method (+appeal for VA/CO/CT) | Rights disclosure | VCDPA §59.1-578.A.3; CPA §6-1-1308(1)(c); CTDPA §42-521(a)(3); UCPA §13-61-302(1)(c) | VA/CO/CT/UT statutes | https://law.lis.virginia.gov/vacode/59.1-578/ | Partial |
+| P70 | Notice lists data shared & third-party categories | Discloses categories of data shared and categories of third parties | Notice content | VCDPA §59.1-578.A.4-5; CPA §6-1-1308(1)(d); CTDPA §42-521(a)(4-5); UCPA §13-61-302(1)(d-e) | VA/CO/CT/UT statutes | https://law.lis.virginia.gov/vacode/59.1-578/ | Partial |
+| P71 | Notice discloses sale/targeted-ad/profiling + opt-out | Discloses sale/targeted advertising/profiling and how to opt out | Opt-out disclosure | VCDPA §59.1-577/578; CPA §6-1-1306/1308; CTDPA §42-518/521; UCPA §13-61-302(2) | VA/CO/CT/UT statutes | https://www.cga.ct.gov/current/pub/chap_743dd.htm | Partial |
+| P72 | Web-accessible rights request mechanism | Conspicuous secure means to submit access/delete/correct requests | Rights mechanism | VCDPA §59.1-577.B; CPA §6-1-1306(1)(b); CTDPA §42-518(b); UCPA §13-61-203 | VA/CO/CT/UT statutes | https://law.lis.virginia.gov/vacode/59.1-577/ | Yes |
+| P73 | Appeal mechanism for denied requests | Method to appeal denied requests disclosed (VA/CO/CT; not Utah) | Appeals | VCDPA §59.1-577.E; CPA §6-1-1306(3)(a); CTDPA §42-518(e) | VA/CO/CT statutes | https://law.lis.virginia.gov/vacode/59.1-577/ | Partial |
+| P74 | Opt-out mechanism for targeted ad/sale/profiling | Clear conspicuous opt-out method ("Your Privacy Choices"/"Do Not Sell") works | Opt-out | VCDPA §59.1-577.A.4-6; CPA §6-1-1306(1)(a)(III); CTDPA §42-518(a)(5); UCPA §13-61-203(2) | VA/CO/CT/UT statutes | https://www.cga.ct.gov/current/pub/chap_743dd.htm | Yes |
+| P75 | Universal Opt-Out Mechanism honored (CO, CT) | Site detects & honors UOOM/GPC for CO & CT users (REQUIRED CO/CT; NOT VA/UT) | UOOM | CPA §6-1-1313; CTDPA §42-522(b) | CO/CT statutes | https://www.cga.ct.gov/current/pub/chap_743dd.htm#sec_42-522 | Yes |
+| P76 | Opt-IN consent for sensitive data (VA/CO/CT) | Explicit affirmative opt-in before sensitive-data processing; no pre-tick | Sensitive data | VCDPA §59.1-578.A.6; CPA §6-1-1308(7); CTDPA §42-520(b)(4) | VA/CO/CT statutes | https://law.lis.virginia.gov/vacode/59.1-578/ | Partial |
+| P77 | Notice + opt-OUT for sensitive data (Utah) | Clear notice + opportunity to opt out of sensitive-data processing (UCPA opt-out model) | Sensitive data | UCPA §13-61-302(3) | Utah UCPA | https://le.utah.gov/xcode/Title13/Chapter61/13-61-S302.html | Partial |
+| P78 | Non-discrimination statement | Notice states no discrimination for exercising rights (loyalty-program carve-out) | Non-discrimination | VCDPA §59.1-578.D; CPA §6-1-1308(4-5); CTDPA §42-521(c); UCPA §13-61-301(2) | VA/CO/CT/UT statutes | https://law.lis.virginia.gov/vacode/59.1-578/ | Partial |
+| P79 | Teen (13-16/17) opt-in for targeted ad/sale | Opt-in consent for teen targeted advertising/sale where required (CO/CT/VA) | Children/teens | CTDPA §42-520(b)(5); CPA §6-1-1308(7)(b); VCDPA §59.1-577 | VA/CO/CT statutes | https://www.cga.ct.gov/current/pub/chap_743dd.htm | Partial |
+
+### Cookie-consent banner specifics (EDPB / ePrivacy / CJEU / DPA guidance)
+
+Sources: **EDPB Guidelines 05/2020 on consent** https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf ; **EDPB Cookie Banner Taskforce report (2023)** https://www.edpb.europa.eu/system/files/2023-01/edpb_20230118_report_cookie_banner_taskforce_en.pdf ; **ePrivacy Directive Art. 5(3)** https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32002L0058 ; **CJEU Planet49 C-673/17** https://curia.europa.eu/juris/liste.jsf?num=C-673/17 ; **GDPR Art. 7** https://eur-lex.europa.eu/eli/reg/2016/679/oj .
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| P80 | No non-essential cookies before consent | Clean profile: no non-essential cookies/identifiers set pre-consent; appear after Accept | Prior consent | ePrivacy Art. 5(3); EDPB 05/2020 §79-81 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P81 | No third-party tags/pixels before consent | No requests to known third-party tracker domains pre-consent | Prior consent | ePrivacy Art. 5(3); EDPB 05/2020 §17-25 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P82 | First-layer "Reject all" present | Reject/Refuse all visible on first layer, same view as Accept all | Choice symmetry | EDPB Cookie Banner Taskforce | EDPB Taskforce report | https://www.edpb.europa.eu/system/files/2023-01/edpb_20230118_report_cookie_banner_taskforce_en.pdf | Yes |
+| P83 | Reject as easy/prominent as accept | Reject all same layer, similar size/contrast, ≤ same clicks as Accept | Dark patterns | EDPB Taskforce §3.1.4; EDPB 05/2020 §19-21 | EDPB Taskforce report | https://www.edpb.europa.eu/system/files/2023-01/edpb_20230118_report_cookie_banner_taskforce_en.pdf | Yes |
+| P84 | No pre-ticked consent boxes (Planet49) | Non-essential toggles/checkboxes off by default; no `checked` attr | Affirmative action | CJEU Planet49 C-673/17; GDPR Recital 32; EDPB 05/2020 §86 | CJEU Planet49 | https://curia.europa.eu/juris/liste.jsf?num=C-673/17 | Yes |
+| P85 | Granular per-purpose toggles | Separate toggles per purpose (analytics/marketing/personalization) | Specific consent | EDPB 05/2020 §25-34 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P86 | No bundling of distinct purposes | Non-essential purposes not irreversibly bundled into one toggle | Anti-bundling | EDPB 05/2020 §26-30 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Partial |
+| P87 | No consent via scrolling/continued browsing | Cookies don't activate on scroll/keypress/navigation w/o explicit control | Affirmative action | EDPB 05/2020 §86 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P88 | No cookie wall blocking access | Core content not gated solely behind consent to non-essential cookies | Conditionality | EDPB 05/2020 §39-41 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P89 | Persistent withdrawal control | Persistent "Cookie settings"/"Manage cookies" link on all pages re-opens consent UI | Withdrawal | GDPR Art. 7(3); EDPB 05/2020 §73-75 | GDPR / EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P90 | Withdrawal disables tracking | After withdrawal, non-essential cookies deleted/ineffective; no new tracking | Withdrawal effectiveness | EDPB 05/2020 §74-75 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P91 | Consent expiry / re-prompt | Consent not indefinite; re-prompt after reasonable expiry (CNIL ~6mo ref) | Consent validity | CNIL cookie recommendations; EDPB 05/2020 §4 | EDPB 05/2020 / CNIL | https://www.cnil.fr/en/cookies-and-other-trackers | Partial |
+| P92 | No visual nudging (color/size) | Accept not made far more salient than Reject (contrast/size thresholds) | Dark patterns | EDPB Taskforce §3.1.4; EDPB 05/2020 §18-21 | EDPB Taskforce report | https://www.edpb.europa.eu/system/files/2023-01/edpb_20230118_report_cookie_banner_taskforce_en.pdf | Yes |
+| P93 | No misleading "consent mandatory" wording | Text doesn't imply service unusable without accepting non-essential cookies | Dark patterns | EDPB 05/2020 §39-41 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Partial |
+| P94 | Close ("X") not treated as consent | Clicking X/Close does not set consent=true or fire non-essential cookies | Dark patterns | EDPB Taskforce; EDPB 05/2020 §85-86 | EDPB Taskforce report | https://www.edpb.europa.eu/system/files/2023-01/edpb_20230118_report_cookie_banner_taskforce_en.pdf | Yes |
+| P95 | Clear info before consent (first layer) | First layer states cookie use, purposes, third parties, link to policy | Informed consent | ePrivacy Art. 5(3); EDPB 05/2020 §3.2 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P96 | Easy access to detailed cookie policy | Visible "Cookie policy"/"Learn more" link to full cookie/purpose/retention list | Layered info | EDPB 05/2020; ePrivacy Art. 5(3) | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P97 | Persistent consent record stored | Consent status+date/version stored (cookie/localStorage); demonstrable | Accountability | GDPR Art. 7(1); EDPB 05/2020 §3.5 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P98 | Consent record matches granular choices | Stored consent string (TCF/JSON) matches toggles; cookies consistent | Purpose limitation | GDPR Art. 5(1)(b),(2); EDPB 05/2020 §3.5 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P99 | Prior reject choice respected | Stored "reject all" not silently flipped to accept on later visits | Fairness | GDPR Art. 5; EDPB 05/2020 §3.3, 3.5 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P100 | Consent requires explicit interaction | Non-essential cookies only after explicit click/tap/keyboard activation | Unambiguous action | GDPR Art. 4(11), Recital 32; EDPB 05/2020 §86 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P101 | No banner bypass via iframes/subdomains | Scripts in iframes/subdomains don't set non-essential cookies pre-consent | Technical enforcement | ePrivacy Art. 5(3); EDPB 05/2020 §17-25 | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+| P102 | No geo-weakening for EU users | EU IP/locale gets opt-in model (no non-essential cookies by default) | Territorial scope | GDPR Art. 3; EDPB 05/2020 scope | EDPB 05/2020 | https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf | Yes |
+
 ## Unverified / needs a source
 
 (None — every row above carries a Perplexity-surfaced source + URL.)
@@ -180,33 +303,37 @@
 (None added — no rows were inserted from training knowledge beyond what the four raw
 Perplexity responses surfaced. Items not yet researched are listed under Gaps below.)
 
-## Gaps (blocked by disk-full / ENOSPC during research — needs a future Perplexity pass)
+## Gaps (remaining — needs a future Perplexity pass)
 
-The disk filled mid-research, so these planned enumeration/completeness passes could NOT
-be run (per orchestrator instruction, no new API calls were made when disk was freed).
-Each needs a dedicated `sonar-pro` pass before rows are added:
+The gap-fill passes (reliability-05 through reliability-08) closed the four largest gaps
+(frontend/infra reliability R68-R106; PCI SAQ A line items P47-P65; US state privacy
+P66-P79; cookie-consent specifics P80-P102). Remaining open items:
 
-- **Frontend / infra reliability checks** — Core Web Vitals (LCP/INP/CLS thresholds),
-  Lighthouse performance audits, TTFB, HTTP/2-3 support, gzip/brotli compression,
-  Cache-Control/ETag, CDN presence, render-blocking resources, page-weight budgets,
-  third-party script perf impact, asset minification, health-check endpoints,
-  retry-after on 429/503, keep-alive, slow-query detection, DB connection pooling.
-  (A call `reliability-05` targeting this against web.dev/Lighthouse/Google SRE was
-  submitted but failed to save due to ENOSPC; the raw file does not exist.)
-- **PCI DSS v4.0 SAQ A per-requirement line items** — individual requirement IDs from
-  the official PCI SSC SAQ A document (only category-level rows captured so far).
+- **Completeness "what's commonly missed" sweep** for both domains — NOT completed.
+  The dedicated sweep call (`reliability-09`) returned HTTP 401 `insufficient_quota`:
+  the Perplexity account ran out of credits mid-run. Topics still un-researched: cold-start/
+  serverless latency, connection-pool exhaustion, slow-query/N+1 detection, clock drift,
+  graceful SIGTERM draining, queue backpressure, log-volume cost blowups, DNS TTL, TLS
+  cert-expiry monitoring, CDN cache-poisoning, brownout/load-shedding (reliability); and
+  DSR SLA timers, IAB TCF consent strings, COPPA children's data, breach-notification
+  readiness, server-log PII retention, analytics IP anonymization, email tracking-pixel
+  consent, session-replay PII masking, cross-border SCC disclosure (privacy). Rerun once
+  Perplexity credits are topped up.
 - **WCAG 2.2 success-criterion-level rows** for general site accessibility (vs the
-  privacy-UI-specific accessibility rows already captured).
-- **US state privacy laws beyond California** (VCDPA, CPA, CTDPA, etc.) — not queried.
-- **Completeness "what's commonly missed" sweep** for both domains — not run.
+  privacy-UI-specific accessibility rows already captured P36-P39) — still not enumerated.
 
 ## Raw evidence
 
 - `raw/reliability-01.json` — Reliability/perf-engineering sources pass (ISTQB glossary+CT-PT, k6/Grafana, Principles of Chaos, Release It!, Hystrix, Resilience4j, Google SRE/SLO). HTTP 200.
 - `raw/reliability-02.json` — Privacy/compliance sources pass (GDPR, EDPB consent + Opinion 5/2019, ePrivacy 2002/58/EC, CCPA/CPRA + CPPA regs, PCI DSS v4.0 + SAQ A, WCAG 2.2 + ADA/DOJ, GPC, DNT). HTTP 200.
 - `raw/reliability-03.json` — Performance/load enumeration (ISTQB types + k6 metrics/scenarios). HTTP 200.
-- `raw/reliability-04.json` — Resilience/chaos enumeration (Principles of Chaos + Google Cloud chaos + SRE: ~35 experiments across dependency, latency, failover, timeout, retry, circuit-breaker, rate-limit, bulkhead, degradation, DB/cache/DNS/partition failure, resource exhaustion, SLO/burn-rate, RTO/backup, idempotency). HTTP 200.
+- `raw/reliability-04.json` — Resilience/chaos enumeration (Principles of Chaos + Google Cloud chaos + SRE: ~35 experiments). HTTP 200.
+- `raw/reliability-05.json` — Front-end & infrastructure reliability enumeration (web.dev/Lighthouse Core Web Vitals + audits, MDN/IETF HTTP-2/3/caching/compression, Kubernetes health checks, Google SRE uptime). HTTP 200. → rows R68-R106.
+- `raw/reliability-06.json` — PCI DSS v4.0 / v4.0.1 SAQ A per-requirement line items (PCI SSC SAQ A PDF + v4.0.1 announcement; incl. 6.4.3/11.6.1/12.3.1 removal and new script-attack eligibility). HTTP 200. → rows P47-P65.
+- `raw/reliability-07.json` — US state privacy laws beyond California (Virginia VCDPA, Colorado CPA, Connecticut CTDPA, Utah UCPA; statute citations; UOOM required CO/CT only; sensitive-data opt-in VA/CO/CT vs opt-out UT). HTTP 200. → rows P66-P79.
+- `raw/reliability-08.json` — Cookie-consent banner specifics (EDPB Guidelines 05/2020, EDPB Cookie Banner Taskforce 2023, ePrivacy Art 5(3), CJEU Planet49, GDPR Art 7; 24 testable banner checks). HTTP 200. → rows P80-P102.
 
-> NOTE (Truth Protocol): `reliability-05.json` (frontend/infra reliability) was submitted
-> to Perplexity but the response FAILED to save because the disk filled (ENOSPC); that raw
-> file does not exist. All rows above are sourced from the four saved raw JSON files only.
+> NOTE (Truth Protocol): The completeness "commonly missed" sweep (`reliability-09`) could
+> NOT be saved — Perplexity returned HTTP 401 `insufficient_quota` (account credits
+> exhausted). No `reliability-09.json` exists. Every row in this catalog is sourced from
+> the eight saved raw JSON files (01-08); nothing was added from training knowledge.

@@ -4,14 +4,15 @@
 > named source surfaced by Perplexity (Rob's account). Raw retrieval JSON is kept
 > under `raw/api-security-NN.json` as the audit trail.
 >
-> **Coverage note:** This catalog deeply covers the three authorization categories
-> that are LaunchAudit's wedge — API1 BOLA/IDOR, API5 BFLA, API3 BOPLA — sourced
-> from raw files 01-04. Calls for the remaining OWASP API risks (API2
-> authentication/JWT, API4/API6 resource consumption & business flows, API7/API8
-> SSRF & misconfiguration) plus CORS and schema/contract validation were queued
-> but did NOT complete: a full-disk condition on the research host blocked them
-> mid-run. Those topics are honestly flagged in **Gaps — not yet researched
-> (disk blocker)** rather than padded with unsourced content.
+> **Coverage note:** This catalog covers the full OWASP API Security Top 10 (2023)
+> with extra depth on the three authorization categories that are LaunchAudit's
+> wedge — API1 BOLA/IDOR, API5 BFLA, API3 BOPLA. It also covers API2 authentication
+> /JWT, API4/API6 resource consumption & business flows, API7 SSRF, API8 security
+> misconfiguration, API9 improper inventory management, CORS misconfiguration,
+> request schema/contract validation, and the OWASP ASVS 4.0.3 V4 access-control
+> requirements. 175 sourced tests across raw files 01-10. (Research was briefly
+> interrupted by a full-disk condition on the host; once cleared, all planned gap
+> passes completed — see Raw evidence.)
 
 ## Sources used
 
@@ -32,11 +33,38 @@
 | CWE-863 Incorrect Authorization | MITRE | Authz check present but wrong | https://cwe.mitre.org/data/definitions/863.html |
 | CWE-915 Improperly Controlled Modification of Dynamically-Determined Object Attributes | MITRE | Mass assignment | https://cwe.mitre.org/data/definitions/915.html |
 | CWE-213 Exposure of Sensitive Information Due to Incompatible Policies | MITRE | Excessive data exposure | https://cwe.mitre.org/data/definitions/213.html |
-
-> Note on the OWASP API Security Testing Guide and OWASP ASVS Access Control
-> chapter: the sources pass (raw/api-security-01.json) confirmed both exist as
-> canonical OWASP works, but the per-requirement enumeration calls for them did
-> not run before the disk blocker. They are listed in Gaps below.
+| OWASP API2:2023 Broken Authentication | OWASP | Authentication / JWT / session flaws | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ |
+| OWASP API4:2023 Unrestricted Resource Consumption | OWASP | Rate limiting / DoS / resource limits | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ |
+| OWASP API6:2023 Unrestricted Access to Sensitive Business Flows | OWASP | Business-flow abuse / anti-automation | https://owasp.org/API-Security/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/ |
+| OWASP API7:2023 Server Side Request Forgery | OWASP | SSRF | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ |
+| OWASP API8:2023 Security Misconfiguration | OWASP | Misconfig / errors / TLS / headers / methods / schema | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ |
+| OWASP API9:2023 Improper Inventory Management | OWASP | Deprecated versions / shadow endpoints / host inventory | https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/ |
+| OWASP WSTG Authentication Testing (WSTG-ATHN) | OWASP – WSTG | Auth behavior, brute-force, enumeration | https://owasp.org/www-project-web-security-testing-guide/ |
+| OWASP WSTG Session Management Testing (WSTG-SESS) | OWASP – WSTG | Session lifecycle, logout, fixation | https://owasp.org/www-project-web-security-testing-guide/ |
+| OWASP WSTG Business Logic Testing (WSTG-BUSL) | OWASP – WSTG | Business-flow abuse | https://owasp.org/www-project-web-security-testing-guide/ |
+| OWASP WSTG Configuration & Deployment Mgmt (WSTG-CONF) | OWASP – WSTG | Methods, TLS, headers, directory indexing | https://owasp.org/www-project-web-security-testing-guide/ |
+| OWASP WSTG Input Validation Testing (WSTG-INPV, incl. SSRF) | OWASP – WSTG | Input validation, SSRF, schema | https://owasp.org/www-project-web-security-testing-guide/ |
+| OWASP WSTG-CLNT-07 Testing Cross Origin Resource Sharing | OWASP – WSTG | CORS misconfiguration | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing |
+| OWASP "Test Other HTTP Security Header Misconfigurations" (WSTG-CONF-14) | OWASP – WSTG | Security header / CORS misconfig | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/14-Test_Other_HTTP_Security_Header_Misconfigurations |
+| OWASP CORS OriginHeaderScrutiny | OWASP Community | Origin header as auth = unsafe | https://owasp.org/www-community/attacks/CORS_OriginHeaderScrutiny |
+| OWASP ASVS 4.0.3 — V4 Access Control | OWASP | Access-control verification requirements (4.1.1–4.3.3) | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md |
+| CWE-287 Improper Authentication | MITRE | Authentication flaws | https://cwe.mitre.org/data/definitions/287.html |
+| CWE-307 Improper Restriction of Excessive Authentication Attempts | MITRE | Brute force / lockout | https://cwe.mitre.org/data/definitions/307.html |
+| CWE-384 Session Fixation | MITRE | Session fixation | https://cwe.mitre.org/data/definitions/384.html |
+| CWE-345 Insufficient Verification of Data Authenticity | MITRE | JWT signature/claim trust | https://cwe.mitre.org/data/definitions/345.html |
+| CWE-770 Allocation of Resources Without Limits or Throttling | MITRE | Resource exhaustion | https://cwe.mitre.org/data/definitions/770.html |
+| CWE-799 Improper Control of Interaction Frequency | MITRE | Rate / frequency abuse | https://cwe.mitre.org/data/definitions/799.html |
+| CWE-400 Uncontrolled Resource Consumption | MITRE | DoS via resource consumption | https://cwe.mitre.org/data/definitions/400.html |
+| CWE-918 Server-Side Request Forgery (SSRF) | MITRE | SSRF | https://cwe.mitre.org/data/definitions/918.html |
+| CWE-16 Configuration | MITRE | Security misconfiguration | https://cwe.mitre.org/data/definitions/16.html |
+| CWE-756 Missing Custom Error Page | MITRE | Default error / info leak | https://cwe.mitre.org/data/definitions/756.html |
+| CWE-942 Permissive Cross-domain Policy with Untrusted Domains | MITRE | CORS over-permissive | https://cwe.mitre.org/data/definitions/942.html |
+| CWE-346 Origin Validation Error | MITRE | CORS origin trust | https://cwe.mitre.org/data/definitions/346.html |
+| CWE-20 Improper Input Validation | MITRE | Schema/input validation | https://cwe.mitre.org/data/definitions/20.html |
+| CWE-1287 Improper Validation of Specified Type of Input | MITRE | Type/contract validation | https://cwe.mitre.org/data/definitions/1287.html |
+| CWE-611 Improper Restriction of XML External Entity Reference | MITRE | XXE (if XML accepted) | https://cwe.mitre.org/data/definitions/611.html |
+| RFC 8725 JSON Web Token Best Current Practices | IETF | JWT algorithm/header/claim hardening | https://www.rfc-editor.org/rfc/rfc8725 |
+| OWASP API Security Testing Guide (project) | OWASP | API-specific testing techniques | https://owasp.org/www-project-api-security/ |
 
 ## Tests
 
@@ -126,37 +154,188 @@ requires human judgement / business context.
 | 65 | Hit loosely-typed generic update endpoints (PATCH /entities/{id}) with privilege/ownership/token fields | Generic endpoints enforce fine-grained property controls | Mass assignment generic endpoint | OWASP API3:2023; CWE-915 | OWASP API3:2023 | https://owasp.org/API-Security/editions/2023/en/0xa3-broken-object-property-level-authorization/ | Partial |
 | 66 | Regression: re-run all denied mass-assignment attempts after a fix | Property-level authz stays enforced over time | Mass assignment regression | OWASP API3:2023; CWE-915 | OWASP API3:2023 | https://owasp.org/API-Security/editions/2023/en/0xa3-broken-object-property-level-authorization/ | Yes |
 
-## Gaps — not yet researched (disk blocker)
+### API2:2023 — Broken Authentication / JWT & session flaws — source: raw/api-security-05.json
 
-These topics were planned and queued for Perplexity enumeration but the calls did
-NOT complete — a full-disk condition on the research host (ENOSPC) blocked curl
-calls 05-07 mid-run and they were not re-run (per orchestrator instruction to
-avoid refilling the tight disk). They are flagged here honestly rather than filled
-with unsourced content. Each is ready to research in a follow-up pass with the
-anchor sources noted.
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 67 | Send a JWT with `alg":"none"` (no signature) | API rejects unsigned tokens; doesn't trust header alg | JWT alg=none | OWASP API2:2023; RFC 8725; CWE-345 | OWASP API2:2023 | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Yes |
+| 68 | Change header RS256→HS256, sign using the server's public key as HMAC secret | Verifier doesn't switch asym→sym from header; doesn't treat public key as secret | JWT algorithm confusion | RFC 8725; CWE-345 | RFC 8725 | https://www.rfc-editor.org/rfc/rfc8725 | Yes |
+| 69 | Test for weak/guessable signing key (offline crack in test env, or verify key entropy) | Signing secret is high-entropy, not brute-forceable | JWT weak key | OWASP API2:2023; CWE-345 | OWASP API2:2023 | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Partial |
+| 70 | Alter claims (sub/role/exp) without recomputing signature; send token | API rejects tokens with absent/invalid/unverified signatures | JWT missing signature verify | OWASP API2:2023; CWE-345 | OWASP API2:2023 | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Yes |
+| 71 | Reuse a token after its `exp` time | API enforces `exp` and rejects expired JWTs | JWT expiry not enforced | OWASP API2:2023; RFC 8725; CWE-287 | OWASP API2:2023 | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Yes |
+| 72 | Set `nbf` in the future or implausible `iat`; send token | API applies appropriate freshness/time checks on registered claims | JWT nbf/iat checks | RFC 8725; CWE-345 | RFC 8725 | https://www.rfc-editor.org/rfc/rfc8725 | Partial |
+| 73 | Put path-traversal/SQL metacharacters/long strings in `kid` header | Verifier treats `kid` as data only; no path/SQL/command injection | JWT kid injection | RFC 8725; CWE-345 | RFC 8725 | https://www.rfc-editor.org/rfc/rfc8725 | Partial |
+| 74 | Point `jku`/`x5u` header to an attacker-controlled URL | Verifier doesn't fetch keys from untrusted header URLs (or strictly allowlists) | JWT jku/x5u abuse | RFC 8725; CWE-345 | RFC 8725 | https://www.rfc-editor.org/rfc/rfc8725 | Partial |
+| 75 | Authenticate, capture token, log out, retry the same token | Token/session invalidated on logout | Session logout invalidation | OWASP WSTG-SESS; CWE-287 | OWASP WSTG-SESS | https://owasp.org/www-project-web-security-testing-guide/ | Partial |
+| 76 | Verify a revocation strategy exists for compromised/terminated tokens (esp. refresh) | System can revoke long-lived/refresh tokens | Token revocation | OWASP WSTG-SESS; RFC 8725 | OWASP WSTG-SESS | https://owasp.org/www-project-web-security-testing-guide/ | Manual |
+| 77 | Repeated failed logins, same account / rotating accounts | Throttle/lockout/captcha engages; no unlimited attempts | Brute force / credential stuffing | OWASP API2:2023; CWE-307; WSTG-ATHN | OWASP API2:2023 | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Yes |
+| 78 | Test short/common/breached passwords and policy bypasses | API enforces minimum length, rejects common/compromised passwords | Weak password policy | OWASP API2:2023; WSTG-ATHN | OWASP API2:2023 | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Partial |
+| 79 | Compare error body/status/timing/MFA behavior for valid vs invalid usernames | Login/register/reset/MFA flows don't leak account existence | Username enumeration | OWASP WSTG-ATHN; CWE-204, CWE-209 | OWASP WSTG-ATHN | https://owasp.org/www-project-web-security-testing-guide/ | Partial |
+| 80 | Confirm no endpoint accepts bearer tokens in query string/path; check logs/redirects | Auth material not transmitted in URLs | Token in URL | OWASP API2:2023; WSTG-ATHN | OWASP API2:2023 | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Yes |
+| 81 | Attempt change-email/reset-password/add-device/funds-transfer without fresh MFA | High-risk actions require step-up auth/MFA | Missing MFA on sensitive flows | OWASP API2:2023; WSTG-ATHN | OWASP API2:2023 | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Partial |
+| 82 | Try unregistered/partial/wildcard/encoded/subdomain/open-redirect `redirect_uri` | Auth server only redirects to exact pre-registered URIs | OAuth redirect_uri validation | IETF OAuth 2.0 Security BCP | OWASP API2:2023 | https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/ | Partial |
+| 83 | Replay an already-used refresh token after exchange | Refresh tokens are one-time/rotation-bound; reuse detected & blocked | Refresh token rotation | IETF OAuth Security BCP; WSTG-SESS | OWASP WSTG-SESS | https://owasp.org/www-project-web-security-testing-guide/ | Partial |
+| 84 | Set a session identifier before login; verify it's replaced after authentication | New session ID issued post-auth; attacker-chosen ID invalidated | Session fixation | CWE-384; WSTG-SESS | CWE-384 | https://cwe.mitre.org/data/definitions/384.html | Partial |
 
-| Topic | OWASP risk | Anchor sources to mine | Planned raw file |
-|---|---|---|---|
-| Broken Authentication / JWT flaws (alg=none, RS256→HS256 confusion, weak/missing signature verification, expiry not enforced, kid header injection, logout invalidation, brute-force/lockout, weak password policy, token in URL, revocation, OAuth flow, refresh-token rotation, MFA) | API2:2023 | OWASP API2:2023; WSTG-ATHN; WSTG-SESS; CWE-287, CWE-307, CWE-384, CWE-345; RFC 8725 (JWT BCP) | api-security-05.json (not created) |
-| Unrestricted Resource Consumption / rate limiting & DoS (per-endpoint rate limits, login/OTP/reset throttling, body-size limits, pagination abuse, GraphQL depth/complexity, file-upload size, concurrency) | API4:2023 | OWASP API4:2023; WSTG-BUSL; CWE-770, CWE-799, CWE-307 | api-security-06.json (not created) |
-| Unrestricted Access to Sensitive Business Flows (bulk-purchase/scalping abuse, captcha absence, business-flow rate controls) | API6:2023 | OWASP API6:2023; WSTG-BUSL | api-security-06.json (not created) |
-| Server-Side Request Forgery (internal-IP / cloud-metadata 169.254.169.254, DNS rebinding, redirect-based, blind SSRF) | API7:2023 | OWASP API7:2023; WSTG-INPV; CWE-918 | api-security-07.json (not created) |
-| Security Misconfiguration (verbose errors/stack traces, default creds, dangerous HTTP methods TRACE/OPTIONS, missing security headers, directory listing, debug endpoints, outdated TLS) | API8:2023 | OWASP API8:2023; WSTG-CONF; CWE-16, CWE-756 | api-security-07.json (not created) |
-| CORS misconfiguration (reflected Origin, null origin, ACAO wildcard + ACAC true, pre-flight bypass) | (cross-cutting, API8) | OWASP WSTG-CLNT-07 Testing Cross Origin Resource Sharing; CWE-942 | not created |
-| Schema / contract validation (OpenAPI conformance, request/response schema enforcement) | (cross-cutting, API8/API9) | OWASP API Security Testing Guide; API9:2023 Improper Inventory Management | not created |
-| OWASP ASVS Access Control chapter per-requirement enumeration | (standards mapping) | OWASP ASVS Access Control (V4/V8 depending on edition) | api-security-09.json (not created) |
-| Completeness sweep ("what authz/API tests are commonly missed") | (meta) | OWASP API Security Project; sonar-reasoning pass | not created |
+### API4:2023 — Unrestricted Resource Consumption & API6:2023 — Sensitive Business Flows — source: raw/api-security-06.json
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 85 | Flood a high-value endpoint with bursts from one identity; watch for 429/Retry-After | Per-endpoint/per-identity rate limiting enforced | Rate limiting per endpoint | OWASP API4:2023; CWE-799, CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Yes |
+| 86 | Rapid repeated login attempts (same user / rotating users) | Excessive auth attempts restricted (throttle/lockout) | Login throttling | OWASP API4:2023; CWE-307, CWE-799 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Yes |
+| 87 | Many incorrect OTPs in rapid succession (per account and per source) | Per-account/per-source OTP attempt limits | OTP brute throttling | OWASP API4:2023; CWE-799, CWE-307 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Yes |
+| 88 | Many password-reset requests for same/different accounts | Reset frequency limited; no email/SMS flooding | Password-reset flooding | OWASP API4:2023; CWE-799, CWE-770 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Yes |
+| 89 | Repeatedly trigger outbound email/SMS endpoints (same/rotating targets) | Per-identity/per-target quotas + third-party spending caps | Email/SMS send abuse | OWASP API4:2023; CWE-770, CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial |
+| 90 | Progressively increase request body size (1→50MB+) on representative endpoints | Max payload/parameter size enforced (413/400) | Request body size limits | OWASP API4:2023; CWE-770, CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Yes |
+| 91 | Send excessive/negative/zero pagination values (limit=999999999, -1, 0) | Server caps page size; validates pagination params | Pagination limit abuse | OWASP API4:2023; CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Yes |
+| 92 | Craft deeply nested GraphQL queries (10-20+ levels) | Server enforces max query depth | GraphQL query depth | OWASP API4:2023; CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial |
+| 93 | GraphQL query selecting all fields/types with broad filters | Query cost/complexity analysis enforced | GraphQL query complexity | OWASP API4:2023; CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial |
+| 94 | Single request with dozens/hundreds of batched GraphQL operations | Limit on operations per request | GraphQL batching | OWASP API4:2023; CWE-770, CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial |
+| 95 | Send bulk/array endpoints with growing element counts (10→10,000+) | Max elements per batch enforced | Batch/array abuse | OWASP API4:2023; CWE-770, CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Yes |
+| 96 | Upload increasingly large single files (10→100MB+) | Max upload file size enforced (413/400) | File upload size | OWASP API4:2023; CWE-770, CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Yes |
+| 97 | Upload many files per request / high upload frequency | Limit on file count per request and upload rate | File upload count/frequency | OWASP API4:2023; CWE-770, CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial |
+| 98 | Repeatedly call CPU-heavy endpoints (reports/analytics/PDF/aggregation) with complex params | Timeouts/stricter rate limits on expensive operations | Expensive computation | OWASP API4:2023; CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial |
+| 99 | Start many background jobs quickly (per user and across users) | Quota on concurrent/total background jobs | Async job flooding | OWASP API4:2023; CWE-770 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial |
+| 100 | Repeatedly trigger endpoints calling paid third-party APIs (SMS/email/payment/lookup) | Spending limits / quotas prevent financial DoS | Third-party cost amplification | OWASP API4:2023; CWE-770, CWE-400 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial |
+| 101 | Open many concurrent requests/connections per user/token/IP | Concurrency caps on connections/threads/DB sessions | Concurrency limits | OWASP API4:2023; CWE-770 | OWASP API4:2023 | https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/ | Partial |
+| 102 | Start a stateful flow (checkout/transfer/booking) concurrently with same account | System serializes/detects duplicates; no double-processing | Race condition on flows | OWASP API6:2023; WSTG-BUSL; CWE-799 | OWASP API6:2023 | https://owasp.org/API-Security/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/ | Partial |
+| 103 | Many rapid purchases for one account and across same-actor accounts | Per-customer quantity/frequency limits; anti-scalping | Bulk purchase / scalping | OWASP API6:2023; WSTG-BUSL | OWASP API6:2023 | https://owasp.org/API-Security/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/ | Partial |
+| 104 | Systematic gift-card/voucher/promo code guessing at high frequency | Redemption attempt limits + anti-automation | Gift-card / voucher brute | OWASP API6:2023; WSTG-BUSL; CWE-799 | OWASP API6:2023 | https://owasp.org/API-Security/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/ | Partial |
+| 105 | Automate mass account creation (disposable emails, same IP/device) | Per-IP/device rate limits + captcha/verification thresholds | Signup abuse | OWASP API6:2023; WSTG-BUSL | OWASP API6:2023 | https://owasp.org/API-Security/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/ | Partial |
+| 106 | Submit sensitive flows (login/reset/signup/payment) without solving the captcha | Captcha is server-side enforced, not UI decoration | Captcha absence/bypass | OWASP API6:2023; WSTG-BUSL | OWASP API6:2023 | https://owasp.org/API-Security/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/ | Partial |
+
+### API7:2023 — Server-Side Request Forgery (SSRF) — source: raw/api-security-07.json
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 107 | Point URL-taking params (url/imageUrl/webhook/pdfUrl/importUrl) at loopback/RFC1918/link-local IPs | Server doesn't honor arbitrary URLs to internal hosts | SSRF internal IP | OWASP API7:2023; WSTG-INPV; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 108 | Target cloud metadata endpoints (169.254.169.254 AWS/GCP/Azure) via URL params | No SSRF to cloud metadata; metadata protections in place | SSRF cloud metadata | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 109 | Register webhook/callback URLs pointing to internal IPs; trigger the event | Webhook destinations filtered; no internal pivot | SSRF webhook | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 110 | Supply internal/metadata URLs to avatar/thumbnail image-fetch endpoints | Scheme/origin restricted; no raw internal responses | SSRF image fetch | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 111 | Feed internal/metadata URLs to PDF renderer / document importer | Headless renderer/importer doesn't fetch internal resources | SSRF PDF/import | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 112 | Use generic import/sync/feed URL params against internal IPs | Broad URL-fetching surface validated/isolated | SSRF generic fetch | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 113 | DNS rebinding: domain resolves external then internal across requests | Target pins resolved IP, not just hostname allowlist | SSRF DNS rebinding | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Manual |
+| 114 | Attacker server 302-redirects fetcher to 127.0.0.1 / metadata | HTTP redirects disabled/restricted for fetchers | SSRF redirect-based | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 115 | Blind SSRF: OOB collaborator + timing diffs on non-returning fetchers | Detects outbound requests when content isn't returned | SSRF blind/OOB | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 116 | Send non-HTTP schemes (file://, gopher://, ftp://) to fetchers | Scheme allowlist (http/https only) enforced | SSRF protocol smuggling | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 117 | Allowlist bypass: creds@host, decimal/hex IPs, IPv4-mapped IPv6, mixed encodings | Well-tested URL parser; allowlist applied to real connect target | SSRF allowlist bypass | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+| 118 | Re-run SSRF payloads; confirm consistent rejection + no OOB hits + no info leak | SSRF mitigations (isolation/allowlist/redirects off) effective | SSRF mitigation verify | OWASP API7:2023; CWE-918 | OWASP API7:2023 | https://owasp.org/API-Security/editions/2023/en/0xa7-server-side-request-forgery/ | Partial |
+
+### API8:2023 — Security Misconfiguration — source: raw/api-security-07.json
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 119 | Force backend exceptions (bad JSON, wrong types, DB errors); inspect responses | No stack traces / framework error pages / internal paths leaked | Verbose errors / stack traces | OWASP API8:2023; CWE-756, CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 120 | Attempt default/well-known creds and anonymous access on admin/management interfaces | No default credentials or unauthenticated admin access | Default credentials | OWASP API8:2023; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Partial |
+| 121 | Enumerate methods (OPTIONS Allow header; test TRACE/PUT/DELETE/CONNECT/PATCH) | Only necessary HTTP methods enabled; no TRACE/XST | Dangerous HTTP methods | OWASP API8:2023; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 122 | Inspect HTTPS responses for Strict-Transport-Security (HSTS) | HSTS present with reasonable max-age | Missing HSTS | OWASP API8:2023; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 123 | Inspect responses for X-Content-Type-Options: nosniff | MIME-sniffing protection present | Missing X-Content-Type-Options | OWASP API8:2023; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 124 | Check CSP on API docs / Swagger / admin UIs (missing or default-src *) | CSP present and not overly permissive on web UIs | Missing/weak CSP | OWASP API8:2023; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 125 | Visit /, /api/, /static/, /logs/, /backup/ for auto directory listings | Directory browsing disabled | Directory listing | OWASP API8:2023; WSTG-CONF; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 126 | Scan debug/actuator paths (/actuator/env, /trace, /h2-console, /debug) unauth & low-priv | Debug/management endpoints not exposed in prod | Debug/actuator exposed | OWASP API8:2023; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 127 | Attempt handshakes with SSLv3/TLS1.0/1.1; confirm rejected | Only current secure TLS versions allowed | Outdated TLS versions | OWASP API8:2023; WSTG-CONF; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 128 | Enumerate cipher suites & cert validity (no NULL/RC4/export; not expired/self-signed) | Strong ciphers + valid cert | Weak ciphers / cert | OWASP API8:2023; WSTG-CONF; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 129 | Make plain http:// requests; check for 301/302 to https | HTTP→HTTPS redirect enforced | Missing HTTP→HTTPS redirect | OWASP API8:2023; CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 130 | Request nonexistent paths / bad methods; check for framework default error pages | Custom error pages; no banner/stack trace disclosure | Missing custom error page | OWASP API8:2023; CWE-756, CWE-16 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+
+### CORS misconfiguration — source: raw/api-security-08.json
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 131 | Send arbitrary Origin (evil-example.com); check if ACAO reflects it | Server doesn't blindly reflect Origin | CORS origin reflection | WSTG-CLNT-07; CWE-942, CWE-346 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Yes |
+| 132 | Authenticated request from arbitrary Origin; check ACAO reflected + ACAC:true (PoC fetch) | No credentialed cross-origin data theft from arbitrary origins | CORS reflection + credentials | WSTG-CLNT-07; CWE-346 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Yes |
+| 133 | Check for ACAO: * combined with ACAC: true on sensitive endpoints | No wildcard ACAO with credentials (severe misconfig) | CORS wildcard + credentials | WSTG-CONF-14; CWE-942 | OWASP WSTG-CONF-14 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/14-Test_Other_HTTP_Security_Header_Misconfigurations | Yes |
+| 134 | Send Origin: null; check if ACAO: null returned | Server doesn't trust the null origin | CORS null origin | WSTG-CLNT-07; CWE-346 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Yes |
+| 135 | Test prefix/suffix bypass Origins (evil-example.com, example.com.evil.com) | Origin validation uses exact match, not substring/regex | CORS regex/suffix bypass | WSTG-CLNT-07; CWE-942, CWE-346 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Yes |
+| 136 | Multi-tenant: request from a user-controlled subdomain origin | App doesn't implicitly trust all subdomains | CORS subdomain trust | WSTG-CLNT-07; CWE-942 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Partial |
+| 137 | Preflight OPTIONS with Access-Control-Request-Method: DELETE from untrusted origin | Unsafe methods not allowed cross-origin for untrusted origins | CORS preflight unsafe methods | WSTG-CLNT-07; CWE-942 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Yes |
+| 138 | Preflight requesting Authorization/custom headers; check ACAH: * or echo | Arbitrary custom headers (incl. Authorization) not permitted from untrusted origins | CORS permissive headers | WSTG-CLNT-07; CWE-942 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Yes |
+| 139 | Cross-origin non-simple request; check preflight vs actual-request consistency | Preflight enforced end-to-end; non-simple request not silently processed | CORS preflight enforcement | WSTG-CLNT-07; CWE-942 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Partial |
+| 140 | Confirm sensitive responses don't carry ACAO: * even without credentials | Wildcard not used for sensitive resources | CORS wildcard sensitive data | WSTG-CLNT-07; CWE-942 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Yes |
+| 141 | Send HTTP origin to an HTTPS API; check if ACAO trusts the http origin | Secure API doesn't trust insecure (http) origins | CORS protocol mixing | WSTG-CLNT-07; CWE-346 | OWASP WSTG-CLNT-07 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/07-Testing_Cross_Origin_Resource_Sharing | Yes |
+| 142 | Endpoint with no auth that gates only on Origin; spoof Origin from non-browser client | Origin header not used as sole access control | CORS origin-as-auth | OWASP CORS OriginHeaderScrutiny; CWE-346 | OWASP CORS OriginHeaderScrutiny | https://owasp.org/www-community/attacks/CORS_OriginHeaderScrutiny | Yes |
+| 143 | Inspect responses for duplicate/conflicting ACAO/Vary headers | CORS headers consistent and predictable | CORS duplicate headers | WSTG-CONF-14 | OWASP WSTG-CONF-14 | https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/14-Test_Other_HTTP_Security_Header_Misconfigurations | Yes |
+
+### Schema / contract validation & API9:2023 — Improper Inventory Management — source: raw/api-security-09.json
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 144 | Send wrong primitive type for a field (string where integer documented) | Strict schema/type validation; 4xx not 2xx | Schema type mismatch | OWASP API8:2023; CWE-20, CWE-1287 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 145 | Omit a `required` field per the OpenAPI/JSON Schema | Required-field validation; safe 4xx; no business logic run | Missing required field | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 146 | Add undocumented fields (is_admin/role/status) not in the schema | Unknown fields rejected/ignored, not bound (no mass assignment) | Extra/undocumented fields | OWASP API8:2023; CWE-20, CWE-915 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 147 | Send unsupported enum value (status=HACKED) | Enum constraint enforced server-side; no insecure default | Invalid enum value | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 148 | Send wrong structural shape (object where array expected, and vice versa) | Collection/structural type validation | Wrong structure | OWASP API8:2023; CWE-1287 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 149 | Mismatch Content-Type vs body (JSON body with form Content-Type, etc.) | Content-Type enforced; no ambiguous parsing | Content-Type confusion | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 150 | Send unsupported Content-Type (application/xml where only JSON documented) | Returns 415; doesn't process unsupported type | Unsupported Content-Type | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 151 | Send a body with no Content-Type header | No unsafe content-type auto-detection; 400/415 | Missing Content-Type | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 152 | Send strings over maxLength / empty where minLength>0 | String length bounds enforced | String length bounds | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 153 | Send numbers below minimum / above maximum / overflow values | Numeric range bounds enforced; no overflow/truncation | Numeric range bounds | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 154 | Send invalid format values (bad email/uuid/date) for format-constrained fields | Format validation enforced | Format validation | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 155 | Send values violating pattern/regex constraints (username/phone/postal) | Pattern/regex validation applied | Pattern validation | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 156 | Send syntactically invalid JSON (missing braces, trailing commas, unquoted keys) | 400 + safe error; no 500/stack trace/partial parse | Malformed JSON | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 157 | Send JSON with duplicate keys ({role:user, role:admin}) | Deterministic/safe parsing; no privilege bypass | Duplicate JSON keys | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 158 | Send wrong top-level type (array/primitive where object required) | Root-type enforced | Wrong top-level type | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 159 | Send oversized / deeply nested JSON | Size/depth limits prevent DoS (413); no memory exhaustion | Oversized/nested JSON | OWASP API8:2023; CWE-20, CWE-400 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 160 | Send XML to a JSON-only endpoint | XML rejected (415); no hidden deserialization path | Unexpected XML | OWASP API8:2023; CWE-20 | OWASP API8:2023 | https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/ | Yes |
+| 161 | If XML supported: send external entity (XXE) and entity-expansion bombs | External entity resolution disabled; expansion limited | XXE / entity expansion | OWASP WSTG-INPV; CWE-611, CWE-400 | OWASP WSTG-INPV | https://owasp.org/www-project-web-security-testing-guide/ | Partial |
+| 162 | Enumerate versioned paths (/v1, /v2, /legacy); compare to documented current version | Deprecated/retired versions removed or equally protected | Deprecated API versions | OWASP API9:2023; CWE-16 | OWASP API9:2023 | https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/ | Partial |
+| 163 | Diff observed endpoints (traffic/scan) against the OpenAPI spec for shadow/zombie APIs | Complete, current endpoint inventory; no undocumented endpoints | Undocumented/shadow endpoints | OWASP API9:2023 | OWASP API9:2023 | https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/ | Partial |
+| 164 | Enumerate non-prod hosts (staging/beta) via DNS/CT logs; test public reachability | Non-prod environments not publicly exposed or hardened like prod | Non-prod hosts exposed | OWASP API9:2023 | OWASP API9:2023 | https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/ | Partial |
+| 165 | Check whether sensitive/internal API docs (Swagger/OpenAPI) are publicly accessible | Docs complete and exposed only to authorized parties | API doc exposure/completeness | OWASP API9:2023 | OWASP API9:2023 | https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/ | Partial |
+| 166 | Enumerate all hosts and classify env/exposure/version vs official inventory/CMDB | Accurate centralized host inventory; no drift | Host enumeration / inventory | OWASP API9:2023 | OWASP API9:2023 | https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/ | Manual |
+
+### OWASP ASVS 4.0.3 V4 — Access Control verification requirements — source: raw/api-security-10.json
+
+| # | Test / Check | What it verifies | Subcategory | Standard ref | Source | Source URL | Automatable by LaunchAudit? |
+|---|---|---|---|---|---|---|---|
+| 167 | Disable/modify client-side controls (HTML/JS) and retry; access still denied | Access control enforced on a trusted service layer | ASVS 4.1.1 trusted layer | OWASP ASVS 4.1.1; CWE-602 | OWASP ASVS V4 | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md | Partial |
+| 168 | Manipulate any attribute feeding authz (role claim, org ID, scope, hidden fields) | Authz attributes/policies not client-tamperable | ASVS 4.1.2 non-tamperable attrs | OWASP ASVS 4.1.2; CWE-639 | OWASP ASVS V4 | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md | Partial |
+| 169 | Attempt to access functions/data/URLs/controllers without specific authorization | Least privilege; no spoofing or elevation of privilege | ASVS 4.1.3 least privilege | OWASP ASVS 4.1.3; CWE-285 | OWASP ASVS V4 | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md | Partial |
+| 170 | Induce faults in the authz path (break auth service/DB/PDP); observe outcome | Access controls fail securely (deny by default) on error | ASVS 4.1.5 fail securely | OWASP ASVS 4.1.5; CWE-636 | OWASP ASVS V4 | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md | Partial |
+| 171 | Test IDOR across CRUD + bulk for every object family (create/read/update/delete others') | Sensitive data/APIs protected against IDOR on all operations | ASVS 4.2.1 IDOR | OWASP ASVS 4.2.1; CWE-639 | OWASP ASVS V4 | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md | Partial |
+| 172 | Verify anti-CSRF on authenticated state-changing ops; anti-automation on unauth ops | Strong anti-CSRF / anti-automation present | ASVS 4.2.2 CSRF/anti-automation | OWASP ASVS 4.2.2; CWE-352 | OWASP ASVS V4 | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md | Partial |
+| 173 | Verify admin interfaces (UI and API) require MFA | Administrative interfaces protected with MFA | ASVS 4.3.1 admin MFA | OWASP ASVS 4.3.1; CWE-308 | OWASP ASVS V4 | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md | Partial |
+| 174 | Attempt directory browsing and access to .git/.svn/.DS_Store/Thumbs.db/backups | Directory browsing disabled; no metadata/repo exposure | ASVS 4.3.2 directory/metadata | OWASP ASVS 4.3.2; CWE-548 | OWASP ASVS V4 | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md | Yes |
+| 175 | Verify step-up/adaptive auth and segregation of duties on high-value workflows | Additional authz / SoD anti-fraud controls enforced | ASVS 4.3.3 step-up / SoD | OWASP ASVS 4.3.3; CWE-285 | OWASP ASVS V4 | https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V4-Access-Control.md | Manual |
+
+## Gaps — remaining (low / out of automated scope)
+
+All originally-planned gap passes (API2 authentication/JWT, API4/API6 resource
+consumption & business flows, API7 SSRF, API8 misconfiguration, CORS, schema/
+contract validation + API9 inventory, ASVS V4 access control, and the
+commonly-missed completeness sweep) have now been researched and folded into the
+tables above (rows 67-175). The items below are the genuinely remaining frontier —
+either intentionally deferred to sibling catalogs or inherently human-judgement.
+
+| Remaining topic | Why not catalogued here | Where it belongs |
+|---|---|---|
+| OAuth 2.0 / OIDC flow internals (PKCE, state/nonce, token endpoint auth, implicit-flow deprecation) | Touched via row 82 (redirect_uri) and 83 (refresh rotation); full OAuth-server enumeration anchors on IETF OAuth 2.0 Security BCP (RFC 9700) rather than the OWASP API Top 10 | Dedicated authn/OAuth pass (RFC 9700) |
+| Injection classes reachable via APIs (SQLi, NoSQLi, command, LDAP) | Out of the authz/API-security wedge scope; belongs to the web-security / injection catalog | 03-web-security (sibling catalog) |
+| Business-logic flaws beyond rate/flow abuse (price manipulation, workflow skipping) | Inherently app-specific; WSTG-BUSL requires human modeling of the business | Manual review track |
+| ASVS 5.0 mapping | ASVS 5.0 not yet a final published release at research time (raw/api-security-10.json); 4.0.3 V4 used as the canonical, stable anchor | Re-map when ASVS 5.0 ships |
+
+> Completeness-sweep note (raw/api-security-10.json): the "commonly missed" API
+> authorization tests it surfaced — IDOR across ALL CRUD/bulk ops, cross-tenant
+> isolation, authz on background/webhook/GraphQL/gRPC entry points, token/claim
+> attribute-integrity, fail-securely fault injection, SoD/step-up flows,
+> field-level authz, and admin-API (not just admin-UI) hardening — are already
+> represented by rows 1-15, 16-37, 67-84, 101-106, 162-175. No net-new
+> uncovered category remained after folding them in.
 
 ## Unverified / needs a source
 
-(none — every row above carries an OWASP/MITRE source name + URL drawn from the
-raw JSON, which themselves cite OWASP API1/3/5:2023, WSTG-ATHZ-02/03/04,
-WSTG-INPV-13, and CWE-285/566/639/862/863/915/213)
+(none — every one of the 175 rows above carries an OWASP/MITRE/IETF source name +
+URL drawn from the raw JSON, which themselves cite OWASP API1-API9:2023,
+WSTG-ATHZ-02/03/04, WSTG-ATHN, WSTG-SESS, WSTG-BUSL, WSTG-CONF, WSTG-INPV,
+WSTG-CLNT-07, OWASP ASVS 4.0.3 V4, RFC 8725, and CWE-16/20/213/285/287/307/345/
+346/384/400/566/611/639/756/770/799/862/863/915/918/942/1287)
 
 ## [MODEL-SUGGESTED — confirm]
 
-(none — no rows were added from model training knowledge; all 66 rows trace to
-raw/api-security-02/03/04.json)
+(none — no rows were added from model training knowledge; all 175 rows trace to
+raw/api-security-02..10.json. Where a row cites a CWE that the raw answer named
+only as supporting context — e.g. CWE-602/636/352/548/308 on the ASVS rows — the
+CWE was named in that raw response, not introduced here.)
 
 ## Raw evidence
 
@@ -164,3 +343,9 @@ raw/api-security-02/03/04.json)
 - raw/api-security-02.json — API1:2023 BOLA/IDOR enumeration (rows 1-15); 7 citations
 - raw/api-security-03.json — API5:2023 BFLA / vertical priv-esc enumeration (rows 16-37); 8 citations
 - raw/api-security-04.json — API3:2023 BOPLA mass assignment + excessive data exposure (rows 38-66); 9 citations
+- raw/api-security-05.json — API2:2023 Broken Authentication / JWT & session flaws (rows 67-84); 8 citations
+- raw/api-security-06.json — API4:2023 resource consumption + API6:2023 business flows (rows 85-106); 8 citations
+- raw/api-security-07.json — API7:2023 SSRF (rows 107-118) + API8:2023 security misconfiguration (rows 119-130); 8 citations
+- raw/api-security-08.json — CORS misconfiguration (rows 131-143); 9 citations
+- raw/api-security-09.json — schema/contract validation + API9:2023 improper inventory management (rows 144-166); 8 citations
+- raw/api-security-10.json — OWASP ASVS 4.0.3 V4 access control + commonly-missed completeness sweep (rows 167-175); 10 citations

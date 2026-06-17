@@ -18,7 +18,16 @@ canonical standard, e.g. Open Graph property, Core Web Vitals metric).
 | Google Search Central — Localized versions (hreflang) | Google | hreflang presence/placement, syntax, ISO codes, self-reference, return links, x-default, sitemap/HTTP-header hreflang | https://developers.google.com/search/docs/specialty/international/localized-versions |
 | Google Search Central — Managing multi-regional & multilingual sites | Google | distinct URLs per locale, no auto-redirect, UTF-8 URLs, page-level geotargeting | https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites |
 | Google Search Central — Mobile-first indexing best practices | Google | Mobile/desktop content parity, intrusive interstitials, resource access parity | https://developers.google.com/search/docs/crawling-indexing/mobile/mobile-sites-mobile-first-indexing |
-| Google Rich Results & Structured Data docs | Google | Rich-result type eligibility (required/recommended props), structured-data quality/spam policy | https://developers.google.com/search/docs/appearance/structured-data |
+| Google Rich Results & Structured Data docs | Google | Rich-result type eligibility per type (Article, Breadcrumb, Product, FAQ, LocalBusiness, Event, Recipe, Review, Video, Organization, Sitelinks searchbox); SD general guidelines + quality/spam policy | https://developers.google.com/search/docs/appearance/structured-data/sd-policies |
+| Google Search Central — Spam policies | Google | Cloaking, sneaky redirects, structured-data spam | https://developers.google.com/search/docs/essentials/spam-policies |
+| Google Merchant Center — structured data | Google | SD in server HTML, SD values match visible | https://support.google.com/merchants/answer/7331077 |
+| Google Search Central — JavaScript SEO basics | Google | Rendering parity, hydration, JS-controlled meta, infinite scroll, blocked resources | https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics |
+| Google Search Central — Pagination (deprecation blog) | Google | rel=next/prev deprecation | https://developers.google.com/search/blog/2019/03/pagination-with-relnext-and-relprev |
+| Google Search Central — AMP / Favicon / Lazy-loading / International getting-started | Google | AMP validity, favicon in Search, lazy-load crawlability, IDN handling | https://developers.google.com/search/docs/appearance/favicon-in-search |
+| sitemaps.org Sitemap protocol | sitemaps.org | XML sitemap + sitemap-index validation (urlset, loc, lastmod, changefreq, priority, 50k/50MB limits, UTF-8, escaping, host/protocol, gzip, XSD) | https://www.sitemaps.org/protocol.html |
+| web.dev — Rendering / Mixed content | Google | Hydration & SEO, mixed-content detection | https://web.dev/rendering-on-the-web/ |
+| W3C Web App Manifest | W3C | Manifest validity (name/short_name/icons/start_url/display) | https://w3c.github.io/manifest/ |
+| Twitter / X Cards (X Developer Community cards hub) | X Corp. | Card markup per type + image constraints (canonical X docs URL not surfaced; community cards hub used) | https://devcommunity.x.com/c/publisher/cards/8 |
 | Google Rich Results Test | Google | JSON-LD/Microdata/RDFa syntax validation, feature eligibility, mobile vs desktop render | https://search.google.com/test/rich-results |
 | schema.org | Schema.org initiative | Structured-data vocabulary (types, properties, enumerations) | https://schema.org/ |
 | Open Graph protocol | OGP | Social preview metadata (`og:title`, `og:type`, `og:image`, `og:url`, `og:description`) | https://ogp.me/ |
@@ -161,25 +170,142 @@ canonical standard, e.g. Open Graph property, Core Web Vitals metric).
 | 129 | Twitter/X Card content properties | `twitter:title`, `twitter:description`, `twitter:image` present per card type | Social cards | Twitter/X Cards | Twitter / X Cards | https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/abouts-cards | Yes |
 | 130 | URL normalization correctness | URLs parse/normalize correctly (affects canonical & dup detection) | URL structure | WHATWG URL Standard | WHATWG | https://url.spec.whatwg.org/ | Yes |
 | 131 | HTTP status-code semantics correct | 2xx/3xx/4xx/5xx used per HTTP semantics for crawl handling | HTTP status | IETF RFC 9110 (HTTP Semantics) | IETF | https://www.rfc-editor.org/rfc/rfc9110 | Yes |
+| 132 | Article rich result required props | `headline`, `image`, `datePublished`, `dateModified` present for Article/NewsArticle/BlogPosting | Structured data (Article) | Search Central — Article | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/article | Yes |
+| 133 | Article recommended props | `author`, `publisher`, `mainEntityOfPage` present | Structured data (Article) | Search Central — Article | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/article | Yes |
+| 134 | Breadcrumb required props | `BreadcrumbList.itemListElement` of `ListItem`, each with `position`, `name`, `item` | Structured data (Breadcrumb) | Search Central — Breadcrumb | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/breadcrumb | Yes |
+| 135 | Product required props | `Product.name` plus `offers` (Offer/AggregateOffer) and/or `aggregateRating`/`review` | Structured data (Product) | Search Central — Product | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/product | Yes |
+| 136 | Product recommended props | `image`, `description`, `sku`, `brand`, `offers.price`, `offers.priceCurrency`, `offers.availability`, `offers.url`, `review`, `aggregateRating` | Structured data (Product) | Search Central — Product | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/product | Yes |
+| 137 | FAQ required props | `FAQPage.mainEntity` of `Question`; each `Question.name` + `acceptedAnswer.text` | Structured data (FAQ) | Search Central — FAQPage | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/faqpage | Yes |
+| 138 | LocalBusiness core props | Valid `LocalBusiness` (or subtype) with `name`, `address`, `telephone`, `openingHoursSpecification` | Structured data (LocalBusiness) | Search Central — Local business | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/local-business | Yes |
+| 139 | LocalBusiness recommended props | `priceRange`, `image`, `geo`, `sameAs`, `aggregateRating`, `review` | Structured data (LocalBusiness) | Search Central — Local business | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/local-business | Partial |
+| 140 | Event required props | `Event.name`, `startDate`, `location` present | Structured data (Event) | Search Central — Event | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/event | Yes |
+| 141 | Event recommended props | `endDate`, `eventAttendanceMode`, `eventStatus`, `image`, `offers`, `performer`, `organizer` | Structured data (Event) | Search Central — Event | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/event | Partial |
+| 142 | Recipe required props | `Recipe.name`, `image`, `recipeIngredient`, `recipeInstructions` | Structured data (Recipe) | Search Central — Recipe | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/recipe | Yes |
+| 143 | Recipe recommended props | `prepTime`, `cookTime`, `totalTime`, `recipeYield`, `nutrition`, `aggregateRating`, `video`, `author`, `datePublished` | Structured data (Recipe) | Search Central — Recipe | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/recipe | Partial |
+| 144 | Review snippet required structure | Reviewed item marked up with valid `Review` or `AggregateRating`; item is a Google-supported type | Structured data (Review) | Search Central — Review snippet | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/review-snippet | Yes |
+| 145 | Review snippet recommended props | `reviewRating`, `author`, `datePublished`, `bestRating`, `worstRating` | Structured data (Review) | Search Central — Review snippet | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/review-snippet | Partial |
+| 146 | VideoObject required props | `name`, `thumbnailUrl`, `uploadDate`, `description` | Structured data (Video) | Search Central — Video | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/video | Yes |
+| 147 | VideoObject recommended props | `contentUrl`, `embedUrl`, `duration`, `expires`, `regionsAllowed` | Structured data (Video) | Search Central — Video | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/video | Partial |
+| 148 | Organization core props | Valid `Organization` with `name`, `url`, `logo` | Structured data (Organization) | Search Central — Organization | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/organization | Yes |
+| 149 | Organization recommended props | `sameAs`, `contactPoint`, `address`, `founder`, `foundingDate`, `alternateName` | Structured data (Organization) | Search Central — Organization | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/organization | Partial |
+| 150 | Sitelinks search box markup | `WebSite` with `url` + `potentialAction` `SearchAction` (`target`, `query-input`) | Structured data (SearchAction) | Search Central — Sitelinks searchbox | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sitelinks-searchbox | Yes |
+| 151 | SD uses supported format | All structured data is JSON-LD, Microdata, or RDFa | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Yes |
+| 152 | JSON-LD preferred format | Flag Microdata/RDFa where JSON-LD is feasible (recommendation) | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Yes |
+| 153 | SD represents visible content | Entities/attributes in markup correspond to visible page content | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Partial |
+| 154 | No markup for hidden content | SD doesn't describe content hidden from typical users (display:none, hidden tabs) | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Partial |
+| 155 | No irrelevant/misleading markup | No off-topic SD, no fake ratings/reviews not on page | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Partial |
+| 156 | SD follows spam policies | No cloaked/manipulative/deceptive structured data | Structured data (policy) | Search Central — Spam policies | Google Search Central | https://developers.google.com/search/docs/essentials/spam-policies | Partial |
+| 157 | Time-relevant SD not stale | Time-sensitive markup (events/offers/jobs) not expired/inconsistent | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Partial |
+| 158 | SD describes original content | Markup not purely scraped/duplicate with no added value | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Partial |
+| 159 | No impersonation in SD | Organization/Person/author/publisher correctly identify owner | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Partial |
+| 160 | All required props present per type | Each detected rich-result type has all required props | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Yes |
+| 161 | Most specific schema.org type used | Use specific subtype (NewsArticle vs Article), not overly broad (Thing) | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Partial |
+| 162 | SD on the page it describes | Markup entity matches the crawled page (not a different URL) | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Partial |
+| 163 | Same SD on duplicate pages | Duplicate/canonical variants carry the same structured data | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Partial |
+| 164 | SD page crawlable/accessible | SD page not blocked by robots.txt/noindex/access controls | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Yes |
+| 165 | SD present in server-returned HTML | Structured data in raw HTML, not only injected by client-side JS post-load | Structured data (policy) | Merchant Center — structured data requirements | Google Search Central | https://support.google.com/merchants/answer/7331077 | Partial |
+| 166 | SD image URLs crawlable/indexable | `image` URLs relevant, not robots-blocked, not 4xx/5xx, indexable | Structured data (policy) | Search Central — SD general guidelines | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/sd-policies | Yes |
+| 167 | SD values match visible values | Price/availability/dates/rating in markup match visible text | Structured data (policy) | Merchant Center — structured data requirements | Google Search Central | https://support.google.com/merchants/answer/7331077 | Partial |
+| 168 | OG tags use property/content in head | OG tags use `<meta property>` (not name) with `content`, placed in `<head>` | Social cards (OG) | OGP — types/structure | Open Graph protocol | https://ogp.me/#types | Yes |
+| 169 | `og:title` present | Title of the object for the graph | Social cards (OG) | OGP — basic | Open Graph protocol | https://ogp.me/#basic | Yes |
+| 170 | `og:type` present & supported | Object type set (website/article/video.movie/...) | Social cards (OG) | OGP — basic | Open Graph protocol | https://ogp.me/#basic | Yes |
+| 171 | `og:image` present & resolvable | Image URL representing the object | Social cards (OG) | OGP — basic | Open Graph protocol | https://ogp.me/#basic | Yes |
+| 172 | `og:url` present & canonical | Canonical permanent URL as object ID | Social cards (OG) | OGP — basic | Open Graph protocol | https://ogp.me/#basic | Yes |
+| 173 | `og:description` present | One-to-two sentence object description | Social cards (OG) | OGP — optional | Open Graph protocol | https://ogp.me/#optional | Yes |
+| 174 | `og:site_name` present | Name of the overall site | Social cards (OG) | OGP — optional | Open Graph protocol | https://ogp.me/#optional | Yes |
+| 175 | `og:locale` format valid | `language_TERRITORY` (e.g. en_US) | Social cards (OG) | OGP — optional | Open Graph protocol | https://ogp.me/#optional | Yes |
+| 176 | `og:locale:alternate` valid | Each alternate locale `language_TERRITORY` | Social cards (OG) | OGP — optional | Open Graph protocol | https://ogp.me/#optional | Yes |
+| 177 | `og:determiner` valid value | One of a / an / the / "" / auto | Social cards (OG) | OGP — optional | Open Graph protocol | https://ogp.me/#optional | Yes |
+| 178 | `og:image:secure_url` is HTTPS | Secure image URL when present | Social cards (OG) | OGP — structured | Open Graph protocol | https://ogp.me/#structured | Yes |
+| 179 | `og:image:type` valid MIME | Image MIME type (e.g. image/jpeg) | Social cards (OG) | OGP — structured | Open Graph protocol | https://ogp.me/#structured | Yes |
+| 180 | `og:image:width`/`og:image:height` positive ints | Image dimensions in pixels | Social cards (OG) | OGP — structured | Open Graph protocol | https://ogp.me/#structured | Yes |
+| 181 | `og:image:alt` present when og:image set | Text description of the image (ogp.me: "should specify") | Social cards (OG) | OGP — structured | Open Graph protocol | https://ogp.me/#structured | Yes |
+| 182 | `og:video`/`og:audio` structured props valid | secure_url HTTPS, type valid MIME, width/height positive ints when present | Social cards (OG) | OGP — structured | Open Graph protocol | https://ogp.me/#structured | Yes |
+| 183 | Article OG type-specific props | When og:type=article: `article:published_time`/`modified_time`/`author`/`section`/`tag` valid | Social cards (OG) | OGP — article type | Open Graph protocol | https://ogp.me/#type_article | Yes |
+| 184 | OG namespace/prefix declared | `og`/type-specific prefixes bound (e.g. `prefix="og: https://ogp.me/ns#"`) | Social cards (OG) | OGP — types | Open Graph protocol | https://ogp.me/#types | Yes |
+| 185 | `twitter:card` type declared | One of summary / summary_large_image / player / app | Social cards (Twitter/X) | X Cards | Twitter / X Cards | https://devcommunity.x.com/c/publisher/cards/8 | Yes |
+| 186 | Twitter card tags in `<head>` | All twitter:* meta in document head | Social cards (Twitter/X) | X Cards | Twitter / X Cards | https://devcommunity.x.com/c/publisher/cards/8 | Yes |
+| 187 | OG fallback present for missing twitter tags | og:title/description/image/url present so X can fall back | Social cards (Twitter/X) | X Cards | Twitter / X Cards | https://devcommunity.x.com/c/publisher/cards/8 | Yes |
+| 188 | summary card content tags | `twitter:title`, `twitter:description`, `twitter:image` present | Social cards (Twitter/X) | X Cards | Twitter / X Cards | https://devcommunity.x.com/c/publisher/cards/8 | Yes |
+| 189 | `twitter:image:alt` present | Accessible alt text for card image | Social cards (Twitter/X) | X Cards | Twitter / X Cards | https://devcommunity.x.com/c/publisher/cards/8 | Yes |
+| 190 | `twitter:site` present | Publisher/site attribution declared | Social cards (Twitter/X) | X Cards | Twitter / X Cards | https://devcommunity.x.com/c/publisher/cards/8 | Yes |
+| 191 | player card required tags | `twitter:player`, `twitter:player:width`, `twitter:player:height`, `twitter:player:stream` | Social cards (Twitter/X) | X Cards | Twitter / X Cards | https://devcommunity.x.com/c/publisher/cards/8 | Yes |
+| 192 | app card required tags | `twitter:app:id:iphone`/`ipad`/`googleplay`, `twitter:app:name`, `twitter:app:url` | Social cards (Twitter/X) | X Cards | Twitter / X Cards | https://devcommunity.x.com/c/publisher/cards/8 | Yes |
+| 193 | Sitemap `<urlset>` + namespace | Root `<urlset>` with `xmlns=...sitemap/0.9` | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 194 | Each entry in `<url>` container | Every URL wrapped in `<url>` child of `<urlset>` | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 195 | Required `<loc>` per `<url>` | Exactly one `<loc>` per `<url>` | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 196 | `<loc>` absolute URL w/ protocol | Fully-qualified absolute URL, not relative | Sitemaps | sitemaps.org FAQ | sitemaps.org | https://www.sitemaps.org/faq.html | Yes |
+| 197 | `<loc>` URL-escaped (RFC 3986/3987) | URLs properly URL-encoded | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 198 | `<lastmod>` W3C Datetime format | If present, ISO 8601 / W3C Datetime | Sitemaps | sitemaps.org FAQ | sitemaps.org | https://www.sitemaps.org/faq.html | Yes |
+| 199 | `<changefreq>` valid token | One of always/hourly/daily/weekly/monthly/yearly/never | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 200 | `<priority>` in 0.0–1.0 | Decimal within permitted range | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 201 | ≤ 50,000 URLs per sitemap | `<url>` count not over 50,000 | Sitemaps | sitemaps.org FAQ | sitemaps.org | https://www.sitemaps.org/faq.html | Yes |
+| 202 | ≤ 50MB uncompressed per sitemap | File size not over 52,428,800 bytes | Sitemaps | sitemaps.org FAQ | sitemaps.org | https://www.sitemaps.org/faq.html | Yes |
+| 203 | Sitemap UTF-8 encoded | File encoded UTF-8 | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 204 | Data values entity-escaped | `&`,`'`,`"`,`<`,`>` escaped in element content | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 205 | URLs same host as sitemap | All `<loc>` on same host as sitemap location | Sitemaps | sitemaps.org FAQ | sitemaps.org | https://www.sitemaps.org/faq.html | Yes |
+| 206 | URLs same protocol as sitemap | All `<loc>` use same scheme as sitemap | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 207 | Sitemap index format valid | `<sitemapindex>` + `<sitemap>` children each with `<loc>` | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 208 | Sitemap index limits | ≤ 50,000 `<sitemap>` entries, ≤ 50MB uncompressed | Sitemaps | sitemaps.org protocol | sitemaps.org | https://www.sitemaps.org/protocol.html | Yes |
+| 209 | Sitemap well-formed vs XSD | Validates against sitemap.xsd / siteindex.xsd | Sitemaps | sitemaps.org FAQ | sitemaps.org | https://www.sitemaps.org/faq.html | Yes |
+| 210 | Compressed sitemap is gzip | If compressed, format is gzip | Sitemaps | sitemaps.org FAQ | sitemaps.org | https://www.sitemaps.org/faq.html | Yes |
+| 211 | Not relying on rel=next/prev | Pagination doesn't depend on deprecated rel=next/prev | Pagination | Search Central — pagination deprecation (blog) | Google Search Central | https://developers.google.com/search/blog/2019/03/pagination-with-relnext-and-relprev | Partial |
+| 212 | Infinite scroll has crawlable paginated URLs | Load-more/infinite scroll paired with link-accessible `?page=N` URLs | Pagination | Search Central — JavaScript SEO basics | Google Search Central | https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics | Partial |
+| 213 | JS-rendered content parity | Rendered HTML (post-JS) contains primary content, links, meta vs source | JavaScript SEO | Search Central — JavaScript SEO basics | Google Search Central | https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics | Partial |
+| 214 | No hydration content mismatch | Hydration doesn't strip/replace indexed content with placeholders | JavaScript SEO | web.dev — Rendering on the web | web.dev | https://web.dev/rendering-on-the-web/ | Partial |
+| 215 | JS-controlled meta tags stable | title/description/canonical/robots in initial HTML or stable post-JS | JavaScript SEO | Search Central — JavaScript SEO basics | Google Search Central | https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics | Partial |
+| 216 | No canonical + noindex conflict | Page isn't both `noindex` and canonicalizing to a different URL | Canonicalization | Search Central — robots meta tag | Google Search Central | https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag | Yes |
+| 217 | SD vs visible content match | Key SD props (name/price/rating/FAQ) visible; no fake/misleading data | Structured data | Search Central — spam policies | Google Search Central | https://developers.google.com/search/docs/essentials/spam-policies | Partial |
+| 218 | AMP validity & canonical pairing | AMP pages valid; AMP `rel=canonical`→non-AMP, non-AMP `rel=amphtml`→AMP | AMP | Search Central — AMP | Google Search Central | https://developers.google.com/search/docs/appearance/amp | Partial |
+| 219 | Favicon for Search | Favicon accessible, square ≥48×48, declared in `<head>` | Appearance | Search Central — Favicon in Search | Google Search Central | https://developers.google.com/search/docs/appearance/favicon-in-search | Yes |
+| 220 | Web App Manifest valid | `rel="manifest"` → valid manifest with name/short_name/icons/start_url/display | Appearance | W3C Web App Manifest | W3C | https://w3c.github.io/manifest/ | Yes |
+| 221 | Breadcrumb SD matches visual | `BreadcrumbList` hierarchy/labels/URLs match on-page breadcrumbs | Structured data (Breadcrumb) | Search Central — Breadcrumb | Google Rich Results docs | https://developers.google.com/search/docs/appearance/structured-data/breadcrumb | Partial |
+| 222 | No redirect-based cloaking | No user-agent-specific redirects serving Googlebot different content | Crawlability | Search Central — spam policies (cloaking) | Google Search Central | https://developers.google.com/search/docs/essentials/spam-policies | Partial |
+| 223 | No mixed content on HTTPS | No HTTP subresources (img/script/iframe/css) on HTTPS pages | Page experience | web.dev — What is mixed content | web.dev | https://web.dev/what-is-mixed-content/ | Yes |
+| 224 | Lazy-loaded content crawlable | Lazy-load uses IntersectionObserver, no gesture-gated content; real `<img>`/`<picture>` | Crawlability | Search Central — Lazy-loading | Google Search Central | https://developers.google.com/search/docs/crawling-indexing/lazy-loading | Partial |
+| 225 | Meta robots vs X-Robots-Tag conflict | No conflicting directives between HTML meta robots and HTTP header | Indexing | Search Central — robots meta / X-Robots-Tag | Google Search Central | https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag | Yes |
+| 226 | No trailing-slash redirect loops | No `/page`→`/page/`→`/page` loops or long chains | Redirects | Search Central — Consolidate duplicate URLs | Google Search Central | https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls | Yes |
+| 227 | IDN / non-ASCII URL handling | Punycode correct at DNS/HTTP; hreflang/canonical use encoded fully-qualified URLs | i18n | Search Central — international getting started | Google Search Central | https://developers.google.com/search/docs/specialty/international/getting-started | Partial |
+| 228 | hreflang cluster pages indexable | hreflang pages not `noindex`, self-canonical within cluster | i18n | Search Central — Localized versions (technical guidelines) | Google Search Central | https://developers.google.com/search/docs/specialty/international/localized-versions | Partial |
+| 229 | Render-critical JS/CSS/API not blocked | robots.txt doesn't block JS/CSS/API endpoints needed to render | Blocked resources | Search Central — robots.txt intro | Google Search Central | https://developers.google.com/search/docs/crawling-indexing/robots/intro | Yes |
 
 ## Unverified / needs a source
 
 None. Every row above traces to a source name + URL that appeared in a Perplexity answer
-or its citations across `seo-01` … `seo-07`.
+or its citations across `seo-01` … `seo-13`.
 
 Notes on provenance nuance (not unverified, but flagged for the auditor):
-- Rows 126–129 (Open Graph / Twitter Cards): the canonical standard + the specific property
-  names (`og:title`/`og:type`/`og:image`/`og:url`/`og:description`; `twitter:card`/`twitter:title`/
-  `twitter:description`/`twitter:image`; card types summary / summary_large_image / player / app)
-  were enumerated in `seo-01` against the OGP spec (`https://ogp.me/`) and Twitter developer docs.
-  A dedicated property-by-property enumeration pass against ogp.me and the Twitter Cards reference
-  was **not** run (disk/no-new-calls constraint), so these are at source-level granularity, not
-  a per-property exhaustive sweep.
+- Open Graph (rows 168–184) now enumerated property-by-property against the OGP spec in `seo-10`,
+  citing exact ogp.me sections (#basic, #optional, #structured, #type_article, #types). The original
+  source-level rows 126–127 are kept as the canonical-property summary.
+- Twitter/X Cards (rows 185–192, and summary rows 128–129): `seo-11` notes the **canonical, current
+  X documentation page is not surfaced** in the search results, so the X Developer Community cards
+  hub (`https://devcommunity.x.com/c/publisher/cards/8`) is used as the exact available X URL, and
+  no missing docs URL was invented. The image-size/format constraints X surfaced (JPG/PNG/WEBP/GIF,
+  ≤5MB, min 144×144 summary / 300×157 large) were cited to community sources, not the X docs page,
+  so they are listed below under "needs a first-party source" rather than as main rows.
+- Rich-result required/recommended properties (rows 132–150) come from Google Search Central's
+  per-feature docs via `seo-08`; `seo-08` flags that for some features Google defines eligibility at
+  the feature level rather than a single required-property list, so a few "core props" rows reflect
+  the completeness properties Google uses rather than a strict required list.
+- The 2,048-char `<loc>` length limit was deliberately **excluded** from the sitemap rows: `seo-12`
+  confirms sitemaps.org and Google do not specify it (it is tool/infra guidance, not protocol).
 - Lighthouse exact audit IDs (rows 1–20) are confirmed in `seo-02` from the Chrome for Developers
   SEO docs and the Lighthouse GitHub source; `seo-02` notes Google does not publish a single
   version-independent canonical list, so the 15 IDs reflect the current documented set.
 - "Automatable" column: Yes = checkable from a single page fetch/render; Partial = needs heuristics
   or cross-page corpus; No = requires an external API (Google Search Console) or third-party action.
+
+## Needs a first-party source (surfaced, but cited to non-canonical sources)
+
+These checks were surfaced by Perplexity but the supporting URL is a community/secondary source,
+not the first-party standard. They are real and useful, but should get a first-party citation
+before going into the main table:
+
+- Twitter/X Card image constraints: supported formats JPG / PNG / WEBP / GIF; max 5 MB; min
+  dimensions 144×144 (summary) and 300×157 (summary_large_image). `seo-11` cites these to
+  community sources (Conductor, DigitalOcean, Sprout Social), not the X docs page. Confirm against
+  first-party X/`developer.x.com` Cards docs.
 
 ## [MODEL-SUGGESTED — confirm]
 
@@ -194,3 +320,9 @@ None added. No tests beyond what Perplexity surfaced were introduced.
 - `docs/research/test-catalog/raw/seo-05.json` — Search Central canonicalization & duplicate-content checks (rel=canonical, self-ref, conflicts, HTTP header, sitemap consistency, www/non-www, http/https, trailing slash, GSC diagnostics)
 - `docs/research/test-catalog/raw/seo-06.json` — Search Central hreflang/i18n checks (presence, syntax, ISO codes, self-ref, return links, x-default, sitemap/HTTP-header hreflang, multi-regional)
 - `docs/research/test-catalog/raw/seo-07.json` — Search Central + web.dev mobile/page-experience checks (mobile-first parity, viewport, tap targets, font size, interstitials, HTTPS, Core Web Vitals, no horizontal overflow)
+- `docs/research/test-catalog/raw/seo-08.json` — Completeness: per-type rich-result eligibility (Article, Breadcrumb, Product, FAQ, LocalBusiness, Event, Recipe, Review, Video, Organization, Sitelinks searchbox) — required + recommended props
+- `docs/research/test-catalog/raw/seo-09.json` — Completeness: Google SD general guidelines + quality/spam policy (format, visible-content representation, no hidden/misleading markup, type specificity, placement, crawlability, server-HTML, value match)
+- `docs/research/test-catalog/raw/seo-10.json` — Completeness: Open Graph property-by-property enumeration (basic, optional, structured image/audio/video, type-specific article/book/profile/music/video, namespace/prefix)
+- `docs/research/test-catalog/raw/seo-11.json` — Completeness: Twitter/X Cards per card type (summary, summary_large_image, player, app), OG fallback, image constraints (canonical X docs URL not surfaced; community cards hub used)
+- `docs/research/test-catalog/raw/seo-12.json` — Completeness: sitemaps.org XML sitemap + sitemap-index validation (urlset/loc/lastmod/changefreq/priority, 50k/50MB limits, UTF-8, escaping, host/protocol, gzip, XSD; 2048-char limit explicitly excluded as non-protocol)
+- `docs/research/test-catalog/raw/seo-13.json` — Completeness sweep of commonly-missed categories (pagination/rel=next-prev deprecation, JS SEO rendering/hydration, canonical+noindex conflict, SD vs visible mismatch, AMP, favicon, web app manifest, breadcrumb SD vs visual, redirect cloaking, mixed content, lazy-load crawlability, meta-robots vs X-Robots conflict, trailing-slash loops, IDN handling, render-critical resource blocking)

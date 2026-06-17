@@ -312,6 +312,32 @@ Source: raw/accessibility-07.json (W3C APG + WCAG keyboard guidance).
 
 ---
 
+## Tests — Manual-only checks axe-core CANNOT detect (with procedure)
+
+Per Deque's own documentation, **axe-core finds on average ~57% of WCAG issues
+automatically**; the remainder require human review (raw/accessibility-09.json, citing
+deque.com/axe and the axe-core GitHub README). The checks below are the high-value manual
+procedures an auditor must perform by hand — each maps to a WCAG SC already catalogued
+above and is included here with its concrete test procedure and why automation misses it.
+All are `Manual`.
+
+| # | Test / Check | Procedure (auditor steps) | Standard ref | Why axe can't catch it |
+|---|---|---|---|---|
+| M1 | Logical focus order | Tab/Shift+Tab through page; confirm focus moves in visual/reading order (L-to-R, top-to-bottom) and supports task completion; watch dialogs, menus, carousels, sticky headers | WCAG 2.4.3 | Can't infer intended reading order or task logic from DOM order |
+| M2 | No keyboard trap | Tab into every modal/widget/iframe/carousel, then try to Tab/Shift+Tab/Esc back out; failure if focus is stuck | WCAG 2.1.2 | Traps are dynamic/state-dependent; static DOM can't prove absence |
+| M3 | Reflow at 320px / 400% zoom | Zoom to 400% or resize to ~320px wide; check nav/forms/tables/dialogs for required horizontal scroll, clipping, overlap; content should reflow to single column | WCAG 1.4.10 | axe scans one viewport/DOM state; doesn't resize or re-zoom |
+| M4 | Target size 24×24 | Inspect interactive controls' bounding box in dev tools; verify ≥24×24 CSS px hit area or a valid exception; flag crowded targets | WCAG 2.5.8 | Exception logic + true hit region need semantic/design context |
+| M5 | Dragging alternatives | Identify drag interactions (sliders, sortable lists, scrubbers); verify each has a single-pointer/keyboard non-drag alternative with equivalent function | WCAG 2.5.7 | Custom JS drag vs click is behavioral/task-oriented, not structural |
+| M6 | Consistent help placement | Compare help mechanisms (contact, chat, FAQ, ? icon) across multiple page templates; verify same relative location/order | WCAG 3.2.6 | Requires multi-page comparison + "what is help" UX judgment; axe is single-page |
+| M7 | Accessible authentication | Walk login/MFA/captcha/reset flows; verify no cognitive-only test (memory/puzzle/image captcha) without an accessible alternative; confirm password-manager paste/autofill allowed | WCAG 3.3.8 | Process/server-side, spans pages; can't detect cognitive-only vs alternative |
+| M8 | Meaningful sequence | Read content linearly via screen reader / a11y tree; compare to intended order; flag out-of-order announcement (e.g., right column before left, labels far from controls) | WCAG 1.3.2 | DOM order is visible but intended logical order is not; CSS reorders layout |
+| M9 | Use of color | Find status/required/link/chart cues conveyed by color; view in grayscale/color-blind filter; verify a secondary cue (text, icon, underline, pattern) exists | WCAG 1.4.1 | Can't reliably infer color is the only cue; charts use canvas/SVG |
+| M10 | Content on hover/focus | Hover/focus trigger; confirm content is dismissible (Esc/close), hoverable (pointer can enter it), and persistent until dismissed | WCAG 1.4.13 | Behavioral + timing-based; can't simulate nuanced pointer interaction |
+| M11 | Error suggestion quality | Trigger form errors (blank required, bad format, out-of-range); verify messages are specific and tell the user how to fix, not just "invalid" | WCAG 3.3.3 | Can't judge clarity/helpfulness of prose; only checks associations (3.3.1/3.3.2) |
+| M12 | Alt-text meaningfulness | Inspect alt/aria-label and hear via screen reader; verify it conveys the image's purpose in context, is concise, and decorative images use alt="" | WCAG 1.1.1 | Detects presence of alt but not whether it's descriptive/appropriate or decorative |
+
+---
+
 ## Coverage notes (completeness)
 
 The following accessibility categories are commonly missed by WCAG/axe-only checklists
@@ -319,9 +345,10 @@ and are surfaced here for catalog completeness (mapped to the SC already enumera
 above): mobile/touch (2.5.7, 2.5.8, 1.3.4), zoom/reflow at 400% (1.4.10, 1.4.4),
 reduced-motion `prefers-reduced-motion` (2.3.3, 2.2.2), color-blindness simulation (1.4.1,
 1.4.11), accessible authentication (3.3.8/3.3.9), live-region timing (4.1.3), autocomplete
-tokens (1.3.5), and the core gap that automated tools catch only ~30-40% of WCAG issues —
-real-AT manual testing (sections K/S/W above) is required for full conformance. These
-categories all trace to SC already mined and sourced in raw files 01-05.
+tokens (1.3.5). The core gap (raw/accessibility-09.json, Deque): automated tools catch on
+average only ~57% of WCAG issues — real-AT manual testing (sections K/S/W and M1–M12 above)
+is required for full conformance. These categories all trace to SC already mined and sourced
+in raw files 01-05 and 09.
 
 ## Unverified / needs a source
 
@@ -330,18 +357,17 @@ procedure above appeared in a Perplexity answer or its citations (raw files 01-0
 
 ## [MODEL-SUGGESTED — confirm]
 
-Two planned completeness calls were NOT executed (a local disk-full condition blocked the
-shell, then the orchestrator directed no further Perplexity calls):
-- Extended axe-core rule IDs (aria-conditional-attr, aria-prohibited-attr, autocomplete-valid,
-  css-orientation-lock, frame-focusable-content, p-as-heading, summary-name, target-size,
-  etc.). Most of these were already independently surfaced in raw/accessibility-06.json and
-  are included above; a confirmation pass against the live `rule-descriptions.md` is
-  recommended to verify exact tags and any version drift.
-- A `sonar-reasoning` "commonly missed categories" sweep. The coverage-notes section above
-  was assembled from SC already mined (raw 01-05), not from a dedicated sweep.
-
-The most reliable enumeration of axe rules is to parse `doc/rule-descriptions.md` from the
-exact axe-core version LaunchAudit ships, keyed by Rule ID with Tags → WCAG level + SC.
+- A criterion-level "how-to-test procedure per SC" pass (raw/accessibility-08.json) was
+  attempted but Perplexity **declined** to produce an exhaustive SC-by-SC procedure+tool
+  matrix, on the grounds that no single W3C or Deque source publishes one and filling it
+  would require inferring un-sourced procedures. That is the correct Truth-Protocol outcome
+  — no invented rows were added from it. The per-criterion how-to-test detail that IS
+  sourced lives in the M1–M12 manual table (from raw/accessibility-09.json) and the K/S/W
+  procedure tables (raw/accessibility-07.json).
+- The most reliable enumeration of axe rules is to parse `doc/rule-descriptions.md` from the
+  exact axe-core version LaunchAudit ships, keyed by Rule ID with Tags → WCAG level + SC.
+  The ~99 axe rule rows above were surfaced from that file via Perplexity; confirm exact
+  tags against the shipped version for any version drift.
 
 ## Raw evidence
 
@@ -352,3 +378,5 @@ exact axe-core version LaunchAudit ships, keyed by Rule ID with Tags → WCAG le
 - raw/accessibility-05.json — WCAG 2.2 Robust (4.1) enumeration + 4.1.1 removal note
 - raw/accessibility-06.json — axe-core rule list by category with WCAG mappings + tags
 - raw/accessibility-07.json — manual keyboard / screen-reader / APG widget procedures
+- raw/accessibility-08.json — per-SC how-to-test procedure pass (Perplexity declined exhaustive matrix; no rows added)
+- raw/accessibility-09.json — manual-only checks axe can't detect (M1–M12) + Deque ~57% axe-coverage stat
