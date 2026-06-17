@@ -107,6 +107,9 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   if (cat === "injection") {
     return { type: "product_bug", confidence: "high", reason: "an injection canary was mishandled — the input 500'd the server, leaked a DB/engine error, or was reflected/evaluated unescaped (WSTG-INPV / CWE-89/79)" };
   }
+  if (cat === "funnel") {
+    return { type: "product_bug", confidence: "high", reason: "a conversion-funnel step is broken — a dead CTA/404, a missing confirmation, no tracking pixel, a broken payment step, or a slow/overflowing mobile landing page costs leads or sales right at the point of conversion" };
+  }
   // Accessibility (axe-core). The generator only fails on serious/critical WCAG
   // violations, so a failure here is a real defect — confirmed, not speculative.
   if (cat === "accessibility") {

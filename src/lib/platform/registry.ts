@@ -2,6 +2,7 @@ import type { RepoScan } from "../../../runner/repo-scanner.ts";
 import type { RuntimeCrawl } from "../../../runner/crawler.ts";
 import { type AuditHints, type Counter, type GeneratedCard } from "../generators/types.ts";
 import type { Platform } from "./detect.ts";
+import { generateFunnel } from "../generators/funnel.ts";
 
 /**
  * Platform routing registry. Every audit runs the shared base check set (security,
@@ -22,7 +23,7 @@ export const PLATFORM_GENERATORS: Record<Platform, PlatformGenerator[]> = {
   blog_cms: [],
   browser_extension: [],
   internal_tool_admin: [],
-  sales_funnel: [],
+  sales_funnel: [generateFunnel],
 };
 
 /** Run the platform-specific check set for a detected platform (empty until filled). */

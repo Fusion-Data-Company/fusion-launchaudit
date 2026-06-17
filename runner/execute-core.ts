@@ -104,6 +104,11 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
       if (lower.includes(frag.toLowerCase())) throw new Error(`${target}: response reflected/leaked "${frag}" (injection signature — unescaped reflection or a DB/engine error)`);
     }
   }
+  if (step.expectBodyIncludesAny) {
+    const lower = text.toLowerCase();
+    const found = step.expectBodyIncludesAny.needles.some((n) => lower.includes(n.toLowerCase()));
+    if (!found) throw new Error(`${target}: ${step.expectBodyIncludesAny.label} not found in the page (looked for ${step.expectBodyIncludesAny.needles.slice(0, 4).join(", ")})`);
+  }
   if (step.expectCookieFlags) {
     // Node 22's getSetCookie() returns each Set-Cookie separately; fall back to the combined header.
     const getSetCookie = (res.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie;

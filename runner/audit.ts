@@ -25,7 +25,7 @@ import { runWatchdog } from "./watchdog.ts";
 import { resultToRaw } from "./verify.ts";
 import { probeRuntime, scanRepo } from "./repo-scanner.ts";
 import { classifyFailure, type Classification } from "./classify.ts";
-import { detectPlatform, PLATFORM_LABEL } from "../src/lib/platform/detect.ts";
+import { detectPlatform, PLATFORM_LABEL, type Platform } from "../src/lib/platform/detect.ts";
 
 const args = process.argv.slice(2);
 const arg = (n: string) => { const i = args.indexOf(`--${n}`); return i !== -1 ? args[i + 1] : undefined; };
@@ -140,7 +140,10 @@ async function main() {
 
   console.error("[2/4] Building the checks…");
   const hints = await buildHints(appUrl, crawl, arg("hints"));
-  const platform = detectPlatform(scan, crawl, hints);
+  const override = arg("platform") as Platform | undefined;
+  const platform = override && PLATFORM_LABEL[override]
+    ? { platform: override, confidence: "high" as const, signals: [`overridden via --platform ${override}`], runnerUp: undefined }
+    : detectPlatform(scan, crawl, hints);
   console.error(`      platform: ${PLATFORM_LABEL[platform.platform]} (${platform.confidence} confidence) — ${platform.signals.slice(0, 2).join("; ") || "default"}`);
   const cards = generateTestCards(scan, crawl, hints, platform.platform);
   const blocked = cards.filter((c) => c.status === "blocked");
