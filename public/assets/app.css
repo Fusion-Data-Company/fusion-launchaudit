@@ -1906,3 +1906,7 @@ code, .mono, .mono-id {
 .tr-head-actions { display: inline-flex; align-items: center; gap: 10px; }
 .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 9px; }
 .btn-sm svg { width: 13px; height: 13px; }
+
+
+/* elite display font on headers, brand, and key numerals */
+.brand-name,.gauge-num,.metric-value,.cov-title,.panel-heading h2,.hero-cap{font-family:"Space Grotesk","Inter",system-ui,sans-serif;}
