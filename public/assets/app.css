@@ -1846,3 +1846,49 @@ code, .mono, .mono-id {
   font-size: 12px; line-height: 1.55; color: var(--fg-2); max-width: 66ch;
 }
 .trow-accept .ac-label { display: none; }
+
+/* ============================================================================
+   CRISP PASS — cut the stacked glow/blur so the UI reads sharp.
+   (Boss feedback: the purple 100 gauge + cards looked blurry from glow.)
+   Global, append-only — wins by being last in the cascade.
+   ============================================================================ */
+/* gauge: shrink the soft halo behind the number + tighten the arc so 100 is crisp */
+.gauge-wrap::before { filter: blur(3px); opacity: .20; inset: 48px; }
+.gauge-arc { filter: drop-shadow(0 0 2px color-mix(in oklab, var(--accent) 26%, transparent)); }
+
+/* glass: drop most backdrop haze so card content + edges stay sharp */
+.panel, .metric-card, .cov-card, .tile, .inspector > .panel {
+  backdrop-filter: blur(2px) saturate(106%);
+  -webkit-backdrop-filter: blur(2px) saturate(106%);
+}
+
+/* per-card colored auras: subtle at rest, gentle on hover (no blurry bloom) */
+.metric-card::before, .cov-card::before, .tile::before {
+  inset: 0;
+  box-shadow: 0 6px 18px -8px var(--card-glow);
+  opacity: .20;
+}
+.metric-card:hover::before, .cov-card:hover::before, .tile:hover::before {
+  box-shadow: 0 10px 26px -8px var(--card-glow), 0 0 0 1px color-mix(in oklab, var(--card-glow) 38%, transparent);
+  opacity: .48;
+}
+.cov-card.is-empty::before { box-shadow: none; opacity: 0; }
+
+/* right-rail + main panels: trim the ambient glow halos */
+.inspector > .panel::before { opacity: .26; }
+.inspector > .panel:hover::before { opacity: .48; }
+.main-column > .panel:not(.hero)::before { opacity: .28; }
+.main-column > .panel:not(.hero):hover::before { opacity: .48; }
+
+/* hero: tighten the big iris/violet bloom so its edges stay crisp */
+.hero, .hero:hover {
+  box-shadow:
+    var(--hi-top-2), var(--inner-ring),
+    0 1px 2px rgba(0,0,0,0.45),
+    0 18px 44px -26px rgba(0,0,0,0.82),
+    0 14px 38px -24px var(--glow-iris);
+}
+
+/* aurora: dial the ambient background glow down so nothing behind glass smears */
+:root[data-theme="dark"]  { --aurora-strength: 0.40; }
+:root[data-theme="light"] { --aurora-strength: 0.30; }
