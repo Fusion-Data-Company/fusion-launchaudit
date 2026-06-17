@@ -16,6 +16,9 @@ import { generateObjectAuthz } from "./generators/object-authz.ts";
 import { generateMutationAuthz } from "./generators/mutation-authz.ts";
 import { generateCors } from "./generators/cors.ts";
 import { generateCookieSecurity } from "./generators/cookie-security.ts";
+import { generateMassAssignment } from "./generators/mass-assignment.ts";
+import { generateTlsHsts } from "./generators/tls-hsts.ts";
+import { generateInjection } from "./generators/injection.ts";
 
 export type { GeneratedCard, AuditHints } from "./generators/types.ts";
 
@@ -81,6 +84,9 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateMutationAuthz(scan, crawl, hints, c),
     ...generateCors(scan, crawl, hints, c),
     ...generateCookieSecurity(scan, crawl, hints, c),
+    ...generateMassAssignment(scan, crawl, hints, c),
+    ...generateTlsHsts(scan, crawl, hints, c),
+    ...generateInjection(scan, crawl, hints, c),
   ];
 
   if (crawl.has_password_field && !(hints.roles?.admin || hints.roles?.user)) {

@@ -85,6 +85,13 @@ test("credentialed CORS reflection is a product bug; a missing cookie flag is a 
   assert.equal(classifyFailure(result("cookie_security", 'missing the "Secure" attribute'), ctx()).type, "product_bug");
 });
 
+test("mass-assignment accepted is a product bug (verify under stub auth); tls + injection are product bugs", () => {
+  assert.equal(classifyFailure(result("mass_assignment", "echoed role admin"), ctx(false)).type, "product_bug");
+  assert.equal(classifyFailure(result("mass_assignment", "echoed role admin"), ctx(true)).type, "needs_verification");
+  assert.equal(classifyFailure(result("tls_hsts", "missing strict-transport-security"), ctx()).type, "product_bug");
+  assert.equal(classifyFailure(result("injection", "got 500 on canary"), ctx()).type, "product_bug");
+});
+
 test("a serious/critical accessibility violation is a confirmed product bug", () => {
   assert.equal(classifyFailure(result("accessibility", "2 accessibility violation type(s) at or above serious"), ctx()).type, "product_bug");
 });

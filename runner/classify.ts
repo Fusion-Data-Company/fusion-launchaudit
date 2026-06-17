@@ -97,6 +97,16 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   if (cat === "cookie_security") {
     return { type: "product_bug", confidence: "medium", reason: "the session cookie is missing a hardening attribute (HttpOnly/Secure/SameSite) — exposes it to XSS theft, cleartext leakage, or CSRF (CWE-1004 / CWE-614)" };
   }
+  if (cat === "mass_assignment") {
+    if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed here, so an accepted privileged field doesn't prove a production escalation — re-run with real auth active" };
+    return { type: "product_bug", confidence: "high", reason: "an update endpoint accepted/echoed privileged fields (role/isAdmin) — mass-assignment lets a normal user escalate (OWASP API3 / CWE-915)" };
+  }
+  if (cat === "tls_hsts") {
+    return { type: "product_bug", confidence: "medium", reason: "transport security gap — HSTS missing or http does not redirect to https, so credentials/cookies can travel in cleartext or be downgraded" };
+  }
+  if (cat === "injection") {
+    return { type: "product_bug", confidence: "high", reason: "an injection canary was mishandled — the input 500'd the server, leaked a DB/engine error, or was reflected/evaluated unescaped (WSTG-INPV / CWE-89/79)" };
+  }
   // Accessibility (axe-core). The generator only fails on serious/critical WCAG
   // violations, so a failure here is a real defect — confirmed, not speculative.
   if (cat === "accessibility") {
