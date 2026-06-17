@@ -3,7 +3,7 @@ import type { RuntimeCrawl } from "../../../runner/crawler.ts";
 import { type AuditHints, type Counter, type GeneratedCard } from "../generators/types.ts";
 import type { Platform } from "./detect.ts";
 import { generateFunnel } from "../generators/funnel.ts";
-import { generateApiBackend, generateMarketing, generateBlogCms, generateEcommerce, generateWebApp, generateInternalTool } from "../generators/platform-checks.ts";
+import { generateApiBackend, generateMarketing, generateBlogCms, generateEcommerce, generateWebApp, generateInternalTool, generateMobile, generateBrowserExtension, generateAiVoice } from "../generators/platform-checks.ts";
 
 /**
  * Platform routing registry. Every audit runs the shared base check set (security,
@@ -18,11 +18,11 @@ export const PLATFORM_GENERATORS: Record<Platform, PlatformGenerator[]> = {
   marketing_landing: [generateMarketing],
   web_app_saas: [generateWebApp],
   ecommerce: [generateEcommerce],
-  mobile_app: [],
+  mobile_app: [generateMobile],
   api_backend: [generateApiBackend],
-  ai_chatbot_voice: [],
+  ai_chatbot_voice: [generateAiVoice],
   blog_cms: [generateBlogCms],
-  browser_extension: [],
+  browser_extension: [generateBrowserExtension],
   internal_tool_admin: [generateInternalTool],
   sales_funnel: [generateFunnel],
 };

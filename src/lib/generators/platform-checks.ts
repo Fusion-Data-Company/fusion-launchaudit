@@ -161,3 +161,51 @@ export function generateInternalTool(scan: RepoScan | null, crawl: RuntimeCrawl,
   }
   return cards;
 }
+
+// ---- Mobile app (iOS/Android) -------------------------------------------
+// A web-URL audit cannot drive an app binary; these are declared blocked with the
+// exact MASVS/MASTG categories to run with a mobile tool — honest, never faked.
+export function generateMobile(_scan: RepoScan | null, _crawl: RuntimeCrawl, _hints: AuditHints, c: Counter): GeneratedCard[] {
+  const blocked = (title: string, crit: string, ref: string): GeneratedCard => ({
+    id: c.next("TC-MOB"), title, category: "mobile", status: "blocked", risk: "high",
+    goal: "Mobile binary checks require the app package / an instrumented device, which a web-URL audit cannot reach.",
+    steps: ["Run against the app bundle (.ipa/.apk) or repo with a mobile tool", "Or point this audit at the app's backend API with --platform api_backend"],
+    expectedEvidence: ["device/static analysis"], dataNeeds: ["the app binary or repo"], acceptanceCriteria: `BLOCKED: ${crit} (${ref}).`, exec: [],
+  });
+  return [
+    blocked("Mobile data-at-rest & crypto", "secure local storage, no secrets in the bundle, sound crypto", "OWASP MASVS-STORAGE / MASVS-CRYPTO"),
+    blocked("Mobile network & platform", "TLS pinning/validation, safe IPC, minimal permissions, deep-link handling", "OWASP MASVS-NETWORK / MASVS-PLATFORM"),
+    blocked("Mobile auth & resilience", "session handling, anti-tampering, store-readiness (icon/splash/version)", "OWASP MASVS-AUTH / MASVS-RESILIENCE"),
+  ];
+}
+
+// ---- Browser extension ---------------------------------------------------
+export function generateBrowserExtension(_scan: RepoScan | null, _crawl: RuntimeCrawl, _hints: AuditHints, c: Counter): GeneratedCard[] {
+  const blocked = (title: string, crit: string): GeneratedCard => ({
+    id: c.next("TC-EXT"), title, category: "browser_extension", status: "blocked", risk: "high",
+    goal: "Extension checks require the extension package (manifest + scripts), which a web-URL audit cannot reach.",
+    steps: ["Run against the extension's manifest.json + source", "Confirm against the store's review policy"],
+    expectedEvidence: ["manifest + source review"], dataNeeds: ["the extension package/repo"], acceptanceCriteria: `BLOCKED: ${crit}.`, exec: [],
+  });
+  return [
+    blocked("Extension manifest & permissions", "MV3 manifest is valid, host/permissions are minimal (no <all_urls> unless justified)", ),
+    blocked("Extension code & CSP", "a strict content_security_policy, no remote-code execution, no eval, signed/reviewed source"),
+  ];
+}
+
+// ---- AI chatbot / voice --------------------------------------------------
+export function generateAiVoice(scan: RepoScan | null, crawl: RuntimeCrawl, hints: AuditHints, c: Counter): GeneratedCard[] {
+  const cards: GeneratedCard[] = [];
+  const chat = internalPaths(crawl).find((p) => /(\/chat|\/api\/chat|\/message|\/api\/ai|\/converse)/i.test(p))
+    ?? (hints.postEndpoints ?? []).map((e) => e.path).find((p) => /(chat|message|ai|converse)/i.test(p));
+  if (chat) {
+    cards.push({ id: c.next("TC-AI"), title: `Chat endpoint responds (no 5xx): ${chat}`, category: "voice_agent", status: "ready", risk: "high", goal: "The chat/AI endpoint must accept a normal message and respond without a server error.", steps: [`POST ${chat} with a benign message`, "Expect not a 5xx"], expectedEvidence: ["http_transcript"], dataNeeds: [], acceptanceCriteria: `${chat} handles a benign message without a 5xx.`, exec: [{ action: "http", method: "POST", path: chat, body: { message: "hello", input: "hello", prompt: "hello" }, expectStatusNot: [500, 502, 503] }] });
+  } else {
+    cards.push({ id: c.next("TC-AI"), title: "No chat/AI endpoint found to probe", category: "voice_agent", status: "blocked", risk: "high", goal: "Confirm the chat endpoint responds.", steps: ["Declare the chat endpoint in hints (post_endpoints) or link it", "Re-run"], expectedEvidence: ["http_transcript"], dataNeeds: ["the chat endpoint"], acceptanceCriteria: "BLOCKED: no chat/AI endpoint discovered.", exec: [] });
+  }
+  cards.push({ id: c.next("TC-AI"), title: "Prompt-injection & system-prompt-leak resistance", category: "voice_agent", status: "blocked", risk: "critical", goal: "An LLM agent must resist prompt injection and not leak its system prompt or secrets — this needs an interactive eval, not a single HTTP check.", steps: ["Run an LLM red-team eval (prompt-injection suite) against the chat endpoint", "Confirm the system prompt and any secrets are never echoed"], expectedEvidence: ["eval transcript"], dataNeeds: ["the chat endpoint + an eval harness"], acceptanceCriteria: "BLOCKED: prompt-injection/leak resistance needs an interactive LLM eval (OWASP Top 10 for LLM Apps — LLM01).", exec: [] });
+  if (!(hints.elevenLabsAgents?.length)) {
+    cards.push({ id: c.next("TC-AI"), title: "Voice-agent config (tools/voice/webhooks) not supplied", category: "voice_agent", status: "blocked", risk: "high", goal: "Verify the live agent's tools aren't wiped, the system prompt is real, webhooks are HTTPS, and voice/TTS is set.", steps: ["Provide elevenlabs_agents + the API key env in hints", "Re-run — the ElevenLabs detector audits the live config read-only"], expectedEvidence: ["agent config"], dataNeeds: ["ElevenLabs agent ID(s) + API key"], acceptanceCriteria: "BLOCKED: no agent IDs supplied; the ElevenLabs detector runs when they are.", exec: [] });
+  }
+  return cards;
+}

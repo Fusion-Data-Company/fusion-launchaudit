@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { generateApiBackend, generateMarketing, generateBlogCms, generateEcommerce, generateWebApp, generateInternalTool } from "./platform-checks.ts";
+import { generateApiBackend, generateMarketing, generateBlogCms, generateEcommerce, generateWebApp, generateInternalTool, generateMobile, generateBrowserExtension, generateAiVoice } from "./platform-checks.ts";
 import { Counter, type AuditHints } from "./types.ts";
 import type { RepoScan } from "../../../runner/repo-scanner.ts";
 import type { RuntimeCrawl } from "../../../runner/crawler.ts";
@@ -63,4 +63,25 @@ test("internal_tool_admin: internal surface blocks anonymous; flags public signu
   const cards = generateInternalTool(scan, crawlOf(["https://x.test/register"]), { protectedRoutes: ["/admin"] }, new Counter());
   assert.ok(has(cards, (e) => e.expectBlocked === true));
   assert.ok(cards.some((c) => c.title.toLowerCase().includes("self-registration")));
+});
+
+test("mobile_app: binary checks are honestly blocked with MASVS citations (never faked)", () => {
+  const cards = generateMobile(scan, crawlOf(), {}, new Counter());
+  assert.ok(cards.length >= 2);
+  assert.ok(cards.every((c) => c.status === "blocked" && c.category === "mobile"));
+  assert.ok(cards.some((c) => c.acceptanceCriteria.includes("MASVS")));
+});
+
+test("browser_extension: package checks are honestly blocked (never faked)", () => {
+  const cards = generateBrowserExtension(scan, crawlOf(), {}, new Counter());
+  assert.ok(cards.length >= 2);
+  assert.ok(cards.every((c) => c.status === "blocked" && c.category === "browser_extension"));
+});
+
+test("ai_chatbot_voice: probes a discovered chat endpoint; LLM red-team + agent config blocked", () => {
+  const withChat = generateAiVoice(scan, crawlOf(["https://x.test/api/chat"]), {}, new Counter());
+  assert.ok(withChat.some((c) => c.title.includes("Chat endpoint responds") && c.status === "ready"));
+  assert.ok(withChat.some((c) => c.title.includes("Prompt-injection") && c.status === "blocked"));
+  const none = generateAiVoice(scan, crawlOf(), {}, new Counter());
+  assert.ok(none.some((c) => c.title.includes("No chat/AI endpoint") && c.status === "blocked"));
 });
