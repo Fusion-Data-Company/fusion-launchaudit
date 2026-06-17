@@ -1,4 +1,4 @@
-/* LaunchAudit landing — tabs, copy buttons, hero reveal (external for CSP script-src 'self') */
+/* 80/20 Launch Audit landing — tabs, copy buttons, hero reveal (external for CSP script-src 'self') */
 (function(){
   // ---- Tabs ----
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab[role="tab"]'));
