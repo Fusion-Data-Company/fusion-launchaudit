@@ -30,6 +30,8 @@ export type CardResult = {
   endedAt: string;
   attempts: number;
   flaky?: boolean;
+  /** Request->status transcript for no-browser (HTTP/SEO/EL) cards — the evidence a pass stands on. */
+  httpEvidence?: string;
 };
 
 type ExecOptions = { appUrl: string; artifactDir: string };
@@ -41,7 +43,7 @@ function resolveUrl(appUrl: string, step: { url?: string; path?: string }) {
   return step.url ?? `${appUrl}${step.path ?? "/"}`;
 }
 
-async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: string) {
+async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: string, sink?: string[]) {
   const target = resolveUrl(appUrl, step);
   const headers: Record<string, string> = { ...(step.headers ?? {}) };
   if (step.cookie) headers["cookie"] = step.cookie;
@@ -53,6 +55,8 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
   const res = await fetch(target, { method: step.method ?? "GET", headers, body, redirect: "manual" });
   const status = res.status;
   const text = await res.text();
+  // Record the receipt before assertions so both pass and fail carry evidence.
+  if (sink) sink.push(`${step.method ?? "GET"} ${target} -> ${status}`);
 
   if (step.expectStatusOneOf && !step.expectStatusOneOf.includes(status)) {
     throw new Error(`${step.method ?? "GET"} ${target}: expected status in [${step.expectStatusOneOf}], got ${status}`);
@@ -147,8 +151,8 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
 const NO_BROWSER_ACTIONS = new Set(["http", "elevenlabs", "seo", "content"]);
 const isNoBrowser = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => NO_BROWSER_ACTIONS.has(s.action));
 
-async function runNoBrowserStep(step: ExecStep, appUrl: string): Promise<void> {
-  if (step.action === "http") return runHttp(step, appUrl);
+async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[]): Promise<void> {
+  if (step.action === "http") return runHttp(step, appUrl, sink);
   if (step.action === "elevenlabs") return runElevenLabsAssertion(step.agentId, step.apiKeyEnv, step.assert);
   if (step.action === "seo") return runSeoAssertion(resolveUrl(appUrl, step), step.assert);
   if (step.action === "content") return runContentAssertion(resolveUrl(appUrl, step), step.assert);
@@ -203,11 +207,12 @@ async function executeOne(browser: Browser, card: ExecutableTestCard, options: E
     let status: "passed" | "failed" = "passed";
     let failedStep: string | undefined;
     let error: string | undefined;
+    const transcript: string[] = [];
     for (const step of card.exec) {
-      try { await runNoBrowserStep(step, options.appUrl); }
+      try { await runNoBrowserStep(step, options.appUrl, transcript); }
       catch (e) { status = "failed"; failedStep = describeStep(step); error = e instanceof Error ? e.message : String(e); break; }
     }
-    return { card, status, failedStep, error, consoleErrors: [], failedRequests: [], screenshotPath: "", tracePath: "", startedAt, endedAt: new Date().toISOString(), attempts: 1 };
+    return { card, status, failedStep, error, consoleErrors: [], failedRequests: [], screenshotPath: "", tracePath: "", startedAt, endedAt: new Date().toISOString(), attempts: 1, httpEvidence: transcript.join("\n") };
   }
 
   // Browser cards: bounded retry separates a real failure from a one-off timing flake
@@ -231,6 +236,19 @@ async function executeOne(browser: Browser, card: ExecutableTestCard, options: E
     tracePath: last.status === "failed" ? last.tracePath : "",
     startedAt, endedAt: new Date().toISOString(), attempts: attempt, flaky,
   };
+}
+
+/** Run ONLY no-browser cards (HTTP/SEO/EL) without launching a browser — keeps
+ *  pure-API audits (and the watchdog re-runs over them) free of Playwright. */
+export async function executeNoBrowserCards(cards: ExecutableTestCard[], options: ExecOptions): Promise<CardResult[]> {
+  const results: CardResult[] = [];
+  for (const card of cards) {
+    const r = await executeOne(undefined as unknown as Browser, card, options);
+    results.push(r);
+    const tag = r.status === "passed" ? "PASS" : "FAIL";
+    console.error(`      ${tag}  ${card.id}  ${card.title}${r.status === "failed" && r.error ? ` — ${r.error.slice(0, 100)}` : ""}`);
+  }
+  return results;
 }
 
 export async function executeCards(cards: ExecutableTestCard[], options: ExecOptions): Promise<CardResult[]> {
