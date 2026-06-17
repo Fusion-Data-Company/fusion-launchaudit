@@ -1079,3 +1079,361 @@ code, .mono, .mono-id {
   line-height: 1.45;
   letter-spacing: 0.005em;
 }
+
+/* ============================================================================
+   METALLIC CHIPS + ICONS  — polished, shimmering, high-visibility
+   Appearance-only layer. Re-themes the existing .badge / .spill / .cov-tag /
+   .risk-chip / .exec-tag chips and the .cov-icon / .mi / nav icons as brushed,
+   beveled metal with a slow diagonal glint and a semantic outer glow.
+   Semantic metals: rose (fail/high/critical), gold (pending/ready/seeded/warn),
+   emerald (passed/clean/connected/live), steel (neutral/info/surfaces/type).
+   ============================================================================ */
+
+/* ---- metal tokens : DARK ------------------------------------------------- */
+:root,
+:root[data-theme="dark"] {
+  /* bevel + sheen shared by every metal chip */
+  --m-bevel:   inset 0 1px 0 rgba(255,255,255,0.58), inset 0 -1px 0 rgba(0,0,0,0.42), inset 0 -2px 4px rgba(0,0,0,0.18);
+  --m-sheen:   linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.06) 46%, rgba(255,255,255,0) 52%);
+  --m-streak:  linear-gradient(90deg, transparent 0%, rgba(255,255,255,0) 38%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 62%, transparent 100%);
+  --m-txtsh:   0 1px 0 rgba(0,0,0,0.55);
+
+  /* STEEL / silver (neutral, info, surfaces, type chips) */
+  --steel-fill: linear-gradient(180deg, #f4f7fc 0%, #cfd6e1 24%, #a7b0bf 56%, #828c9d 82%, #6a7484 100%);
+  --steel-edge: rgba(240,244,251,0.90);
+  --steel-glow: rgba(176,190,214,0.55);
+  --steel-ink:  #14181f;
+  /* GOLD (pending / ready / seeded / warn / medium) */
+  --gold-fill:  linear-gradient(180deg, #fff4c4 0%, #f8d45c 22%, #e3ad2c 52%, #b9831c 80%, #8f6314 100%);
+  --gold-edge:  rgba(255,242,190,0.95);
+  --gold-glow:  rgba(232,178,52,0.75);
+  --gold-ink:   #3a2a05;
+  /* ROSE / red metal (fail / high / critical) */
+  --rose-fill:  linear-gradient(180deg, #ffd4d4 0%, #f58a8a 26%, #e0484c 60%, #a82327 100%);
+  --rose-edge:  rgba(255,210,210,0.90);
+  --rose-glow:  rgba(240,90,96,0.78);
+  --rose-ink:   #3a0c0d;
+  /* EMERALD metal (passed / clean / connected / live / success) */
+  --emer-fill:  linear-gradient(180deg, #cfeede 0%, #66c79a 28%, #1f9d63 62%, #0f6e44 100%);
+  --emer-edge:  rgba(207,238,222,0.90);
+  --emer-glow:  rgba(46,201,138,0.72);
+  --emer-ink:   #06301d;
+  /* IRIS metal (accent chip) */
+  --iris-fill:  linear-gradient(180deg, #d7d9ff 0%, #9aa0ff 30%, #7c83ff 62%, #5a52d6 100%);
+  --iris-edge:  rgba(215,217,255,0.90);
+  --iris-glow:  rgba(124,131,255,0.72);
+  --iris-ink:   #11122e;
+
+  /* machined tile for card icons */
+  --tile-steel: linear-gradient(160deg, #f7f9fd 0%, #ccd4e0 32%, #9ba5b6 64%, #6e7889 100%);
+  --tile-iris:  linear-gradient(160deg, #eceeff 0%, #b9bdff 32%, #8b91ff 64%, #6058da 100%);
+  --tile-bevel: inset 0 1px 0 rgba(255,255,255,0.70), inset 0 -2px 3px rgba(0,0,0,0.34), inset 0 0 0 1px rgba(255,255,255,0.10);
+  --tile-glyph: drop-shadow(0 1px 0 rgba(255,255,255,0.65)) drop-shadow(0 -1px 1px rgba(0,0,0,0.45));
+}
+
+/* ---- metal tokens : LIGHT (deeper inks, softer top highlight) ----------- */
+:root[data-theme="light"] {
+  --m-bevel:   inset 0 1px 0 rgba(255,255,255,0.70), inset 0 -1px 0 rgba(0,0,0,0.28);
+  --m-sheen:   linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.10) 46%, rgba(255,255,255,0) 52%);
+  --m-streak:  linear-gradient(90deg, transparent 0%, rgba(255,255,255,0) 38%, rgba(255,255,255,0.70) 50%, rgba(255,255,255,0) 62%, transparent 100%);
+  --m-txtsh:   0 1px 0 rgba(255,255,255,0.45);
+
+  --steel-fill: linear-gradient(180deg, #ffffff 0%, #d6dbe4 34%, #aeb6c4 68%, #8a93a3 100%);
+  --steel-edge: rgba(255,255,255,0.95);
+  --steel-glow: rgba(120,134,158,0.45);
+  --steel-ink:  #1a1f27;
+  --gold-fill:  linear-gradient(180deg, #fff7d6 0%, #f4cd56 26%, #d39d22 60%, #a3720f 100%);
+  --gold-edge:  rgba(255,247,214,0.95);
+  --gold-glow:  rgba(212,159,36,0.55);
+  --gold-ink:   #4a3406;
+  --rose-fill:  linear-gradient(180deg, #ffe3e3 0%, #f47e80 30%, #d83f43 66%, #9c2024 100%);
+  --rose-edge:  rgba(255,227,227,0.95);
+  --rose-glow:  rgba(216,63,67,0.55);
+  --rose-ink:   #ffffff;
+  --emer-fill:  linear-gradient(180deg, #dcf3e7 0%, #5bbd8e 30%, #1a9259 66%, #0c633d 100%);
+  --emer-edge:  rgba(220,243,231,0.95);
+  --emer-glow:  rgba(26,146,89,0.50);
+  --emer-ink:   #ffffff;
+  --iris-fill:  linear-gradient(180deg, #e7e8ff 0%, #9ea3ff 30%, #6b6fe6 66%, #4a4ec9 100%);
+  --iris-edge:  rgba(231,232,255,0.95);
+  --iris-glow:  rgba(91,95,224,0.50);
+  --iris-ink:   #ffffff;
+
+  --tile-steel: linear-gradient(160deg, #ffffff 0%, #d2d8e2 36%, #a7b0c0 68%, #828c9d 100%);
+  --tile-iris:  linear-gradient(160deg, #f0f1ff 0%, #b9bdff 36%, #7d82f0 68%, #5256cf 100%);
+  --tile-bevel: inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -2px 3px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.55);
+  --tile-glyph: drop-shadow(0 1px 0 rgba(255,255,255,0.85)) drop-shadow(0 -1px 1px rgba(0,0,0,0.30));
+}
+
+/* ============================================================================
+   1) BADGE PILLS  →  brushed metal
+   ============================================================================ */
+.badge {
+  position: relative;
+  isolation: isolate;
+  height: 20px;
+  padding: 0 9px;
+  font-weight: 650;
+  letter-spacing: 0;
+  border-radius: 7px;
+  color: var(--steel-ink);
+  border: 1px solid var(--steel-edge);
+  background: var(--steel-fill);
+  box-shadow: var(--m-bevel), 0 0 10px -2px var(--steel-glow);
+  text-shadow: var(--m-txtsh);
+}
+/* polished top-half reflection */
+.badge::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: var(--m-sheen);
+  pointer-events: none;
+  z-index: 1;
+}
+/* the dot becomes a beveled metal bead */
+.badge::before {
+  width: 6px; height: 6px;
+  background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), currentColor 62%);
+  box-shadow: 0 0 5px -1px currentColor, inset 0 0 2px rgba(0,0,0,0.35);
+  opacity: 1;
+  z-index: 2;
+}
+/* SHIMMER streak — slow diagonal glint */
+.badge.no-dot::before { display: none; }
+.metal-shimmer::before,
+.badge::after { /* keep sheen above */ }
+
+/* dedicated shimmer element via an extra layer on the pill */
+.badge { }
+.badge > * { position: relative; z-index: 2; }
+
+/* ---- semantic metal mapping (override the flat tints) ---- */
+.badge-muted   { color: var(--steel-ink); background: var(--steel-fill); border-color: var(--steel-edge); box-shadow: var(--m-bevel), 0 0 9px -3px var(--steel-glow); }
+/* dotted muted = status words (seeded / pending / ready / none) -> warm GOLD metal */
+.badge-muted:not(.no-dot) { color: var(--gold-ink); background: var(--gold-fill); border-color: var(--gold-edge); box-shadow: var(--m-bevel), 0 0 12px -2px var(--gold-glow); }
+.badge-muted:not(.no-dot)::before { color: var(--gold-ink); }
+.badge-low     { color: var(--steel-ink); background: var(--steel-fill); border-color: var(--steel-edge); box-shadow: var(--m-bevel), 0 0 9px -3px var(--steel-glow); }
+.badge-info    { color: var(--steel-ink); background: var(--steel-fill); border-color: var(--steel-edge); box-shadow: var(--m-bevel), 0 0 10px -2px var(--steel-glow); }
+.badge-success { color: var(--emer-ink);  background: var(--emer-fill);  border-color: var(--emer-edge);  box-shadow: var(--m-bevel), 0 0 11px -2px var(--emer-glow); }
+.badge-medium  { color: var(--gold-ink);  background: var(--gold-fill);  border-color: var(--gold-edge);  box-shadow: var(--m-bevel), 0 0 12px -2px var(--gold-glow); }
+.badge-high    { color: var(--rose-ink);  background: var(--rose-fill);  border-color: var(--rose-edge);  box-shadow: var(--m-bevel), 0 0 12px -2px var(--rose-glow); }
+.badge-critical{ color: var(--rose-ink);  background: var(--rose-fill);  border-color: var(--rose-edge);  box-shadow: var(--m-bevel), 0 0 13px -1px var(--rose-glow); }
+.badge-accent  { color: var(--iris-ink);  background: var(--iris-fill);  border-color: var(--iris-edge);  box-shadow: var(--m-bevel), 0 0 12px -2px var(--iris-glow); }
+
+/* the dot uses an ink that reads on the metal */
+.badge-success::before { color: var(--emer-ink); }
+.badge-medium::before  { color: var(--gold-ink); }
+.badge-high::before, .badge-critical::before { color: var(--rose-ink); }
+.badge-accent::before  { color: var(--iris-ink); }
+.badge-muted::before, .badge-low::before, .badge-info::before { color: var(--steel-ink); }
+
+/* shimmer glint sweep — added as a third pseudo via an inserted span-free trick:
+   we animate a wide translucent streak using the badge's own ::after? no — ::after is the
+   static sheen. Use a separate keyframed background-position layer on a duplicated pseudo
+   by promoting the streak onto the element's box via mask is complex; instead use an
+   ::before-independent animated layer on .badge through background blend. We attach the
+   moving streak to .badge with a second box-shadow-free overlay using `mask`-free approach: */
+.badge {
+  background-image: var(--m-streak), var(--steel-fill);
+  background-repeat: no-repeat, no-repeat;
+  background-size: 220% 100%, 100% 100%;
+  background-position: -140% 0, 0 0;
+  animation: metalGlint 4.2s ease-in-out infinite;
+}
+.badge-success { background-image: var(--m-streak), var(--emer-fill); }
+.badge-medium  { background-image: var(--m-streak), var(--gold-fill); }
+.badge-high,
+.badge-critical{ background-image: var(--m-streak), var(--rose-fill); }
+.badge-accent  { background-image: var(--m-streak), var(--iris-fill); }
+.badge-low,
+.badge-info    { background-image: var(--m-streak), var(--steel-fill); }
+.badge-muted.no-dot { background-image: var(--m-streak), var(--steel-fill); }
+.badge-muted:not(.no-dot) { background-image: var(--m-streak), var(--gold-fill); }
+
+@keyframes metalGlint {
+  0%   { background-position: -140% 0, 0 0; }
+  60%  { background-position:  240% 0, 0 0; }
+  100% { background-position:  240% 0, 0 0; }
+}
+
+/* ============================================================================
+   2) SPILL status pills (passed/failed/blocked/ready/running)  →  metal pills
+   ============================================================================ */
+.spill {
+  position: relative; isolation: isolate;
+  height: 20px; padding: 0 10px 0 9px; border-radius: 7px;
+  font-weight: 700; letter-spacing: 0.01em;
+  color: var(--steel-ink);
+  border: 1px solid var(--steel-edge);
+  background-image: var(--m-streak), var(--steel-fill);
+  background-repeat: no-repeat; background-size: 220% 100%, 100% 100%;
+  background-position: -140% 0, 0 0;
+  box-shadow: var(--m-bevel), 0 0 10px -3px var(--steel-glow);
+  text-shadow: var(--m-txtsh);
+  animation: metalGlint 4.6s ease-in-out infinite;
+}
+.spill::after { content:""; position:absolute; inset:0; border-radius:inherit; background: var(--m-sheen); pointer-events:none; z-index:1; }
+.spill .sdot { position: relative; z-index: 2; width: 7px; height: 7px;
+  background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), currentColor 64%) !important;
+  box-shadow: 0 0 5px -1px currentColor, inset 0 0 2px rgba(0,0,0,0.4) !important; }
+.spill > :not(.sdot) { position: relative; z-index: 2; }
+
+.spill.s-passed  { color: var(--emer-ink); border-color: var(--emer-edge); background-image: var(--m-streak), var(--emer-fill); box-shadow: var(--m-bevel), 0 0 11px -2px var(--emer-glow); }
+.spill.s-passed .sdot  { color: var(--emer-ink); }
+.spill.s-failed  { color: var(--rose-ink); border-color: var(--rose-edge); background-image: var(--m-streak), var(--rose-fill); box-shadow: var(--m-bevel), 0 0 12px -2px var(--rose-glow); }
+.spill.s-failed .sdot  { color: var(--rose-ink); }
+.spill.s-blocked { color: var(--gold-ink); border-color: var(--gold-edge); background-image: var(--m-streak), var(--gold-fill); box-shadow: var(--m-bevel), 0 0 12px -2px var(--gold-glow); }
+.spill.s-blocked .sdot { color: var(--gold-ink); }
+.spill.s-ready   { color: var(--steel-ink); border-color: var(--steel-edge); background-image: var(--m-streak), var(--steel-fill); }
+.spill.s-ready .sdot   { color: var(--steel-ink); }
+.spill.s-running { color: var(--steel-ink); border-color: var(--steel-edge); background-image: var(--m-streak), var(--steel-fill); box-shadow: var(--m-bevel), 0 0 11px -2px var(--steel-glow); }
+.spill.s-running .sdot { color: var(--steel-ink); }
+
+/* ============================================================================
+   3) COV-TAG (N pass / N fail / N blocked)  →  metal mini-pills
+   ============================================================================ */
+.cov-tag {
+  position: relative; isolation: isolate;
+  height: 19px; padding: 0 9px 0 8px; border-radius: 6px;
+  font-weight: 700; gap: 5px;
+  color: var(--steel-ink);
+  border: 1px solid var(--steel-edge);
+  background-image: var(--m-streak), var(--steel-fill);
+  background-repeat: no-repeat; background-size: 220% 100%, 100% 100%;
+  background-position: -140% 0, 0 0;
+  box-shadow: var(--m-bevel), 0 0 9px -3px var(--steel-glow);
+  text-shadow: var(--m-txtsh);
+  animation: metalGlint 5s ease-in-out infinite;
+}
+.cov-tag::after { content:""; position:absolute; inset:0; border-radius:inherit; background: var(--m-sheen); pointer-events:none; z-index:1; }
+.cov-tag i { position: relative; z-index: 2; width: 6px; height: 6px;
+  background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), currentColor 64%) !important;
+  box-shadow: 0 0 4px -1px currentColor, inset 0 0 2px rgba(0,0,0,0.4) !important; }
+.cov-tag.t-pass  { color: var(--emer-ink); border-color: var(--emer-edge); background-image: var(--m-streak), var(--emer-fill); box-shadow: var(--m-bevel), 0 0 10px -2px var(--emer-glow); }
+.cov-tag.t-pass i  { color: var(--emer-ink); }
+.cov-tag.t-fail  { color: var(--rose-ink); border-color: var(--rose-edge); background-image: var(--m-streak), var(--rose-fill); box-shadow: var(--m-bevel), 0 0 11px -2px var(--rose-glow); }
+.cov-tag.t-fail i  { color: var(--rose-ink); }
+.cov-tag.t-block { color: var(--gold-ink); border-color: var(--gold-edge); background-image: var(--m-streak), var(--gold-fill); box-shadow: var(--m-bevel), 0 0 11px -2px var(--gold-glow); }
+.cov-tag.t-block i { color: var(--gold-ink); }
+
+/* ============================================================================
+   4) RISK-CHIP (critical/high/medium/low) + EXEC-TAG (executed/not run)
+   ============================================================================ */
+.risk-chip {
+  position: relative; isolation: isolate;
+  height: 19px; padding: 0 9px 0 8px; border-radius: 6px;
+  font-weight: 700; gap: 5px;
+  color: var(--steel-ink);
+  border: 1px solid var(--steel-edge);
+  background-image: var(--m-streak), var(--steel-fill);
+  background-repeat: no-repeat; background-size: 220% 100%, 100% 100%;
+  background-position: -140% 0, 0 0;
+  box-shadow: var(--m-bevel), 0 0 9px -3px var(--steel-glow);
+  text-shadow: var(--m-txtsh);
+  animation: metalGlint 4.8s ease-in-out infinite;
+}
+.risk-chip::after { content:""; position:absolute; inset:0; border-radius:inherit; background: var(--m-sheen); pointer-events:none; z-index:1; }
+.risk-chip i { position: relative; z-index: 2; width: 6px; height: 6px;
+  background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), currentColor 64%) !important;
+  box-shadow: 0 0 4px -1px currentColor, inset 0 0 2px rgba(0,0,0,0.4) !important; }
+.risk-chip > :not(i) { position: relative; z-index: 2; }
+.risk-chip.r-critical, .risk-chip.r-high { color: var(--rose-ink); border-color: var(--rose-edge); background-image: var(--m-streak), var(--rose-fill); box-shadow: var(--m-bevel), 0 0 11px -2px var(--rose-glow); }
+.risk-chip.r-critical i, .risk-chip.r-high i { color: var(--rose-ink); }
+.risk-chip.r-medium { color: var(--gold-ink); border-color: var(--gold-edge); background-image: var(--m-streak), var(--gold-fill); box-shadow: var(--m-bevel), 0 0 11px -2px var(--gold-glow); }
+.risk-chip.r-medium i { color: var(--gold-ink); }
+.risk-chip.r-low { color: var(--steel-ink); border-color: var(--steel-edge); background-image: var(--m-streak), var(--steel-fill); }
+.risk-chip.r-low i { color: var(--steel-ink); }
+
+.exec-tag {
+  position: relative; isolation: isolate;
+  height: 19px; padding: 0 9px; border-radius: 6px;
+  font-weight: 700; gap: 5px;
+  color: var(--steel-ink);
+  border: 1px solid var(--steel-edge);
+  background-image: var(--m-streak), var(--steel-fill);
+  background-repeat: no-repeat; background-size: 220% 100%, 100% 100%;
+  background-position: -140% 0, 0 0;
+  box-shadow: var(--m-bevel), 0 0 8px -3px var(--steel-glow);
+  text-shadow: var(--m-txtsh);
+  animation: metalGlint 5.2s ease-in-out infinite;
+}
+.exec-tag::after { content:""; position:absolute; inset:0; border-radius:inherit; background: var(--m-sheen); pointer-events:none; z-index:1; }
+.exec-tag svg, .exec-tag > * { position: relative; z-index: 2; }
+.exec-tag.is-live { color: var(--emer-ink); border-color: var(--emer-edge); background-image: var(--m-streak), var(--emer-fill); box-shadow: var(--m-bevel), 0 0 10px -2px var(--emer-glow); }
+
+/* ============================================================================
+   5) CARD ICONS  →  machined metal tiles with bright beveled glyphs
+   ============================================================================ */
+/* coverage-card app icons */
+.cov-icon {
+  position: relative; overflow: hidden;
+  border: 1px solid var(--iris-edge);
+  background-image: var(--m-streak), var(--tile-iris);
+  background-repeat: no-repeat; background-size: 220% 100%, 100% 100%;
+  background-position: -160% 0, 0 0;
+  box-shadow: var(--tile-bevel), 0 0 14px -4px var(--iris-glow), 0 3px 8px -4px rgba(0,0,0,0.5);
+  animation: metalGlint 5.4s ease-in-out infinite;
+}
+.cov-icon::after { content:""; position:absolute; inset:0; border-radius:inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.04) 48%, rgba(255,255,255,0) 54%);
+  pointer-events:none; z-index:1; }
+.cov-icon svg { position: relative; z-index: 2; color: #f7f8ff; filter: var(--tile-glyph); }
+
+/* metric-tile icons (.mi) — give the bare glyph a small machined tile */
+.metric-top .mi {
+  width: 24px; height: 24px; padding: 4px; border-radius: 7px;
+  color: #1b2027;
+  border: 1px solid var(--steel-edge);
+  background-image: var(--m-streak), var(--tile-steel);
+  background-repeat: no-repeat; background-size: 220% 100%, 100% 100%;
+  background-position: -160% 0, 0 0;
+  box-shadow: var(--tile-bevel), 0 0 10px -4px var(--steel-glow), 0 2px 5px -3px rgba(0,0,0,0.5);
+  filter: var(--tile-glyph);
+  animation: metalGlint 5.6s ease-in-out infinite;
+}
+
+/* left-nav icons — metal tile, brighter when active */
+.nav-item svg {
+  width: 24px; height: 24px; padding: 4px; border-radius: 7px;
+  opacity: 1;
+  color: #1b2027;
+  border: 1px solid var(--steel-edge);
+  background: var(--tile-steel);
+  box-shadow: var(--tile-bevel), 0 1px 3px -2px rgba(0,0,0,0.5);
+  filter: var(--tile-glyph);
+}
+.nav-item:hover svg { box-shadow: var(--tile-bevel), 0 0 9px -3px var(--steel-glow), 0 1px 3px -2px rgba(0,0,0,0.5); }
+.nav-item.nav-active svg {
+  opacity: 1; color: #14152e;
+  border-color: var(--iris-edge);
+  background: var(--tile-iris);
+  box-shadow: var(--tile-bevel), 0 0 12px -3px var(--iris-glow), 0 1px 3px -2px rgba(0,0,0,0.5);
+}
+
+/* empty-state icon also gets the steel treatment for consistency */
+.empty-state .es-icon {
+  position: relative; overflow: hidden;
+  border: 1px solid var(--iris-edge);
+  background: var(--tile-iris);
+  box-shadow: var(--tile-bevel), 0 0 12px -4px var(--iris-glow);
+}
+.empty-state .es-icon svg { position: relative; z-index: 2; color: #f7f8ff; filter: var(--tile-glyph); }
+/* empty coverage cards: keep them muted (no metal blast) */
+.cov-card.is-empty .cov-icon {
+  background: var(--code-bg); border-color: var(--line-2);
+  box-shadow: none; animation: none;
+}
+.cov-card.is-empty .cov-icon::after { display: none; }
+.cov-card.is-empty .cov-icon svg { color: var(--fg-4); filter: none; }
+
+/* ============================================================================
+   reduced-motion : freeze every shimmer (metal gradient/bevel/glow remain)
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .badge, .spill, .cov-tag, .risk-chip, .exec-tag,
+  .cov-icon, .metric-top .mi {
+    animation: none !important;
+    background-position: 50% 0, 0 0 !important;
+  }
+}
