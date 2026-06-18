@@ -17,6 +17,7 @@ import {
 import { getSqlClient } from "../src/lib/db.ts";
 import { authorizeRunnerWrite } from "./api-src/runner-auth.ts";
 import { loadLocalEnv } from "../runner/blob-store.ts";
+import { spawn as spawnProc } from "node:child_process";
 import {
   createCampaign,
   ensureCampaignReady,
@@ -590,7 +591,18 @@ async function main() {
   });
 
   server.listen(port, host, () => {
-    console.log(`LaunchAudit dev server ready at http://${host}:${port}`);
+    const url = `http://${host === "0.0.0.0" ? "localhost" : host}:${port}`;
+    console.log(`80/20 Launch Audit dashboard ready at ${url}`);
+    if (process.env.LAUNCHAUDIT_OPEN === "1") {
+      try {
+        const plat = process.platform;
+        const cmd = plat === "darwin" ? "open" : plat === "win32" ? "cmd" : "xdg-open";
+        const args = plat === "win32" ? ["/c", "start", "", url] : [url];
+        const child = spawnProc(cmd, args, { detached: true, stdio: "ignore" });
+        child.on("error", () => {});
+        child.unref();
+      } catch { /* headless — open the URL above yourself */ }
+    }
   });
 }
 

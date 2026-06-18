@@ -13,7 +13,8 @@
     "build:api": "node --experimental-strip-types scripts/build-api.ts",
     "audit": "node --experimental-strip-types runner/audit.ts",
     "mcp": "node --experimental-strip-types runner/mcp-server.ts",
-    "test": "node --experimental-strip-types --test 'runner/**/*.test.ts' 'src/**/*.test.ts'"
+    "test": "node --experimental-strip-types --test 'runner/**/*.test.ts' 'src/**/*.test.ts'",
+    "dashboard": "node --experimental-strip-types server/dashboard.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -29,6 +30,7 @@
   },
   "bin": {
     "launchaudit": "runner/audit.ts",
-    "launchaudit-mcp": "runner/mcp-server.ts"
+    "launchaudit-mcp": "runner/mcp-server.ts",
+    "launchaudit-dashboard": "server/dashboard.ts"
   }
 }

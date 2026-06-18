@@ -33,7 +33,7 @@ import { buildFixPrompt } from "../src/lib/report/fixes.ts";
 const args = process.argv.slice(2);
 const arg = (n: string) => { const i = args.indexOf(`--${n}`); return i !== -1 ? args[i + 1] : undefined; };
 
-const PLATFORM_URL = (process.env.LAUNCHAUDIT_API_URL ?? "").replace(/\/$/, "");
+const PLATFORM_URL = (process.env.LAUNCHAUDIT_API_URL ?? "http://localhost:3010").replace(/\/$/, "");
 const OUT_DIR = arg("out") ?? "launchaudit-report";
 
 /**
@@ -246,6 +246,7 @@ async function main() {
   const dashboardFile = await renderDashboard(reportData, OUT_DIR);
 
   // Optional: sync to hosted command center if configured.
+  let hubSynced = false;
   if (PLATFORM_URL) {
     try {
       const created = await fetch(`${PLATFORM_URL}/api/campaigns`, {
@@ -273,6 +274,7 @@ async function main() {
             runtime_summary: await probeRuntime(appUrl), test_cards: [...results.map((r) => ({ ...r.card, status: r.status })), ...blocked], run_results: runResults, findings: syncFindings, artifact_refs: artifactRefs }),
         });
         console.error(`      synced → ${PLATFORM_URL}/#/campaigns`);
+        hubSynced = true;
       }
     } catch (e) {
       console.error(`      (sync skipped: ${e instanceof Error ? e.message : "unreachable"})`);
@@ -302,10 +304,11 @@ async function main() {
     `Readiness: ${readiness}/100  ·  ${passed} passed${flaky ? ` (${flaky} flaky-recovered)` : ""}, ${failed} to fix, ${needsVerify.length} need verification, ${blocked.length} need input`,
   );
   const dashboardPath = path.resolve(dashboardFile);
-  console.error(`\n\u{1F4CA} Your dashboard (opening in your browser):\n   file://${dashboardPath}`);
+  const openTarget = hubSynced ? `${PLATFORM_URL}/#/campaigns` : dashboardPath;
+  console.error(`\n\u{1F4CA} Your dashboard (opening in your browser):\n   ${hubSynced ? PLATFORM_URL + " (your live hub — tracks every run)" : "file://" + dashboardPath}`);
   console.error(`   Builder report: ${path.resolve(reportFile)}  \u00B7  Client one-pager: ${path.resolve(clientFile)}`);
   const noOpen = process.argv.includes("--no-open") || process.env.LAUNCHAUDIT_NO_OPEN === "1";
-  if (!noOpen) openInBrowser(dashboardPath);
+  if (!noOpen) openInBrowser(openTarget);
   console.log(JSON.stringify({
     platform: { kind: platform.platform, label: PLATFORM_LABEL[platform.platform], confidence: platform.confidence, signals: platform.signals },
     readiness, passed, flaky, to_fix: failed, needs_verification: needsVerify.length, needs_input: blocked.length,
