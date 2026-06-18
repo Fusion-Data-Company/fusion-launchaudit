@@ -50,3 +50,6 @@ launchaudit-report-*/
 
 # captured auth sessions (cookies, storage state) - never commit
 .launchaudit/
+
+# Local-only agent context + keys (never commit)
+CLAUDE.local.md

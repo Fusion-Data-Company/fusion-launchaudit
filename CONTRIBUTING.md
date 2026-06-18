@@ -1,4 +1,4 @@
-# Contributing to LaunchAudit
+# Contributing to 80/20 Launch Audit
 
 ## Setup
 

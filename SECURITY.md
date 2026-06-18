@@ -1,6 +1,6 @@
 # Security Policy
 
-LaunchAudit is a security-adjacent tool, so we take its own security seriously.
+80/20 Launch Audit is a security-adjacent tool, so we take its own security seriously.
 
 ## Reporting a vulnerability
 
@@ -17,13 +17,13 @@ unless you prefer to stay anonymous.
 
 ## Scope
 
-LaunchAudit runs on the user's own machine inside their own coding agent. It has
+80/20 Launch Audit runs on the user's own machine inside their own coding agent. It has
 no hosted backend in the core product; the optional dashboard (`public/`, `api/`)
 is the main remote surface. Reports about either are welcome.
 
 ## Handling of credentials
 
-LaunchAudit captures auth state and reads connection strings **locally only** —
+80/20 Launch Audit captures auth state and reads connection strings **locally only** —
 credentials never leave the user's machine in the core product. If you find a
 path where a secret is logged, transmitted, or persisted unexpectedly, treat it
 as a vulnerability and report it.
