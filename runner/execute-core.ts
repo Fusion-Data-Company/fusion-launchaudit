@@ -113,14 +113,18 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
     throw new Error(`${step.method ?? "GET"} ${target}: status ${status} is not allowed here`);
   }
   if (step.expectBlocked && !BLOCKED_STATUSES.has(status)) {
+    const reqMethod = (step.method ?? "GET").toUpperCase();
     const ct = (res.headers.get("content-type") ?? "").toLowerCase();
-    // SPA caveat: a 200 that is only the client app shell can't prove exposure
-    // (the page is guarded in the browser; the API is the real gate). Flag it for
-    // verification instead of over-claiming a critical hole.
-    if (status === 200 && ct.includes("text/html") && (await isClientRenderedShell(appUrl, text))) {
+    if ((reqMethod === "OPTIONS" || reqMethod === "HEAD") && (status === 200 || status === 204)) {
+      // CORS preflight / metadata verb — a 200/204 here is expected and is NOT an
+      // exposed privileged action (the real verb, e.g. GET/POST, is tested separately).
+    } else if (status === 200 && ct.includes("text/html") && (await isClientRenderedShell(appUrl, text))) {
+      // SPA caveat: a 200 that is only the client app shell can't prove exposure —
+      // the page is guarded in the browser; the API is the real gate. Verify, don't over-claim.
       throw new Error(`${step.method ?? "GET"} ${target}: returned a client-rendered SPA shell (200 text/html, same skeleton as "/") — an HTTP probe can't confirm this route is gated; the page is rendered and guarded in the browser and the real authorization gate is the API. Verify the API enforces authz (or re-run with an authenticated browser session). [SPA_SHELL]`);
+    } else {
+      throw new Error(`${step.method ?? "GET"} ${target}: expected access to be BLOCKED (redirect/401/403), but got ${status} — this surface is exposed`);
     }
-    throw new Error(`${step.method ?? "GET"} ${target}: expected access to be BLOCKED (redirect/401/403), but got ${status} — this surface is exposed`);
   }
   if (step.expectHeaderPresent) {
     for (const h of step.expectHeaderPresent) {

@@ -46,6 +46,10 @@ export function generateAdminRbac(scan: RepoScan | null, crawl: RuntimeCrawl, hi
   }
 
   for (const api of hints.protectedApis ?? []) {
+    const apiMethod = (api.method ?? "POST").toUpperCase();
+    // OPTIONS/HEAD are CORS-preflight / metadata verbs, never privileged actions —
+    // a 200 to them is a normal preflight, not an exposure. Don't authz-test them.
+    if (apiMethod === "OPTIONS" || apiMethod === "HEAD") continue;
     cards.push({
       id: c.next("TC-ADM"), title: `Admin API rejects unauthenticated calls: ${api.method ?? "POST"} ${api.path}`, category: "roles_permissions", status: "ready", risk: "critical",
       goal: "A privileged API action cannot be called without a session — the guard is server-side, not UI-hidden.",
