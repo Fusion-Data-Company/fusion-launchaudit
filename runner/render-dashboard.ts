@@ -115,9 +115,9 @@ export async function renderDashboard(d: ReportData, outDir: string): Promise<st
   const payload = toPayload(d, history);
 
   const localCss = `
-    /* local-audit mode: hide backend-only nav + controls (no server here) */
-    body.local-mode [data-nav="projects"], body.local-mode [data-nav="runner"], body.local-mode [data-nav="models"], body.local-mode [data-nav="reports"],
-    body.local-mode #new-campaign-btn, body.local-mode #export-report-btn, body.local-mode #run-audit-btn, body.local-mode #campaign-switcher, body.local-mode #sample-data-badge { display:none !important; }
+    /* FULL UI — all the side options stay. Only the sample-data warning badge is
+       suppressed (the local audit data is real, not seed). */
+    body.local-mode #sample-data-badge { display:none !important; }
     .la-localchip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent-ink,#c9ccff);border:1px solid rgba(124,131,255,.3);background:rgba(124,131,255,.08);border-radius:999px;padding:3px 10px;margin-left:8px}
   `;
 
