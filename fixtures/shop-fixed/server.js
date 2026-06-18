@@ -51,6 +51,8 @@ function securityHeaders() {
     'X-Content-Type-Options': 'nosniff',
     'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'self'; frame-ancestors 'none'",
     'Referrer-Policy': 'no-referrer',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Strict-Transport-Security': 'max-age=63072000; includeSubDomains',
   };
 }
 
