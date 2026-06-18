@@ -52,3 +52,15 @@ test("detection always returns signals explaining itself", () => {
   assert.ok(d.signals.length > 0);
   assert.ok(["high", "medium", "low"].includes(d.confidence));
 });
+
+test("SaaS/LMS with Stripe + login + course routes is web_app_saas, not e-commerce (Stripe is a payment processor, not a storefront)", () => {
+  const scan = scanOf({ evidence: ["stripe", "next"], routes: [route({ url_path: "/dashboard" }), route({ url_path: "/courses" }), route({ url_path: "/admin", privileged: true })], total: 3 });
+  const crawl = crawlOf({ has_password_field: true, links: [{ href: "https://x.com/courses", text: "Courses" }, { href: "https://x.com/dashboard", text: "Dashboard" }] });
+  assert.equal(detectPlatform(scan, crawl, {}).platform, "web_app_saas");
+});
+
+test("a real storefront (Shopify + cart/checkout) is still e-commerce", () => {
+  const scan = scanOf({ evidence: ["shopify"], routes: [route({ url_path: "/products/42" })], total: 1 });
+  const crawl = crawlOf({ links: [{ href: "https://x.com/cart", text: "Cart" }, { href: "https://x.com/checkout", text: "Checkout" }] });
+  assert.equal(detectPlatform(scan, crawl, {}).platform, "ecommerce");
+});

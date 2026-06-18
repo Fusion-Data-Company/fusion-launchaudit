@@ -43,13 +43,19 @@ export function detectPlatform(scan: RepoScan | null, crawl: RuntimeCrawl, hints
   // Repo-fingerprint signals (strongest — a manifest or framework is decisive).
   hit("browser_extension", 5, has(evidence, "manifest_version", "browser extension", "chrome.runtime", "web_accessible_resources") && "an extension manifest / chrome.* APIs are present");
   hit("mobile_app", 5, has(evidence, "expo", "react-native", "react native", "app.json", "eas.json") && "an Expo / React Native mobile project");
-  hit("ecommerce", 4, has(evidence, "shopify", "stripe", "medusa", "commerce", "woocommerce", "snipcart") && "an e-commerce/payments dependency");
+  // True storefront systems are decisive for e-commerce…
+  hit("ecommerce", 4, has(evidence, "shopify", "medusa", "woocommerce", "snipcart", "commercejs", "bigcommerce", "saleor", "swell") && "a storefront / e-commerce platform dependency");
+  // …but a generic payment processor (Stripe / PayPal) is NOT — it also powers
+  // SaaS subscriptions, LMS course fees, and donations. It only points to a store
+  // when paired with cart / checkout / product routes (scored just below).
+  hit("ecommerce", 1, has(evidence, "stripe", "paypal", "braintree", "lemonsqueezy", "paddle") && "a payment processor (weak e-commerce signal on its own)");
   hit("blog_cms", 3, has(evidence, "wordpress", "ghost", "contentful", "sanity", "strapi", "@mdx", "astro:content") && "a CMS / content framework");
   hit("ai_chatbot_voice", 4, (has(evidence, "elevenlabs", "convai", "openai", "@anthropic", "langchain", "vercel/ai") || (hints?.elevenLabsAgents?.length ?? 0) > 0) && "an LLM/voice dependency or configured agent");
 
   // Route / URL-shape signals.
   hit("ecommerce", 3, has(paths, "/cart", "/checkout", "/product", "/products/", "/shop", "/basket", "/sku") && "cart / checkout / product routes");
   hit("blog_cms", 2, has(paths, "/blog", "/posts/", "/article", "/tag/", "/category/", "/author/") && "blog / article / tag routes");
+  hit("web_app_saas", 3, has(paths, "/dashboard", "/courses", "/course/", "/lesson", "/learn", "/lms", "/student", "/workspace", "/app/") && "authenticated app routes (dashboard / courses / workspace)");
   hit("sales_funnel", 2, has(paths, "/thank", "/thanks", "/success", "/confirmation", "/upsell", "/offer") && "a thank-you / upsell / offer step");
   hit("internal_tool_admin", 3, routes.filter((r) => r.privileged).length >= Math.max(2, routes.length * 0.4) && "admin/privileged routes dominate the surface");
 

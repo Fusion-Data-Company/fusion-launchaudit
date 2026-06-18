@@ -106,3 +106,10 @@ test("content integrity: lorem/undefined/localhost is a product bug; a placehold
   assert.equal(classifyFailure(result("content_integrity", 'references "http://localhost:3000"'), ctx()).type, "product_bug");
   assert.equal(classifyFailure(result("content_integrity", 'contains a placeholder marker ("your company name")'), ctx()).type, "needs_verification");
 });
+
+test("an expectBlocked route that returned a client SPA shell is needs_verification, never a critical exposure", () => {
+  const err = 'GET https://x/admin: returned a client-rendered SPA shell (200 text/html, same skeleton as "/") — the real authorization gate is the API. [SPA_SHELL]';
+  const c = classifyFailure(result("roles_permissions", err), ctx(false));
+  assert.equal(c.type, "needs_verification");
+  assert.equal(c.confidence, "high");
+});

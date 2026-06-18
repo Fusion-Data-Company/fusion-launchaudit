@@ -39,6 +39,53 @@ type ExecOptions = { appUrl: string; artifactDir: string };
 const BLOCKED_STATUSES = new Set([301, 302, 303, 307, 308, 401, 403]);
 const describeStep = (s: ExecStep) => JSON.stringify(s);
 
+// --- SPA-shell detection (Truth Protocol) ----------------------------------
+// A client-rendered app (React/Vue/Svelte SPA) serves the SAME HTML shell for
+// every route and renders the real page in the browser; the route is guarded
+// client-side and the true authorization gate is the API. So a 200 on an
+// "expectBlocked" route is NOT proof of exposure when the body is just that
+// shell. We compare the body to the homepage skeleton (cached per origin) and
+// look for an empty mount node — only then do we downgrade (verify, not claim).
+const _homeShellCache = new Map<string, string>();
+function stripDynamic(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function visibleTextLen(html: string): number {
+  return stripDynamic(html).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().length;
+}
+/** Pure test (exported for unit tests): is `body` just a client app shell, judged against homepage `home`? */
+export function isClientShellBody(body: string, home: string): boolean {
+  const emptyRoot = /<div[^>]*\bid=["'](?:root|app|__next|app-root|root-app)["'][^>]*>\s*<\/div>/i.test(body);
+  const spaMarker = /data-reactroot|<app-root\b|__NEXT_DATA__|ng-version=|window\.__NUXT__|id=["']svelte["']/i.test(body);
+  const a = stripDynamic(body);
+  const b = stripDynamic(home);
+  const sameAsHome = b.length > 0 && a === b;
+  let nearHome = false;
+  if (b.length > 0 && !sameAsHome) {
+    const ratio = Math.min(a.length, b.length) / Math.max(a.length, b.length);
+    nearHome = ratio > 0.92 && visibleTextLen(body) < 2000;
+  }
+  // Only a POSITIVE shell signal downgrades. Real server-rendered content
+  // (substantial visible text, differs from home, no empty mount) stays "exposed".
+  return sameAsHome || nearHome || ((emptyRoot || spaMarker) && visibleTextLen(body) < 2000);
+}
+async function fetchHomeShell(appUrl: string): Promise<string> {
+  let origin: string;
+  try { origin = new URL(appUrl).origin; } catch { return ""; }
+  if (_homeShellCache.has(origin)) return _homeShellCache.get(origin)!;
+  let body = "";
+  try { const r = await fetch(origin + "/", { redirect: "manual" }); body = await r.text(); } catch { body = ""; }
+  _homeShellCache.set(origin, body);
+  return body;
+}
+async function isClientRenderedShell(appUrl: string, body: string): Promise<boolean> {
+  return isClientShellBody(body, await fetchHomeShell(appUrl));
+}
+
 function resolveUrl(appUrl: string, step: { url?: string; path?: string }) {
   return step.url ?? `${appUrl}${step.path ?? "/"}`;
 }
@@ -66,6 +113,13 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
     throw new Error(`${step.method ?? "GET"} ${target}: status ${status} is not allowed here`);
   }
   if (step.expectBlocked && !BLOCKED_STATUSES.has(status)) {
+    const ct = (res.headers.get("content-type") ?? "").toLowerCase();
+    // SPA caveat: a 200 that is only the client app shell can't prove exposure
+    // (the page is guarded in the browser; the API is the real gate). Flag it for
+    // verification instead of over-claiming a critical hole.
+    if (status === 200 && ct.includes("text/html") && (await isClientRenderedShell(appUrl, text))) {
+      throw new Error(`${step.method ?? "GET"} ${target}: returned a client-rendered SPA shell (200 text/html, same skeleton as "/") — an HTTP probe can't confirm this route is gated; the page is rendered and guarded in the browser and the real authorization gate is the API. Verify the API enforces authz (or re-run with an authenticated browser session). [SPA_SHELL]`);
+    }
     throw new Error(`${step.method ?? "GET"} ${target}: expected access to be BLOCKED (redirect/401/403), but got ${status} — this surface is exposed`);
   }
   if (step.expectHeaderPresent) {

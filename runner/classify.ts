@@ -24,6 +24,19 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   const isRbac = cat === "roles_permissions";
   const isExposure = has(err, "blocked") || has(err, "exposed");
 
+  // SPA caveat (Truth Protocol): an "expectBlocked" route returned the client app
+  // shell, not server-rendered HTML — an HTTP probe can't confirm exposure. The
+  // browser guards the page and the API is the real gate (tested separately by
+  // the admin-API cards). So this is verify-it, never a confirmed critical hole.
+  if (has(err, "[SPA_SHELL]") || has(err, "client-rendered SPA shell")) {
+    return {
+      type: "needs_verification",
+      confidence: "high",
+      reason:
+        "this route returned a client-rendered SPA shell (HTTP 200, same skeleton as the homepage) instead of server-rendered HTML, so an unauthenticated HTTP probe cannot prove it is exposed — the page is guarded in the browser and the real authorization gate is the API (this audit tests the admin API separately). Verify the API enforces authz, or re-run with an authenticated browser session; not a confirmed hole.",
+    };
+  }
+
   // Write-authz, unknown-intent surface: an anonymous well-formed write was
   // ACCEPTED (the only way this card fails). We can't tell from the repo if the
   // route is meant to be public, so a human confirms — never a claimed bug.
