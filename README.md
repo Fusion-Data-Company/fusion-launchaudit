@@ -25,13 +25,15 @@ So I built the thing that does. 80/20 Launch Audit doesn't crawl the happy path 
 
 ## 60-second quick start
 
-Clone, install, and register it with the agent you already pay for. Then just tell the agent: **"audit my site at `<url>`."**
+Clone, install, register it with the agent you already pay for, and boot your dashboard. Then just tell the agent: **"audit my site at `<url>`."**
 
 **Claude Code:**
 
 ```bash
-git clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git && cd fusion-launchaudit && npm install && npx playwright install chromium && claude mcp add launchaudit -- node --experimental-strip-types ./runner/mcp-server.ts
+git clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git && cd fusion-launchaudit && npm install && npx playwright install chromium && claude mcp add launchaudit -- node --experimental-strip-types ./runner/mcp-server.ts && npm run dashboard
 ```
+
+That last step (`npm run dashboard`) opens your **home base** at `http://localhost:3010` — a local dashboard backed by an on-disk database. Every audit you run lands there, and it's all remembered across sessions (your projects, runs, and scores). Nothing is hosted; the data never leaves your machine. Leave it running; run audits from your agent and watch them show up.
 
 **Cursor / Codex** — clone + install the same way, then register the MCP server in your agent's config:
 
