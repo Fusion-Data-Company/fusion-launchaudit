@@ -84,9 +84,10 @@ The `claude-code/` directory contains a skill and command that teach Claude Code
 
 ## What you get
 
-Each run writes to the output directory (default `launchaudit-report/`):
+When a run finishes it **opens a dashboard in your browser automatically** — the same command-center UI you see in the demo, but a single self-contained local file with your results baked in. No server, no signup, your data never leaves your machine. Everything is written to the output directory (default `launchaudit-report/`):
 
-- `launch-audit-<timestamp>.html` — a self-contained report. No server needed; open it in a browser or hand it to a client. Shows the readiness score, every check with its result, and the problems to fix in plain English.
+- `dashboard.html` — the interactive dashboard that auto-opens: readiness gauge, coverage by category, the filterable test-results list, and findings with paste-ready fixes. Run again and it tracks your score across runs (`history.json`). Pass `--no-open` to skip launching the browser.
+- `launch-audit-<timestamp>.html` — a self-contained static report you can hand to a client.
 - `launch-audit-<timestamp>.json` — the same data, machine-readable.
 - `evidence/` — artifacts (network logs, screenshots) backing each result.
 

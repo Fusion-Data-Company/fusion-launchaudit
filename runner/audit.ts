@@ -20,6 +20,8 @@ import { blobConfigured, runnerAuthHeaders, safeName, uploadEvidence } from "./b
 import { crawlRuntime } from "./crawler.ts";
 import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, type CardResult } from "./execute-core.ts";
 import { humanize, renderReport, renderClientReport, type ReportCard } from "./render-report.ts";
+import { renderDashboard } from "./render-dashboard.ts";
+import { spawn } from "node:child_process";
 import { sealVerdict, type RawResult } from "./verdict.ts";
 import { runWatchdog } from "./watchdog.ts";
 import { resultToRaw } from "./verify.ts";
@@ -241,6 +243,7 @@ async function main() {
   const reportData = { name, appUrl, readiness, passed, failed, blocked: needAttention, cards: reportCards, findings, generatedAt: new Date().toISOString() };
   const reportFile = await renderReport(reportData, OUT_DIR);
   const clientFile = await renderClientReport(reportData, OUT_DIR);
+  const dashboardFile = await renderDashboard(reportData, OUT_DIR);
 
   // Optional: sync to hosted command center if configured.
   if (PLATFORM_URL) {
@@ -298,11 +301,15 @@ async function main() {
   console.error(
     `Readiness: ${readiness}/100  ·  ${passed} passed${flaky ? ` (${flaky} flaky-recovered)` : ""}, ${failed} to fix, ${needsVerify.length} need verification, ${blocked.length} need input`,
   );
-  console.error(`Builder report: ${path.resolve(reportFile)}`);
-  console.error(`Client one-pager: ${path.resolve(clientFile)}`);
+  const dashboardPath = path.resolve(dashboardFile);
+  console.error(`\n\u{1F4CA} Your dashboard (opening in your browser):\n   file://${dashboardPath}`);
+  console.error(`   Builder report: ${path.resolve(reportFile)}  \u00B7  Client one-pager: ${path.resolve(clientFile)}`);
+  const noOpen = process.argv.includes("--no-open") || process.env.LAUNCHAUDIT_NO_OPEN === "1";
+  if (!noOpen) openInBrowser(dashboardPath);
   console.log(JSON.stringify({
     platform: { kind: platform.platform, label: PLATFORM_LABEL[platform.platform], confidence: platform.confidence, signals: platform.signals },
     readiness, passed, flaky, to_fix: failed, needs_verification: needsVerify.length, needs_input: blocked.length,
+    dashboard: path.resolve(dashboardFile),
     report: path.resolve(reportFile),
     client_report: path.resolve(clientFile),
     ...(reverify ? { reverify: true, before_after: beforeAfter } : {}),
@@ -310,6 +317,19 @@ async function main() {
     needs_verification_items: needsVerify.map((x) => ({ id: x.r.card.id, title: x.r.card.title, why: x.cls!.reason })),
     needs_input_items: blocked.map((c) => ({ id: c.id, title: c.title, why: c.acceptanceCriteria })),
   }, null, 2));
+}
+
+function openInBrowser(target: string): void {
+  try {
+    const plat = process.platform;
+    const cmd = plat === "darwin" ? "open" : plat === "win32" ? "cmd" : "xdg-open";
+    const args = plat === "win32" ? ["/c", "start", "", target] : [target];
+    const child = spawn(cmd, args, { detached: true, stdio: "ignore" });
+    child.on("error", () => {});
+    child.unref();
+  } catch {
+    /* headless / no display — the printed file:// path is the fallback */
+  }
 }
 
 main().catch((e: unknown) => { console.error(e); process.exitCode = 1; });
