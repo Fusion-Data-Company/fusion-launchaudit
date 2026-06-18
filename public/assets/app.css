@@ -1910,3 +1910,7 @@ code, .mono, .mono-id {
 
 /* elite display font on headers, brand, and key numerals */
 .brand-name,.gauge-num,.metric-value,.cov-title,.panel-heading h2,.hero-cap{font-family:"Space Grotesk","Inter",system-ui,sans-serif;}
+
+/* 3D logo in sidebar brand */
+.brand-mark{background:none!important;border:none!important;box-shadow:none!important;padding:0!important;width:auto!important;height:auto!important;}
+.brand-mark img{height:30px;width:auto;display:block;}
