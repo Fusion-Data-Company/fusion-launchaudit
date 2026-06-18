@@ -63,20 +63,7 @@
   });
 })();
 
-(function(){
-  // ---- Hero cinematic reveal: play once, freeze last frame, fade in the card ----
-  var hero = document.getElementById('top-hero');
-  if(!hero) return;
-  var video = hero.querySelector('.hero-video');
-  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduced || !video){ hero.classList.add('is-revealed'); return; }
-  hero.classList.add('js-cinematic');           // hides the card until reveal
-  var done = false;
-  function reveal(){ if(done) return; done = true; hero.classList.add('is-revealed'); }
-  video.addEventListener('ended', reveal);      // primary: when the clip finishes
-  video.addEventListener('error', reveal);      // CDN/url failure -> show card now
-  setTimeout(reveal, 8500);                      // safety: never leave the card hidden
-})();
+/* hero reveal removed — hero content is always visible (framed product demo) */
 
 
 (function(){
@@ -103,6 +90,30 @@
       var d=await r.json();
       if(d && d.ok){ render(d); } else { out.innerHTML='<div class="grade-err">'+esc((d&&d.error)||'Scan failed — try again.')+'</div>'; }
     }catch(err){ out.innerHTML='<div class="grade-err">Scan failed — check the URL and try again.</div>'; }
+    btn.disabled=false; btn.textContent=prev;
+  });
+})();
+
+
+(function(){
+  // ---- Contact / submission form ----
+  var f=document.getElementById('contact-form'); if(!f) return;
+  var out=document.getElementById('cf-result'), btn=document.getElementById('cf-btn');
+  f.addEventListener('submit', async function(e){
+    e.preventDefault();
+    var email=(document.getElementById('cf-email').value||'').trim();
+    var message=(document.getElementById('cf-message').value||'').trim();
+    if(!email||!message){ out.hidden=false; out.className='cf-result err'; out.textContent='Add your email and a message.'; return; }
+    var prev=btn.textContent; btn.disabled=true; btn.textContent='Sending…';
+    try{
+      var r=await fetch('/api/contact',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
+        name:(document.getElementById('cf-name').value||'').trim(), email:email,
+        type:document.getElementById('cf-type').value, message:message })});
+      var d=await r.json();
+      out.hidden=false;
+      if(d && d.ok){ out.className='cf-result ok'; out.textContent='Got it — thanks. We\'ll be in touch.'; f.reset(); }
+      else { out.className='cf-result err'; out.textContent=(d&&d.error)||'Could not send — try again.'; }
+    }catch(err){ out.hidden=false; out.className='cf-result err'; out.textContent='Could not send — try again.'; }
     btn.disabled=false; btn.textContent=prev;
   });
 })();
