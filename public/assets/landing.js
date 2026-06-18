@@ -77,3 +77,32 @@
   video.addEventListener('error', reveal);      // CDN/url failure -> show card now
   setTimeout(reveal, 8500);                      // safety: never leave the card hidden
 })();
+
+
+(function(){
+  // ---- Free instant grader ----
+  var form=document.getElementById('grade-form'); if(!form) return;
+  var out=document.getElementById('grade-result'), btn=document.getElementById('grade-btn');
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var sevColor={critical:'#f0696a',high:'#f0696a',medium:'#e0b23c',low:'#9aa0b4'};
+  function render(d){
+    var items=(d.findings||[]).map(function(f){return '<li class="gf"><span class="gf-sev" style="color:'+sevColor[f.severity]+'">'+esc(f.severity)+'</span><span class="gf-txt"><b>'+esc(f.title)+'</b><span>'+esc(f.detail)+'</span></span></li>';}).join('');
+    out.innerHTML='<div class="grade-card"><div class="grade-score band-'+esc(d.band)+'"><span class="gs-num">'+d.score+'</span><span class="gs-den">/ 100</span><span class="gs-cap">readiness</span></div>'
+      +'<div class="grade-body"><p class="grade-sum">'+esc(d.summary)+'</p>'
+      +(items?'<ul class="grade-list">'+items+'</ul>':'<p class="grade-clean">No surface issues found — nice.</p>')
+      +'<p class="grade-note">'+esc(d.note)+'</p>'
+      +'<a class="btn btn-primary" href="#connect">Run the deep audit — free →</a></div></div>';
+  }
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    var url=(document.getElementById('grade-url').value||'').trim(); if(!url) return;
+    var prev=btn.textContent; btn.disabled=true; btn.textContent='Scanning…';
+    out.hidden=false; out.innerHTML='<div class="grade-loading">Running the surface scan… (10s)</div>';
+    try{
+      var r=await fetch('/api/grade',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:url})});
+      var d=await r.json();
+      if(d && d.ok){ render(d); } else { out.innerHTML='<div class="grade-err">'+esc((d&&d.error)||'Scan failed — try again.')+'</div>'; }
+    }catch(err){ out.innerHTML='<div class="grade-err">Scan failed — check the URL and try again.</div>'; }
+    btn.disabled=false; btn.textContent=prev;
+  });
+})();

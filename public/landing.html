@@ -326,6 +326,32 @@
   h1.hero-title,.wm-text,h2.sec-title,.truth h3,.closer h2,.cgcard h4,.brand-name,.connect-head h3,.sec-kicker{font-family:var(--font-display);}
   .wm-logo{background:none!important;box-shadow:none!important;}
   .wm-logo .wm-mark{filter:drop-shadow(0 10px 24px rgba(124,131,255,.55));}
+
+  /* ---- FREE GRADER ---- */
+  .grade-form{display:flex;gap:10px;max-width:560px;margin:0 auto;flex-wrap:wrap;justify-content:center;}
+  .grade-form input{flex:1;min-width:240px;padding:14px 16px;border-radius:12px;border:1px solid var(--line-strong);background:rgba(0,0,0,.32);color:var(--ink);font-family:var(--font);font-size:15px;}
+  .grade-form input::placeholder{color:var(--ink-faint);}
+  .grade-form input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  .grade-result{max-width:780px;margin:26px auto 0;}
+  .grade-loading,.grade-err{text-align:center;color:var(--ink-mut);padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--panel);}
+  .grade-err{color:#f0a3a3;}
+  .grade-card{display:flex;gap:26px;align-items:flex-start;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--shadow-card);padding:26px;flex-wrap:wrap;}
+  .grade-score{flex:none;width:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;padding:20px 10px;background:rgba(0,0,0,.25);}
+  .grade-score .gs-num{font-family:var(--font-display);font-size:58px;font-weight:700;line-height:1;letter-spacing:-.02em;}
+  .grade-score .gs-den{font-family:var(--mono);font-size:12px;color:var(--ink-mut);margin-top:2px;}
+  .grade-score .gs-cap{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mut);margin-top:8px;}
+  .band-green .gs-num{color:#48c98a;} .band-yellow .gs-num{color:#e0b23c;} .band-red .gs-num{color:#f0696a;}
+  .band-green{box-shadow:inset 0 0 0 1px rgba(72,201,138,.45);} .band-yellow{box-shadow:inset 0 0 0 1px rgba(224,178,60,.45);} .band-red{box-shadow:inset 0 0 0 1px rgba(240,105,106,.45);}
+  .grade-body{flex:1;min-width:260px;}
+  .grade-sum{font-size:16px;color:var(--ink);margin:0 0 14px;font-weight:600;}
+  .grade-list{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:11px;}
+  .gf{display:flex;gap:12px;align-items:flex-start;}
+  .gf-sev{flex:none;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;width:60px;padding-top:3px;}
+  .gf-txt{display:flex;flex-direction:column;}
+  .gf-txt b{font-size:14px;color:var(--ink);}
+  .gf-txt span{font-size:12.5px;color:var(--ink-mut);line-height:1.5;}
+  .grade-clean{color:#7ee0a8;font-size:14px;margin:0 0 14px;}
+  .grade-note{font-size:12.5px;color:var(--ink-faint);border-top:1px solid var(--line);padding-top:14px;margin:14px 0;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -343,6 +369,7 @@
     </a>
     <nav class="nav-links" aria-label="Primary">
       <a class="nlink" href="#connect">Connect</a>
+      <a class="nlink" href="#grade">Grade my app</a>
       <a class="nlink" href="#catches">What it catches</a>
       <a class="nlink" href="#how">How it works</a>
       <a class="nav-cta" href="https://github.com/Fusion-Data-Company/fusion-launchaudit" target="_blank" rel="noopener">
@@ -375,6 +402,22 @@
     </div>
     <p class="hero-mini">or try the <a href="https://launch-audit-platform.vercel.app" target="_blank" rel="noopener">live demo →</a></p>
     <div class="hero-proof"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Proven on a fixture with 5 planted bugs — caught all 5.</div>
+  </div>
+</section>
+
+<!-- FREE INSTANT GRADER -->
+<section class="block" id="grade">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">Free · 10 seconds · no install</div>
+      <h2 class="sec-title">Grade your app right now</h2>
+      <p class="sec-sub">Paste your live URL. We run a surface scan on the spot — security headers, exposed secrets, CORS, cookies, HTTPS, SEO. No signup, no code upload; only the URL leaves your browser. The deep audit (broken access control, admin/RBAC, your repo) runs free in your own agent.</p>
+    </div>
+    <form id="grade-form" class="grade-form" novalidate>
+      <input id="grade-url" type="url" inputmode="url" autocomplete="url" placeholder="https://your-app.com" aria-label="Your app URL" required />
+      <button class="btn btn-primary" type="submit" id="grade-btn">Grade my app →</button>
+    </form>
+    <div id="grade-result" class="grade-result" hidden></div>
   </div>
 </section>
 
