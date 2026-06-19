@@ -337,9 +337,11 @@
   .cf-result{font-size:14px;padding:12px 14px;border-radius:10px;}
   .cf-result.ok{color:#a7f3d0;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);}
   .cf-result.err{color:#f0a3a3;background:rgba(240,105,106,.08);border:1px solid rgba(240,105,106,.3);}
-  /* ---- WATCH (UGC clip) ---- */
-  #watch .watch-frame{max-width:760px;margin:0 auto;border-radius:16px;overflow:hidden;border:1px solid var(--line-strong);background:#0a0b12;box-shadow:0 40px 100px -45px rgba(0,0,0,.9),0 0 0 1px rgba(124,131,255,.08), inset 0 1px 0 rgba(255,255,255,.05);}
-  #watch .watch-video{display:block;width:100%;height:auto;background:#0a0b12;}
+  /* ---- WATCH (UGC clips) ---- */
+  #watch .watch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;max-width:1120px;margin:0 auto;}
+  #watch .watch-card{margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);background:#0a0b12;box-shadow:0 30px 80px -45px rgba(0,0,0,.9),0 0 0 1px rgba(124,131,255,.08), inset 0 1px 0 rgba(255,255,255,.05);}
+  #watch .watch-card video{display:block;width:100%;height:auto;background:#0a0b12;}
+  #watch .watch-card figcaption{padding:10px 14px;font-size:13px;color:var(--ink-mut);font-weight:500;border-top:1px solid var(--line-soft);}
 </style>
 </head>
 <body>
@@ -602,18 +604,18 @@
   </div>
 </section>
 
-<!-- WATCH (UGC clip) -->
+<!-- WATCH (UGC clips) -->
 <section class="block" id="watch">
   <div class="wrap">
     <div class="sec-head">
       <div class="sec-kicker">See it in 15 seconds</div>
-      <h2 class="sec-title">"Your AI said it's done." Watch what that misses.</h2>
-      <p class="sec-sub">A 15-second take on the 20% that ships broken — broken access control, leaked keys, 500s — and what 80/20 Launch Audit does about it.</p>
+      <h2 class="sec-title">Three takes, one message: free, local, and yours.</h2>
+      <p class="sec-sub">Real developers on why "your AI said it's done" isn't enough — and how 80/20 Launch Audit runs free, on your own machine and your own agent subscription.</p>
     </div>
-    <div class="watch-frame">
-      <video class="watch-video" controls preload="metadata" playsinline poster="/launch-ugc-poster.jpg">
-        <source src="/launch-ugc.mp4" type="video/mp4" />
-      </video>
+    <div class="watch-grid">
+      <figure class="watch-card"><video controls preload="metadata" playsinline poster="/launch-ugc-poster.jpg"><source src="/launch-ugc.mp4" type="video/mp4" /></video><figcaption>The short version</figcaption></figure>
+      <figure class="watch-card"><video controls preload="metadata" playsinline poster="/launch-ugc-2-poster.jpg"><source src="/launch-ugc-2.mp4" type="video/mp4" /></video><figcaption>Free, local, on your own subscription</figcaption></figure>
+      <figure class="watch-card"><video controls preload="metadata" playsinline poster="/launch-ugc-3-poster.jpg"><source src="/launch-ugc-3.mp4" type="video/mp4" /></video><figcaption>A template you make your own</figcaption></figure>
     </div>
   </div>
 </section>
