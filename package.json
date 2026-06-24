@@ -24,7 +24,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.1",
+    "@electric-sql/pglite": "^0.5.3",
     "esbuild": "^0.28.0",
     "playwright": "^1.61.0"
   },
