@@ -27,10 +27,15 @@ execute in Chromium + HTTP (`runner/execute-core.ts`) → **watchdog re-verifies
 no-browser pass** → classify (`runner/classify.ts`) → score + render report
 (`runner/render-report.ts`).
 
-**Scoring:** `readiness = passed / (passed + product_bugs + needs_attention) * 100`.
-`needs_verification` items sit in the denominator (they need attention) but are NOT
-counted as passes and are NOT scary "product bugs" — honest middle ground. Bands:
-Green ≥80 · Yellow 50–79 · Red <50.
+**Scoring:** `readiness = passed / (passed + product_bugs + needs_verification) * 100`
+— "of the checks we could actually RUN, what fraction is launch-ready." `needs_verification`
+items sit in the denominator (they ran, but are an unresolved question you must answer —
+not a pass, not a scary "product bug": honest middle ground). Two things are EXCLUDED from
+the denominator because they are not evidence about the app: `test_bug` (our own tooling
+hiccup, e.g. OSV/network — surfaced as a "tooling" note) and `blocked` (a check we couldn't
+run for lack of creds/https/lockfile — surfaced separately as coverage gaps, and any blocked
+security/authz check is called out by the Launch Gate so an excluded-blocked score can't be
+gamed). Bands: Green ≥80 · Yellow 50–79 · Red <50.
 
 ## Detectors (the test generators)
 `src/lib/generators/*.ts` — each exports `generate<X>(scan, crawl, hints, counter)`

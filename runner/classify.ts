@@ -133,6 +133,58 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   if (cat === "performance") {
     return { type: "needs_verification", confidence: "medium", reason: "a single cold headless load measured a Core Web Vital in the poor range — confirm with a throttled lab run or field (CrUX) data before treating it as a regression" };
   }
+  // Defense-in-depth headers (Content-Security-Policy / Cross-Origin-Opener-Policy).
+  // Absence or a permissive directive is strong hardening guidance for a public app,
+  // but context-dependent (an internal tool or static page may not need it) — so we
+  // verify intent rather than over-claim a bug. Hard header requirements (nosniff,
+  // X-Frame-Options, no X-Powered-By) still fall through to product_bug below.
+  if (cat === "security_headers" && has(err, "defense-in-depth")) {
+    return { type: "needs_verification", confidence: "medium", reason: "a defense-in-depth header (Content-Security-Policy / Cross-Origin-Opener-Policy) is missing or carries a permissive directive ('unsafe-inline'/'unsafe-eval') — strong XSS/XS-Leak hardening for a public app, but confirm it applies to this surface before treating it as a defect" };
+  }
+  // Dependency CVE (SCA / OSV). A pinned version matching a published OSV/GHSA advisory
+  // is real and verifiable from the lockfile. An OSV lookup that itself failed is our
+  // tooling's problem (test_bug), never a claim about the app.
+  if (cat === "dependency_cve") {
+    if (has(err, "OSV query failed")) {
+      return { type: "test_bug", confidence: "high", reason: "the OSV.dev lookup itself failed (network/API) — this is our tooling, not a finding about the app; re-run with connectivity" };
+    }
+    // Reachability-lite: a matching advisory on a package your source doesn't import
+    // (transitive/unused) is lower priority — upgrade when convenient, but verify
+    // reachability before treating it as launch-blocking. Imported → confirmed bug.
+    if (has(err, "none imported by your code")) {
+      return { type: "needs_verification", confidence: "medium", reason: "a pinned dependency matches a published OSV/GHSA advisory, but your own source does not import it (transitive or unused) — upgrade when convenient; confirm whether anything reaches it before treating it as launch-blocking" };
+    }
+    return { type: "product_bug", confidence: "medium", reason: "a pinned dependency your code imports matches a published OSV/GHSA advisory — upgrade to a fixed version (reachability here is import-presence, not a full call graph, but this package is actually pulled into your app)" };
+  }
+  // Dependency licenses. A copyleft/unknown license is a legal/policy decision, not a
+  // code defect — surface it for review, never auto-fail it as a bug.
+  if (cat === "dependency_license") {
+    return { type: "needs_verification", confidence: "medium", reason: "a direct dependency ships a copyleft (GPL/AGPL/SSPL/…) or unknown license — this can impose source-disclosure or other obligations on a proprietary app; have legal review it before launch (a compliance decision, not a code defect)" };
+  }
+  // SAST-lite code sinks (grep, no taint). A dynamic-code / HTML-injection sink is a
+  // place to REVIEW for untrusted input, not a proven exploit → verify, don't claim.
+  if (cat === "code_smell") {
+    return { type: "needs_verification", confidence: "medium", reason: "a dynamic-code or HTML-injection sink (eval / new Function / interpolated child_process / dangerouslySetInnerHTML / innerHTML=) is present — these are the usual XSS/RCE entry points; confirm each only ever receives trusted, sanitized input (a pattern match, not a proven exploit — pair with a full SAST like Semgrep for taint analysis)" };
+  }
+  // Secret exposure (repo scan). A known-FORMAT credential (gitleaks "specific" detector:
+  // AWS/GitHub/Stripe/Slack/Google/OpenAI/PEM, or a committed .env) sitting in tracked
+  // source is real and verifiable from the bytes on disk → confirmed bug. A bare high-
+  // entropy generic hit is only a candidate (could be an example/hash) → verify, don't claim.
+  if (cat === "secret_exposure") {
+    if (has(err, "live-format") || has(err, "live format")) {
+      return { type: "product_bug", confidence: "high", reason: "a live-format credential is committed in tracked source — rotate it and purge it from git history (a commit lives forever; anyone with repo access already has the key)" };
+    }
+    return { type: "needs_verification", confidence: "medium", reason: "a high-entropy string that looks like a secret was found in tracked source — confirm it is a real credential, not an example/placeholder, a hash, or test data, before treating it as a leak" };
+  }
+  // Served-response info disclosure. A live-FORMAT credential in the delivered body
+  // is a real leak (product_bug). A JWT / internal IP / S3 URL is only a candidate
+  // (could be an intentional public token or example) → verify, don't over-claim.
+  if (cat === "info_disclosure") {
+    if (has(err, "served credential")) {
+      return { type: "product_bug", confidence: "high", reason: "the response body served a live-format credential (an AWS/Google/Slack/Stripe key or a private key block) in delivered output — a real secret leak; rotate it and stop serving it (OWASP WSTG / CWE-200)" };
+    }
+    return { type: "needs_verification", confidence: "medium", reason: "the response body contains a sensitive-looking marker (a JWT, an internal RFC1918 IP, or an S3 bucket URL) — confirm it is not an intentional public token or example before treating it as information disclosure (CWE-200)" };
+  }
   // Content integrity / fake data. Lorem filler, unbound undefined/NaN, and a
   // hardcoded localhost URL on a deployed page are concrete defects (real bug).
   // A generic placeholder marker might be intentional copy → verify, don't claim.

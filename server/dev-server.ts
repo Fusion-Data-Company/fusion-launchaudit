@@ -32,6 +32,20 @@ const host = "127.0.0.1";
 const port = Number(process.env.PORT ?? 3010);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+// In-memory live-run progress: the real phase/step state the runner posts AS it
+// works, surfaced so the dashboard can track an in-flight scan. Ephemeral on
+// purpose (it's runtime status, not a finding) — durable results still land via
+// /api/runner/sync into Postgres. This never invents data; an idle dashboard
+// simply has no live entry and renders the persisted campaign as before.
+type LiveProgress = { status: string; phase: string; done: number; total: number; note?: string; readiness?: number; updatedAt: string };
+const liveProgress = new Map<string, LiveProgress>();
+function pruneLiveProgress() {
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  for (const [id, entry] of liveProgress) {
+    if (Date.parse(entry.updatedAt) < cutoff) liveProgress.delete(id);
+  }
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -442,6 +456,7 @@ async function main() {
         storage_schema_sql: storageSchemaSql,
         persistence,
         run_stats: runStats,
+        live_progress: liveProgress.get(String(liveCampaign.id)) ?? null,
       });
       return;
     }
@@ -584,6 +599,31 @@ async function main() {
         },
         persistence,
       });
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/api/runner/progress") {
+      const auth = authorizeRunnerWrite(request.headers);
+      if (!auth.ok) {
+        json(response, auth.status, { accepted: false, error: auth.error });
+        return;
+      }
+      const body = await readJsonBody<{ campaign_id?: string; status?: string; phase?: string; done?: number; total?: number; note?: string; readiness?: number }>(request);
+      if (!body.campaign_id) {
+        json(response, 400, { accepted: false, error: "campaign_id is required." });
+        return;
+      }
+      pruneLiveProgress();
+      liveProgress.set(body.campaign_id, {
+        status: body.status ?? "running",
+        phase: body.phase ?? "",
+        done: Number(body.done ?? 0),
+        total: Number(body.total ?? 0),
+        note: body.note,
+        readiness: typeof body.readiness === "number" ? body.readiness : undefined,
+        updatedAt: new Date().toISOString(),
+      });
+      json(response, 200, { accepted: true });
       return;
     }
 

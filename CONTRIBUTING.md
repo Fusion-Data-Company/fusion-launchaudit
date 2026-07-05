@@ -30,6 +30,30 @@ zero-dependency Node HTTP app with 5 planted bugs (documented in
 `fixtures/buggy-shop/BUGS.md`); `fixtures/shop-fixed` is the same app with the
 bugs fixed.
 
+**The fast path — the automated gate (what CI runs):**
+
+```bash
+npm run test:fixtures   # boots both fixtures, asserts buggy-shop catches all 5
+                        # planted bug classes + the Launch Gate FAILS, and shop-fixed
+                        # scores 100/100 with zero false positives + the Gate PASSES.
+npm run test:mutation   # re-breaks the clean fixture one detector at a time and asserts
+                        # each re-introduced defect is caught (kill-rate must be 100%).
+```
+
+Both need a browser (Playwright Chromium) and run in the `fixtures` CI job on every
+push/PR — a recall drop, a new false positive, or a detector that stops catching its
+bug fails the build. Run them locally before opening a PR that touches a generator,
+the executor, or the classifier.
+
+> On scoring: `shop-fixed` reaches a legitimate **100/100** over local http because
+> readiness is "of the checks we could actually RUN, what fraction passed" — checks
+> that can't run without https/creds/a lockfile (TLS/HSTS, the cross-user authz wedge,
+> the CVE scan) are reported as *coverage gaps* by the Launch Gate, not counted against
+> the score. The buggy fixture proves the wedge *catches*; the clean one proves *no
+> false positives*.
+
+**The manual path (for debugging a single fixture):**
+
 1. Start the buggy fixture (listens on `http://127.0.0.1:4400`):
 
    ```bash
@@ -52,8 +76,9 @@ bugs fixed.
    all 5 planted bugs and must not flag the routes listed as intentionally
    correct.
 
-4. Repeat against `fixtures/shop-fixed` (same steps, swap the directory). The
-   fixed variant must score 100/100.
+4. Repeat against `fixtures/shop-fixed` (same steps, swap the directory, port
+   `4401`). The fixed variant scores 100/100 with zero false positives — this is
+   what `npm run test:fixtures` asserts mechanically.
 
 A change to a generator (`src/lib/generators/`), the executor, or the
 classifier (`runner/classify.ts`) should be validated against both fixtures

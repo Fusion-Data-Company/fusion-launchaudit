@@ -50,10 +50,16 @@ export type ExecStep =
       expectHeaderPresent?: string[];
       expectHeaderValueOneOf?: Record<string, string[]>;
       expectHeaderAbsent?: string[];
+      /** defense-in-depth headers (CSP/COOP/…): absence is a verify-gap, not a hard bug */
+      expectHeaderRecommended?: string[];
+      /** a present header must NOT carry these (lowercased) tokens, e.g. CSP w/o 'unsafe-inline' */
+      expectHeaderExcludesTokens?: Record<string, string[]>;
       expectJsonKeys?: string[];
       expectBodyExcludes?: string[];
       /** case-insensitive variant of expectBodyExcludes (injection error/reflection signatures) */
       expectBodyExcludesCI?: string[];
+      /** labeled regex patterns the response body must NOT contain — served secrets/PII/info leaks */
+      expectBodyExcludesRegex?: Array<{ label: string; pattern: string }>;
       /** require the body to contain AT LEAST ONE of these (case-insensitive) — e.g. a tracking pixel or payment script */
       expectBodyIncludesAny?: { needles: string[]; label: string };
       /** assert each flag (HttpOnly/Secure/SameSite) is present on the response's Set-Cookie */
@@ -78,6 +84,25 @@ export type ExecStep =
       url?: string;
       path?: string;
       assert: ContentAssertion;
+    }
+  | {
+      action: "dep_cve_audit";
+      deps: Array<{ ecosystem: string; name: string; version: string }>;
+      direct?: string[];
+      /** direct deps the app's own source actually imports (reachability-lite) */
+      imported?: string[];
+    }
+  | {
+      action: "license_audit";
+      flagged: Array<{ name: string; license: string; kind: "copyleft" | "unknown" }>;
+    }
+  | {
+      action: "code_smell_scan";
+      hits: Array<{ file: string; line: number; rule: string; cwe: string }>;
+    }
+  | {
+      action: "secret_scan";
+      hits: Array<{ file: string; line: number; rule: string; preview: string; knownFormat: boolean }>;
     };
 
 /** One assertion against a page's rendered content (fake/placeholder data integrity). */

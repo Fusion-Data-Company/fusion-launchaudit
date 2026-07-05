@@ -33,13 +33,54 @@ export type ReportData = {
   generatedAt: string;
 };
 
-const esc = (v: unknown) =>
-  String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+// Single-pass HTML escape (covers &, <, >, ", ') — one scan, order-independent, no
+// per-char replaceAll chain. Enough for text nodes + quoted attributes in this report.
+const HTML_ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch] ?? ch);
+
+// The Launch Gate — a literal PASS/FAIL over the security/authorization wedge,
+// sitting above the 0–100 score (Sonar's quality-gate move, on our wedge). It
+// fails ONLY on confirmed product bugs in security/authz categories (never on
+// needs_verification / needs_input — honest), or when readiness is below the bar.
+const GATE_CATEGORIES = new Set([
+  "roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment",
+  "write_authz", "cors", "cookie_security", "tls_hsts", "injection",
+  "security_headers", "secrets_exposure", "secret_exposure", "dependency_cve",
+]);
+
+export type GateVerdict = { pass: boolean; blockers: ReportData["findings"]; coverageGaps: string[]; readiness: number; threshold: number; reason: string };
+
+export function launchGate(data: ReportData, threshold = 80): GateVerdict {
+  const confirmed = (sev: string) => {
+    const s = sev.toLowerCase();
+    // "tooling" = our own scanner hiccup (e.g. OSV/network) — never the app's fault,
+    // so it can never block a launch, same as needs-verification / needs-input / blocked.
+    return s !== "needs verification" && s !== "needs input" && s !== "blocked" && s !== "tooling";
+  };
+  const blockers = data.findings.filter((f) => f.category != null && GATE_CATEGORIES.has(f.category) && confirmed(f.severity));
+  // Coverage gaps: security/authz checks we could not RUN (blocked for lack of creds,
+  // https, a lockfile, …). Readiness excludes blocked, so we surface these here to keep
+  // the score honest — a clean number over partial wedge coverage is stated as partial.
+  const coverageGaps = data.cards
+    .filter((c) => c.status === "blocked" && GATE_CATEGORIES.has(c.category))
+    .map((c) => c.plainTitle ?? c.title);
+  const pass = blockers.length === 0 && data.readiness >= threshold;
+  const base = blockers.length
+    ? `${blockers.length} confirmed security/authorization ${blockers.length === 1 ? "issue" : "issues"} must be fixed before launch`
+    : data.readiness < threshold
+      ? `readiness ${data.readiness} is below the ${threshold}/100 launch threshold`
+      : `no confirmed security/authorization issues and readiness is at or above ${threshold}/100`;
+  const reason = coverageGaps.length
+    ? `${base} — NOTE: ${coverageGaps.length} security/authorization check${coverageGaps.length === 1 ? "" : "s"} could not run (partial coverage); provide the missing input to verify them`
+    : base;
+  return { pass, blockers, coverageGaps, readiness: data.readiness, threshold, reason };
+}
 
 export async function renderReport(data: ReportData, outDir: string): Promise<string> {
   const total = data.passed + data.failed + data.blocked;
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   const stamp = data.generatedAt.replace(/[:.]/g, "-").slice(0, 19);
+  const gate = launchGate(data);
 
   const rows = data.cards
     .map((c) => {
@@ -117,6 +158,11 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
   .ev{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:5px;padding:2px 8px}
   .ev:hover{border-color:var(--accent)}
   .foot{padding:24px 40px 30px;color:var(--faint);font-size:11.5px;display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:20px}
+  .gate{display:flex;align-items:center;gap:14px;padding:14px 40px;border-bottom:1px solid var(--line);font-size:14px}
+  .gate-pass{background:#eaf6ef}.gate-fail{background:#fbeaec}
+  .gate-badge{font-family:ui-monospace,monospace;font-weight:800;letter-spacing:.1em;border:2px solid currentColor;border-radius:6px;padding:3px 10px;font-size:13px}
+  .gate-pass .gate-badge{color:var(--pass)}.gate-fail .gate-badge{color:var(--fail)}
+  .gate-txt{color:var(--ink)}
   .top3{margin:0 40px 8px;padding-left:20px}.top3 li{margin-bottom:12px}
   .t3t{font-weight:600;font-size:15px}.t3s{font-family:ui-monospace,monospace;font-size:10.5px;text-transform:uppercase;color:var(--fail);border:1px solid var(--line);border-radius:4px;padding:1px 6px;margin-left:6px}
   .fix{margin-top:7px}.fix summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-family:ui-monospace,monospace}
@@ -126,6 +172,10 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
   <div class="mast">
     <div class="brand"><div class="mark">L</div><div>LaunchAudit<div style="color:var(--faint);font-size:12px;font-weight:500">Launch Readiness Report</div></div></div>
     <div class="meta">${esc(new Date(data.generatedAt).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}))}<br/>${esc(data.appUrl)}</div>
+  </div>
+  <div class="gate ${gate.pass ? "gate-pass" : "gate-fail"}">
+    <span class="gate-badge">${gate.pass ? "PASS" : "FAIL"}</span>
+    <span class="gate-txt"><strong>Launch Gate</strong> — ${esc(gate.reason)}.</span>
   </div>
   <div class="hero">
     <div style="text-align:center"><div class="score">${esc(data.readiness)}<sup>/100</sup></div><div class="slbl">${data.readiness>=80?"Launch ready":data.readiness>=50?"Needs work":"Not ready"}</div></div>
@@ -151,7 +201,7 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
   await fs.mkdir(outDir, { recursive: true });
   const file = path.join(outDir, `launch-audit-${stamp}.html`);
   await fs.writeFile(file, html);
-  await fs.writeFile(path.join(outDir, `launch-audit-${stamp}.json`), JSON.stringify(data, null, 2));
+  await fs.writeFile(path.join(outDir, `launch-audit-${stamp}.json`), JSON.stringify({ ...data, launch_gate: gate }, null, 2));
   return file;
 }
 
@@ -163,6 +213,7 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
 export async function renderClientReport(data: ReportData, outDir: string): Promise<string> {
   const stamp = data.generatedAt.replace(/[:.]/g, "-").slice(0, 19);
   const verdict = data.readiness >= 80 ? "Launch ready" : data.readiness >= 50 ? "Needs work before launch" : "Not ready to launch";
+  const gate = launchGate(data);
   const top3 = fixTheseThree(data.findings as Finding[]);
   const seo = buildSeoRanking(data.cards);
   const top3Html = top3.length
@@ -187,6 +238,7 @@ export async function renderClientReport(data: ReportData, outDir: string): Prom
   <div class="top"><div><h1>${esc(data.name)}</h1><div class="url">${esc(data.appUrl)}</div></div>
     <div style="text-align:center"><div class="score">${esc(data.readiness)}<sup>/100</sup></div><div class="verdict">${verdict}</div></div></div>
   <div class="counts"><span>✅ ${data.passed} working</span><span>❌ ${data.failed} to fix</span><span>⚠️ ${data.blocked} need attention</span></div>
+  <p style="margin-top:14px;font-size:14px"><strong style="font-family:ui-monospace,monospace;border:2px solid ${gate.pass ? "#0f8b53" : "#c23b46"};color:${gate.pass ? "#0f8b53" : "#c23b46"};border-radius:6px;padding:2px 9px;letter-spacing:.08em">${gate.pass ? "PASS" : "FAIL"}</strong> &nbsp;Launch gate: ${esc(gate.reason)}.</p>
   <h2>Fix these 3 first</h2>
   ${top3Html}
   <h2>Getting found on Google</h2>

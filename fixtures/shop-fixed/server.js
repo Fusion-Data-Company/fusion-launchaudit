@@ -45,11 +45,15 @@ const PRODUCTS = [
 // no Content-Security-Policy, no Strict-Transport-Security. A proper app would
 // add a security-headers middleware here.
 function securityHeaders() {
-  // FIX #5: security-headers middleware — set on EVERY response.
+  // FIX #5: security-headers middleware — set on EVERY response. A launch-ready app
+  // ships a STRICT CSP (no 'unsafe-inline' — styles are served from /style.css, not
+  // inlined) plus cross-origin isolation (COOP/CORP) as defense-in-depth.
   return {
     'X-Frame-Options': 'DENY',
     'X-Content-Type-Options': 'nosniff',
-    'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'self'; frame-ancestors 'none'",
+    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'self'; frame-ancestors 'none'; object-src 'none'",
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Resource-Policy': 'same-origin',
     'Referrer-Policy': 'no-referrer',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     'Strict-Transport-Security': 'max-age=63072000; includeSubDomains',
@@ -117,27 +121,59 @@ function parseFormUrlEncoded(body) {
 // ---------------------------------------------------------------------------
 // Shared HTML chrome
 // ---------------------------------------------------------------------------
-function page(title, bodyHtml) {
+// Absolute base for canonical/OG URLs (launch-ready pages declare these).
+const BASE_URL = `http://127.0.0.1:${PORT}`;
+const SITE_DESC = 'Buggy Shop is a demo storefront used as a QA test target for the 80/20 Launch Audit tool.';
+
+// Styles live in ONE served stylesheet (see the /style.css route) so the page needs
+// no inline <style> and the CSP can stay strict (style-src 'self', no 'unsafe-inline').
+const STYLE_CSS = `
+  body { font-family: system-ui, Arial, sans-serif; margin: 0; color: #1a1a1a; }
+  nav { background: #14213d; padding: 12px 20px; }
+  nav a { color: #e5e5e5; margin-right: 16px; text-decoration: none; font-weight: 600; }
+  nav a:hover { color: #fca311; }
+  main { padding: 24px 20px; max-width: 960px; }
+  h1 { color: #14213d; }
+  table { border-collapse: collapse; width: 100%; max-width: 100%; }
+  td, th { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+  .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 16px 0; }
+  .scroll-x { max-width: 100%; overflow-x: auto; }
+  .mt-24 { margin-top: 24px; }
+  .mt-16 { margin-top: 16px; }
+  .muted { color: #555; }
+  .err { color: #b00020; font-weight: 600; }
+  label { display: block; margin: 8px 0 4px; font-weight: 600; }
+  input { padding: 8px; width: 240px; border: 1px solid #aaa; border-radius: 4px; }
+  button { margin-top: 12px; padding: 8px 16px; background: #fca311; border: 0; border-radius: 4px; cursor: pointer; font-weight: 700; }
+`;
+
+function page(title, bodyHtml, opts) {
+  const o = opts || {};
+  const description = o.description || SITE_DESC;
+  const canonical = BASE_URL + (o.path || '/');
+  const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Store',
+    name: 'Buggy Shop',
+    description: SITE_DESC,
+    url: BASE_URL,
+  });
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${title} — Buggy Shop</title>
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 0; color: #1a1a1a; }
-    nav { background: #14213d; padding: 12px 20px; }
-    nav a { color: #e5e5e5; margin-right: 16px; text-decoration: none; font-weight: 600; }
-    nav a:hover { color: #fca311; }
-    main { padding: 24px 20px; max-width: 960px; }
-    h1 { color: #14213d; }
-    table { border-collapse: collapse; }
-    td, th { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
-    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 16px 0; }
-    label { display: block; margin: 8px 0 4px; font-weight: 600; }
-    input { padding: 8px; width: 240px; border: 1px solid #aaa; border-radius: 4px; }
-    button { margin-top: 12px; padding: 8px 16px; background: #fca311; border: 0; border-radius: 4px; cursor: pointer; font-weight: 700; }
-  </style>
+  <meta name="description" content="${description}">
+  <link rel="canonical" href="${canonical}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${title} — Buggy Shop">
+  <meta property="og:description" content="${description}">
+  <meta property="og:image" content="${BASE_URL}/og.png">
+  <meta property="og:url" content="${canonical}">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/style.css">
+  <script type="application/ld+json">${jsonLd}</script>
 </head>
 <body>
   <nav>
@@ -167,8 +203,8 @@ function homePage() {
 
     <h2>Featured inventory</h2>
     <!-- FIX #4: responsive — table is full-width within an overflow-x:auto wrapper. -->
-    <div style="max-width:100%; overflow-x:auto;">
-    <table style="max-width:100%; width:100%;">
+    <div class="scroll-x">
+    <table>
       <thead>
         <tr><th>SKU</th><th>Product</th><th>Price</th><th>In stock</th><th>Warehouse</th><th>Lead time</th></tr>
       </thead>
@@ -180,7 +216,7 @@ function homePage() {
     </table>
     </div>
 
-    <p style="margin-top:24px;">Check our service status at <a href="/api/health">/api/health</a>.</p>
+    <p class="mt-24">Check our service status at <a href="/api/health">/api/health</a>.</p>
   `;
   return page('Home', body);
 }
@@ -201,7 +237,7 @@ function aboutPage() {
 }
 
 function loginPage(message) {
-  const note = message ? `<p style="color:#b00020;font-weight:600;">${message}</p>` : '';
+  const note = message ? `<p class="err">${message}</p>` : '';
   const body = `
     <h1>Login</h1>
     ${note}
@@ -212,7 +248,7 @@ function loginPage(message) {
       <input id="password" name="password" type="password" autocomplete="current-password">
       <div><button type="submit">Sign in</button></div>
     </form>
-    <p style="margin-top:16px;color:#555;">Try <code>admin/admin</code> or <code>user/user</code>.</p>
+    <p class="mt-16 muted">Try <code>admin/admin</code> or <code>user/user</code>.</p>
   `;
   return page('Login', body);
 }
@@ -250,7 +286,7 @@ function adminUserDetail(user) {
         <tr><th>Salary</th><td>$${user.salary.toLocaleString()}</td></tr>
       </table>
     </div>
-    <p style="color:#b00020;">This is sensitive admin-only data.</p>
+    <p class="err">This is sensitive admin-only data.</p>
     <p><a href="/admin">Back to dashboard</a></p>
   `;
   return page('User detail', body);
@@ -272,6 +308,10 @@ async function router(req, res) {
 
   if (method === 'GET' && path === '/about') {
     return sendHtml(res, 200, aboutPage());
+  }
+
+  if (method === 'GET' && path === '/style.css') {
+    return send(res, 200, 'text/css; charset=utf-8', STYLE_CSS);
   }
 
   if (method === 'GET' && path === '/api/health') {

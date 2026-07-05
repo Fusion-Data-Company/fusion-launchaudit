@@ -26,3 +26,21 @@ jobs:
         run: npm test
       - name: Dependency audit
         run: npm audit --audit-level=high
+
+  fixtures:
+    name: fixture gate + mutation kill-rate (real browser)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium chromium-headless-shell
+      - name: Fixture gate — recall 5/5 on buggy-shop, 100/100 + 0 false positives on shop-fixed
+        run: npm run test:fixtures
+      - name: Mutation kill-rate — every re-introduced defect must be caught
+        run: npm run test:mutation

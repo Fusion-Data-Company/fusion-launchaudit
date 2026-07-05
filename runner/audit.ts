@@ -12,14 +12,15 @@
  */
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { generateTestCards } from "../src/lib/card-generator.ts";
 import type { AuditHints } from "../src/lib/generators/types.ts";
 import { captureAuth } from "./capture-auth.ts";
 import fsp from "node:fs/promises";
 import { blobConfigured, runnerAuthHeaders, safeName, uploadEvidence } from "./blob-store.ts";
-import { crawlRuntime } from "./crawler.ts";
+import { crawlRuntime, mergeDiscovered } from "./crawler.ts";
 import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, type CardResult } from "./execute-core.ts";
-import { humanize, renderReport, renderClientReport, type ReportCard } from "./render-report.ts";
+import { humanize, renderReport, renderClientReport, launchGate, type ReportCard } from "./render-report.ts";
 import { renderDashboard } from "./render-dashboard.ts";
 import { spawn } from "node:child_process";
 import { sealVerdict, type RawResult } from "./verdict.ts";
@@ -119,6 +120,66 @@ async function buildHints(appUrl: string, crawl: { links: Array<{ href: string }
   return hints;
 }
 
+/** An API path that, if it accepts an anonymous write, is a real authz finding. */
+function isPrivilegedApiPath(p: string): boolean {
+  return /(^|\/)(admin|internal|superadmin|manage|moderat)/i.test(p);
+}
+
+/**
+ * Fold the API endpoints the crawl observed in live fetch/XHR traffic into hints:
+ * mutating ones become malformed-input targets (backend) + privileged ones become
+ * anonymous-write-rejection targets (the write-authz wedge). Deduped against what's
+ * already there — client-only APIs (hardcoded in a React hook, in no route file) now
+ * get probed instead of being invisible.
+ */
+function foldCrawlApisIntoHints(crawl: { api_routes?: Array<{ path: string; method: string }> }, hints: AuditHints, appUrl: string): void {
+  const origin = new URL(appUrl).origin;
+  const toPath = (p: string) => (p.startsWith("http") && p.startsWith(origin) ? p.slice(origin.length) : p);
+  const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+  hints.postEndpoints ??= [];
+  hints.protectedApis ??= [];
+  hints.writeApis ??= [];
+  const postSeen = new Set(hints.postEndpoints.map((e) => e.path));
+  const apiSeen = new Set(hints.protectedApis.map((a) => `${a.method ?? "POST"} ${a.path}`));
+  const writeSeen = new Set(hints.writeApis.map((w) => `${w.method ?? "POST"} ${w.path}`));
+  let added = 0;
+  for (const r of crawl.api_routes ?? []) {
+    const path = toPath(r.path);
+    const method = r.method.toUpperCase();
+    if (MUTATING.has(method)) {
+      if (!postSeen.has(path)) { hints.postEndpoints.push({ path }); postSeen.add(path); added++; }
+      if (isPrivilegedApiPath(path)) {
+        const k = `${method} ${path}`;
+        if (!writeSeen.has(k)) { hints.writeApis.push({ path, method }); writeSeen.add(k); }
+      }
+    }
+    if (isPrivilegedApiPath(path)) {
+      const k = `${method} ${path}`;
+      if (!apiSeen.has(k)) { hints.protectedApis.push({ path, method }); apiSeen.add(k); }
+    }
+  }
+  if (added) console.error(`      folded ${added} client-discovered API route(s) into the checks`);
+}
+
+/** Replace hardcoded "42" id samples in hint paths with a REAL id the crawl saw live. */
+export function applyRealIds(hints: AuditHints, sampledIds: Record<string, string>): void {
+  if (!Object.keys(sampledIds).length) return;
+  const subst = (p: string): string => {
+    const segs = p.split("/");
+    for (let i = 1; i < segs.length; i++) {
+      if (segs[i] === "42") {
+        const key = segs[i - 1]?.toLowerCase();
+        if (key && key in sampledIds) segs[i] = sampledIds[key];
+      }
+    }
+    return segs.join("/");
+  };
+  hints.protectedRoutes = (hints.protectedRoutes ?? []).map(subst);
+  for (const a of hints.protectedApis ?? []) a.path = subst(a.path);
+  for (const e of hints.postEndpoints ?? []) e.path = subst(e.path);
+  for (const w of hints.writeApis ?? []) w.path = subst(w.path);
+}
+
 /** Load the most recent prior report JSON from the output dir (for --reverify). */
 async function loadPriorReport(outDir: string): Promise<{ findings: Array<{ id?: string; title: string; severity: string; category?: string }> } | null> {
   try {
@@ -142,17 +203,61 @@ async function main() {
   console.error(`\nLaunchAudit — auditing ${appUrl}`);
   console.error(PLATFORM_URL ? `Syncing to: ${PLATFORM_URL}\n` : `Running standalone (no backend, no API key)\n`);
 
+  // Open the live hub the moment the scan starts: boot it if needed, create the
+  // campaign now so the UI has a row to track, open it in the browser, and stream
+  // phase progress as we work. All best-effort — the audit still completes headless.
+  const PHASES = 4;
+  let campaignId: string | null = null;
+  let openedAtStart = false;
+  const noOpen = process.argv.includes("--no-open") || process.env.LAUNCHAUDIT_NO_OPEN === "1";
+  if (PLATFORM_URL) {
+    const hubUp = await ensureHub(PLATFORM_URL);
+    if (hubUp) {
+      campaignId = await createRunningCampaign(PLATFORM_URL, name, appUrl, repoPath);
+      if (campaignId) {
+        const liveUrl = `${PLATFORM_URL}/?campaign=${encodeURIComponent(campaignId)}#/campaigns`;
+        if (!noOpen) { openInBrowser(liveUrl); openedAtStart = true; }
+        await postProgress(PLATFORM_URL, campaignId, { status: "running", phase: "Reading the site + repo", done: 0, total: PHASES, note: appUrl });
+        console.error(`      live hub: ${liveUrl}`);
+      }
+    }
+  }
+
   console.error("[1/4] Reading the site + repo…");
   const scan = repoPath ? await scanRepo(repoPath) : null;
-  const crawl = await crawlRuntime(appUrl);
+  let crawl = await crawlRuntime(appUrl);
   if (!crawl.reachable) {
     console.error(`FATAL: ${appUrl} could not be audited — ${crawl.unreachable_reason ?? "the site is not reachable"}.`);
     process.exit(1);
   }
-  console.error(`      ${scan ? scan.repo_summary.framework + " · " : ""}${crawl.links.length} pages · ${crawl.form_count} forms · "${crawl.title}"`);
+  console.error(`      ${scan ? scan.repo_summary.framework + " · " : ""}${crawl.links.length} pages (crawled ${crawl.pages_crawled ?? 1}, depth ${crawl.max_depth_reached ?? 0}) · ${crawl.api_routes?.length ?? 0} API routes seen · ${crawl.form_count} forms · "${crawl.title}"`);
 
+  if (campaignId) await postProgress(PLATFORM_URL, campaignId, { status: "running", phase: "Building the checks", done: 1, total: PHASES });
   console.error("[2/4] Building the checks…");
   const hints = await buildHints(appUrl, crawl, arg("hints"));
+
+  // Second, AUTHENTICATED crawl pass: buildHints captured a login session when
+  // creds were provided, so re-crawl behind the login wall (admin preferred) and
+  // merge the surface it reaches. Best-effort — a failure never blocks the audit.
+  const authState = hints.roles?.admin?.storageState ?? hints.roles?.user?.storageState;
+  if (authState) {
+    try {
+      const authedCrawl = await crawlRuntime(appUrl, { storageStatePath: authState });
+      if (authedCrawl.reachable) {
+        const before = crawl.links.length;
+        crawl = mergeDiscovered(crawl, authedCrawl);
+        console.error(`      authenticated crawl: +${crawl.links.length - before} pages behind login`);
+      }
+    } catch (e) { console.error(`      (authenticated crawl skipped: ${e instanceof Error ? e.message : "?"})`); }
+  }
+
+  // Fold the API routes the crawl observed in live fetch/XHR traffic into hints so
+  // backend / injection / write-authz probe endpoints that exist only in client code.
+  foldCrawlApisIntoHints(crawl, hints, appUrl);
+  // Replace hardcoded "42" id samples with REAL ids the crawl saw live, so dynamic
+  // routes (/products/[id]) resolve to something that actually exists.
+  applyRealIds(hints, crawl.sampled_ids ?? {});
+
   const override = arg("platform") as Platform | undefined;
   const platform = override && PLATFORM_LABEL[override]
     ? { platform: override, confidence: "high" as const, signals: [`overridden via --platform ${override}`], runnerUp: undefined }
@@ -172,6 +277,7 @@ async function main() {
 
   console.error("[3/4] Running them in a real browser…");
   const executable = cards.filter((c) => c.status !== "blocked" && (!reverify || priorIds.has(c.id)));
+  if (campaignId) await postProgress(PLATFORM_URL, campaignId, { status: "running", phase: "Running checks in a real browser", done: 2, total: PHASES, note: `${executable.length} checks` });
   const auditOpts = { appUrl, artifactDir: path.join(OUT_DIR, "evidence") };
   const results = await executeCards(executable as never, auditOpts);
 
@@ -186,11 +292,20 @@ async function main() {
     const [fresh] = await executeNoBrowserCards([byId.get(id)] as never, auditOpts);
     return resultToRaw(fresh);
   };
+  // pass^k: re-run each no-browser pass K times; a pass counts only if it holds EVERY
+  // time (default 3; override with --consistency N or LAUNCHAUDIT_CONSISTENCY_K).
+  const consistencyK = Math.max(1, Number(arg("consistency") ?? process.env.LAUNCHAUDIT_CONSISTENCY_K ?? 3) || 3);
   const wd = passedNoBrowser.length
-    ? await runWatchdog(passedNoBrowser.map((r) => sealVerdict(resultToRaw(r))), reexec)
+    ? await runWatchdog(passedNoBrowser.map((r) => sealVerdict(resultToRaw(r))), reexec, { k: consistencyK })
     : null;
   const downgradedIds = new Set((wd?.downgraded ?? []).map((d) => d.checkId));
-  if (wd) console.error(`      watchdog: re-verified ${wd.verifiedPasses}/${wd.checkedPasses} no-browser passes${downgradedIds.size ? `, downgraded ${downgradedIds.size} unreproducible` : ""}`);
+  const wdReasonById = new Map((wd?.verdicts ?? []).map((v) => [v.checkId, v.reason]));
+  // An intermittent AUTHORIZATION pass ("held 2/3 re-runs") is a real defect, not a
+  // maybe — the guard doesn't consistently hold. Flag it loud (a bug the Gate fails on).
+  const WEDGE = new Set(["roles_permissions", "object_authz", "mutation_authz", "write_authz", "write_authz_unverified", "mass_assignment", "auth"]);
+  const intermittentWedgeIds = new Set((wd?.intermittent ?? []).filter((i) => WEDGE.has(i.category)).map((i) => i.checkId));
+  const intermittentById = new Map((wd?.intermittent ?? []).map((i) => [i.checkId, i]));
+  if (wd) console.error(`      watchdog: re-verified ${wd.verifiedPasses}/${wd.checkedPasses} no-browser passes ${wd.k}×${downgradedIds.size ? `, downgraded ${downgradedIds.size}` : ""}${wd.intermittent.length ? `, ${wd.intermittent.length} INTERMITTENT` : ""}`);
 
   // Detect a stubbed/bypassed-auth environment so RBAC exposure isn't over-claimed as a vuln.
   const DEV_BYPASS_ENV = ["DEV_ORG_ID", "SUPERADMIN_DEV", "AUTH_BYPASS", "SKIP_AUTH", "NEXT_PUBLIC_DEV"];
@@ -201,7 +316,11 @@ async function main() {
   const watchdogReason = "Watchdog could not independently reproduce this pass (the re-run came back non-pass or without evidence) — re-verify before trusting it.";
   const classified = results.map((r) => {
     if (r.status === "failed") return { r, cls: classifyFailure(r, { appUrl, devStubAuth }) };
-    if (downgradedIds.has(r.card.id)) return { r, cls: { type: "needs_verification", confidence: "low", reason: watchdogReason } as Classification };
+    if (intermittentWedgeIds.has(r.card.id)) {
+      const i = intermittentById.get(r.card.id)!;
+      return { r, cls: { type: "product_bug", confidence: "high", reason: `intermittent authorization — this access-control check held only ${i.passes}/${i.runs} independent re-runs. A guard that passes some of the time and fails the rest is worse than one that's always open: it hides from a single test. Treat it as a race/ordering bug in the authorization path and make it deterministic.` } as Classification };
+    }
+    if (downgradedIds.has(r.card.id)) return { r, cls: { type: "needs_verification", confidence: "low", reason: wdReasonById.get(r.card.id) ?? watchdogReason } as Classification };
     return { r, cls: null as Classification | null };
   });
   const clsById = new Map(classified.filter((x) => x.cls).map((x) => [x.r.card.id, x.cls!]));
@@ -209,11 +328,21 @@ async function main() {
   // Honest readiness: a no-browser pass the watchdog couldn't reproduce no longer counts as passed.
   const passed = results.filter((r) => r.status === "passed" && !downgradedIds.has(r.card.id)).length;
   const flaky = results.filter((r) => r.flaky).length;
-  const productBugs = classified.filter((x) => x.cls && (x.cls.type === "product_bug" || x.cls.type === "test_bug"));
+  // product_bug = a real defect in the app. test_bug = OUR tooling failed (OSV/network) —
+  // that is not evidence about the app, so it must NOT lower the app's readiness. It is
+  // surfaced as a separate "tooling" note and excluded from the denominator entirely.
+  const productBugs = classified.filter((x) => x.cls && x.cls.type === "product_bug");
+  const testBugs = classified.filter((x) => x.cls && x.cls.type === "test_bug");
   const needsVerify = classified.filter((x) => x.cls && x.cls.type === "needs_verification");
   const failed = productBugs.length;
   const needAttention = blocked.length + needsVerify.length;
-  const executedDenom = passed + failed + needAttention;
+  // Readiness answers "of the checks we could actually RUN, what fraction is launch-ready."
+  //  - passed / failed / needs_verification all RAN (needs_verification is an unresolved
+  //    question you must answer to be ready, so it stays in the denominator).
+  //  - blocked is EXCLUDED: a check we couldn't run for lack of input/https/lockfile is
+  //    not evidence the app is unready — it's incomplete COVERAGE, surfaced separately.
+  //    (Blocked wedge checks are called out by the Launch Gate so this can't be gamed.)
+  const executedDenom = passed + failed + needsVerify.length;
   const readiness = executedDenom === 0 ? 0 : Math.round((passed / executedDenom) * 100);
 
   // One run stamp shared by evidence blob paths and (optional) platform sync run IDs.
@@ -229,9 +358,11 @@ async function main() {
     ...blocked.map((c) => ({ ...c, status: "blocked", plainTitle: c.title, plainDetail: c.acceptanceCriteria })),
   ] as ReportCard[];
 
-  // Findings carry the classification + a plain reason. Product bugs first, then needs-verification.
-  const findings = [...productBugs, ...needsVerify].map(({ r, cls }) => {
-    const severity = cls!.type === "needs_verification" ? "needs verification" : cls!.type === "product_bug" ? r.card.risk : cls!.type;
+  // Findings carry the classification + a plain reason. Product bugs first, then
+  // needs-verification, then tooling notes (test_bugs) last — the tooling notes are
+  // OUR problems (an OSV/network hiccup), not the app's, and never affect readiness.
+  const findings = [...productBugs, ...needsVerify, ...testBugs].map(({ r, cls }) => {
+    const severity = cls!.type === "needs_verification" ? "needs verification" : cls!.type === "test_bug" ? "tooling" : r.card.risk;
     const summary = `${cls!.reason}${r.error ? ` [${r.error.slice(0, 160)}]` : ""}`.slice(0, 400);
     return {
       id: r.card.id, title: r.card.title, category: r.card.category, summary, severity,
@@ -239,6 +370,7 @@ async function main() {
     };
   });
 
+  if (campaignId) await postProgress(PLATFORM_URL, campaignId, { status: "running", phase: "Scoring + writing reports", done: 3, total: PHASES, readiness });
   console.error("[4/4] Writing your reports…");
   const reportData = { name, appUrl, readiness, passed, failed, blocked: needAttention, cards: reportCards, findings, generatedAt: new Date().toISOString() };
   const reportFile = await renderReport(reportData, OUT_DIR);
@@ -249,11 +381,15 @@ async function main() {
   let hubSynced = false;
   if (PLATFORM_URL) {
     try {
-      const created = await fetch(`${PLATFORM_URL}/api/campaigns`, {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, app_url: appUrl, repo_path_hint: repoPath ?? null }),
-      }).then((r) => r.json());
-      const campaignId = created.id;
+      // Reuse the campaign created when the scan started; only create here if the
+      // hub came up late (so a sync still lands somewhere durable).
+      if (!campaignId) {
+        const created = await fetch(`${PLATFORM_URL}/api/campaigns`, {
+          method: "POST", headers: { "content-type": "application/json", ...runnerAuthHeaders() },
+          body: JSON.stringify({ name, app_url: appUrl, repo_path_hint: repoPath ?? null }),
+        }).then((r) => r.json());
+        campaignId = created.id ?? null;
+      }
       if (campaignId) {
         const runResults = [], syncFindings = [], artifactRefs: string[] = [];
         for (const r of results) {
@@ -280,6 +416,11 @@ async function main() {
       console.error(`      (sync skipped: ${e instanceof Error ? e.message : "unreachable"})`);
     }
   }
+  // Flip the live tracker to done so the dashboard stops polling and shows the
+  // final, persisted result (real readiness from the run we just finished).
+  if (campaignId && PLATFORM_URL) {
+    await postProgress(PLATFORM_URL, campaignId, { status: "report_ready", phase: "Done", done: PHASES, total: PHASES, readiness });
+  }
 
   const newFailingIds = new Set([...productBugs, ...needsVerify].map((x) => x.r.card.id));
   const reranIds = new Set(results.map((r) => r.card.id));
@@ -304,14 +445,16 @@ async function main() {
     `Readiness: ${readiness}/100  ·  ${passed} passed${flaky ? ` (${flaky} flaky-recovered)` : ""}, ${failed} to fix, ${needsVerify.length} need verification, ${blocked.length} need input`,
   );
   const dashboardPath = path.resolve(dashboardFile);
-  const openTarget = hubSynced ? `${PLATFORM_URL}/#/campaigns` : dashboardPath;
+  const openTarget = campaignId ? `${PLATFORM_URL}/?campaign=${encodeURIComponent(campaignId)}#/campaigns` : hubSynced ? `${PLATFORM_URL}/#/campaigns` : dashboardPath;
   console.error(`\n\u{1F4CA} Your dashboard (opening in your browser):\n   ${hubSynced ? PLATFORM_URL + " (your live hub — tracks every run)" : "file://" + dashboardPath}`);
   console.error(`   Builder report: ${path.resolve(reportFile)}  \u00B7  Client one-pager: ${path.resolve(clientFile)}`);
-  const noOpen = process.argv.includes("--no-open") || process.env.LAUNCHAUDIT_NO_OPEN === "1";
-  if (!noOpen) openInBrowser(openTarget);
+  // The live tab opened when the scan started and has been polling; only open now
+  // if we didn't (standalone run, or the hub never came up).
+  if (!noOpen && !openedAtStart) openInBrowser(openTarget);
   console.log(JSON.stringify({
     platform: { kind: platform.platform, label: PLATFORM_LABEL[platform.platform], confidence: platform.confidence, signals: platform.signals },
     readiness, passed, flaky, to_fix: failed, needs_verification: needsVerify.length, needs_input: blocked.length,
+    launch_gate: launchGate(reportData),
     dashboard: path.resolve(dashboardFile),
     report: path.resolve(reportFile),
     client_report: path.resolve(clientFile),
@@ -320,6 +463,73 @@ async function main() {
     needs_verification_items: needsVerify.map((x) => ({ id: x.r.card.id, title: x.r.card.title, why: x.cls!.reason })),
     needs_input_items: blocked.map((c) => ({ id: c.id, title: c.title, why: c.acceptanceCriteria })),
   }, null, 2));
+}
+
+const HUB_OPEN_TIMEOUT_MS = 15000;
+
+/** True once the hub process answers (any HTTP status means it's up). */
+async function hubReachable(url: string): Promise<boolean> {
+  try {
+    await fetch(`${url}/api/campaigns`, { signal: AbortSignal.timeout(1500) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Boot the local hub (the PGlite dashboard) if it isn't already running, so a
+ * scan can stream live progress into the UI the moment it starts. Best-effort:
+ * if it can't come up, the audit still completes headless and writes its files.
+ */
+async function ensureHub(url: string): Promise<boolean> {
+  if (await hubReachable(url)) return true;
+  try {
+    const dashboard = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "server", "dashboard.ts");
+    const child = spawn(process.execPath, ["--experimental-strip-types", dashboard], {
+      detached: true,
+      stdio: "ignore",
+      env: { ...process.env, LAUNCHAUDIT_OPEN: "0" }, // we open the campaign URL ourselves
+    });
+    child.on("error", () => {});
+    child.unref();
+  } catch {
+    return false;
+  }
+  const deadline = Date.now() + HUB_OPEN_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (await hubReachable(url)) return true;
+  }
+  return false;
+}
+
+/** Create the campaign up front so the dashboard has a live row to track. */
+async function createRunningCampaign(url: string, name: string, appUrl: string, repoPath?: string): Promise<string | null> {
+  try {
+    const created = await fetch(`${url}/api/campaigns`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...runnerAuthHeaders() },
+      body: JSON.stringify({ name, app_url: appUrl, repo_path_hint: repoPath ?? null }),
+    }).then((r) => r.json());
+    return created.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Best-effort live-progress ping. Never throws — progress is a nicety, not a gate. */
+async function postProgress(url: string, campaignId: string, fields: { status?: string; phase: string; done: number; total: number; note?: string; readiness?: number }): Promise<void> {
+  try {
+    await fetch(`${url}/api/runner/progress`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...runnerAuthHeaders() },
+      body: JSON.stringify({ campaign_id: campaignId, ...fields }),
+      signal: AbortSignal.timeout(1500),
+    });
+  } catch {
+    /* progress is best-effort */
+  }
 }
 
 function openInBrowser(target: string): void {

@@ -15,7 +15,7 @@ export function generateFrontend(scan: RepoScan | null, crawl: RuntimeCrawl, _hi
     exec: [{ action: "goto", url: crawl.app_url }, { action: "wait", ms: 700 }, { action: "expect_visible", selector: crawl.button_count > 0 ? "button, a, [role=button]" : "body" }],
   });
 
-  for (const link of crawl.links.slice(0, 6)) {
+  for (const link of crawl.links.slice(0, 12)) {
     const label = link.text || new URL(link.href).pathname;
     cards.push({
       id: c.next("TC-FE"), title: `Page reachable: ${label}`, category: "core_workflow", status: "ready", risk: "high",

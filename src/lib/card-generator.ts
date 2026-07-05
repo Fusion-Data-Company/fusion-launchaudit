@@ -23,6 +23,10 @@ import { type Platform } from "./platform/detect.ts";
 import { generatePlatformCards } from "./platform/registry.ts";
 import { generateDatabase } from "./generators/database.ts";
 import { generateMcpServer } from "./generators/mcp-server.ts";
+import { generateDependencies } from "./generators/dependencies.ts";
+import { generateSecretsScan } from "./generators/secrets-scan.ts";
+import { generateInfoDisclosure } from "./generators/info-disclosure.ts";
+import { generateCodeSmells } from "./generators/code-smells.ts";
 
 export type { GeneratedCard, AuditHints } from "./generators/types.ts";
 
@@ -93,6 +97,10 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateInjection(scan, crawl, hints, c),
     ...generateDatabase(scan, crawl, hints, c),
     ...generateMcpServer(scan, crawl, hints, c),
+    ...generateDependencies(scan, crawl, hints, c),
+    ...generateSecretsScan(scan, crawl, hints, c),
+    ...generateInfoDisclosure(scan, crawl, hints, c),
+    ...generateCodeSmells(scan, crawl, hints, c),
   ];
 
   // Platform-specific check set on top of the shared base (empty if no platform passed).

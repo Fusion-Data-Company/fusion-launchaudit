@@ -17,6 +17,11 @@ const categoryLabels = {
   console_network: "Console & network",
   error_empty_states: "Error & empty states",
   integration_side_effects: "Integration side-effects",
+  dependency_cve: "Dependency CVEs (SCA)",
+  secret_exposure: "Secret exposure",
+  info_disclosure: "Info disclosure",
+  dependency_license: "Dependency licenses",
+  code_smell: "Code sinks (SAST-lite)",
 };
 
 const severityTone = {
@@ -243,8 +248,8 @@ const COVERAGE_GROUPS = [
   },
   {
     key: "backend", title: "Backend & API", icon: "i-backend",
-    scope: "endpoints · input · injection",
-    categories: ["api_contract", "injection", "voice_agent"],
+    scope: "endpoints · input · injection · code sinks",
+    categories: ["api_contract", "injection", "voice_agent", "code_smell"],
   },
   {
     key: "rbac", title: "Access control", icon: "i-rbac",
@@ -253,8 +258,13 @@ const COVERAGE_GROUPS = [
   },
   {
     key: "security", title: "Security & hardening", icon: "i-db",
-    scope: "headers · secrets · cookies · CORS · TLS",
-    categories: ["security_headers", "secrets_exposure", "cookie_security", "cors", "tls_hsts", "browser_extension"],
+    scope: "headers · secrets · cookies · CORS · TLS · info leaks",
+    categories: ["security_headers", "secrets_exposure", "cookie_security", "cors", "tls_hsts", "browser_extension", "info_disclosure"],
+  },
+  {
+    key: "supply_chain", title: "Supply chain & secrets", icon: "i-db",
+    scope: "dep CVEs · licenses · committed secrets",
+    categories: ["dependency_cve", "dependency_license", "secret_exposure"],
   },
   {
     key: "middleware", title: "Middleware & integrations", icon: "i-middleware",
@@ -1105,6 +1115,56 @@ function initModals() {
 }
 
 /* ============================================================================
+   LIVE RUN TRACKING — real phase progress streamed by the runner. The runner
+   posts its actual phase as it works; we poll and render it. No fake spinners:
+   if there's no live run, there's no banner, and the persisted campaign shows.
+   ============================================================================ */
+let livePollTimer = null;
+
+function renderLiveProgress(progress) {
+  const workspace = document.querySelector(".workspace");
+  let banner = document.getElementById("live-progress");
+  if (!progress) { if (banner) banner.remove(); return false; }
+  const running = progress.status === "running";
+
+  if (!banner) {
+    banner = document.createElement("section");
+    banner.id = "live-progress";
+    banner.className = "live-progress";
+    workspace.insertBefore(banner, workspace.querySelector(".content-grid"));
+  }
+  const total = Number(progress.total) || 0;
+  const done = Number(progress.done) || 0;
+  const pct = total > 0 ? Math.round((done / total) * 100) : running ? 5 : 100;
+  const phase = progress.phase || (running ? "Working…" : "Done");
+  const note = progress.note ? ` · ${esc(progress.note)}` : "";
+  const score = typeof progress.readiness === "number" ? ` · readiness ${esc(String(progress.readiness))}/100` : "";
+  banner.dataset.state = running ? "running" : "done";
+  banner.innerHTML = `
+    <div class="live-progress-row">
+      <span class="live-dot ${running ? "live-dot-on" : "live-dot-done"}"></span>
+      <strong>${running ? "Scan in progress" : "Scan complete"}</strong>
+      <span class="live-phase">${esc(phase)}${note}${score}</span>
+      <span class="live-step">${total > 0 ? `${esc(String(done))}/${esc(String(total))}` : ""}</span>
+    </div>
+    <div class="live-bar"><div class="live-bar-fill" style="width:${pct}%"></div></div>`;
+  return running;
+}
+
+async function pollLive() {
+  let data;
+  try { data = await loadCampaign(selectedCampaignId()); }
+  catch { return; }
+  const running = renderLiveProgress(data.live_progress);
+  if (!running && livePollTimer) { clearInterval(livePollTimer); livePollTimer = null; }
+}
+
+function startLiveTracking(data) {
+  const running = renderLiveProgress(data.live_progress);
+  if (running && !livePollTimer) livePollTimer = setInterval(pollLive, 1500);
+}
+
+/* ============================================================================
    BOOT
    ============================================================================ */
 function initFilters() {
@@ -1126,6 +1186,12 @@ function initFilters() {
     activeGroupKey = null; renderCoverage(allTestCards); renderTestList();
   });
 }
+// If the runner opened us at ?campaign=<id>, select that campaign so the live
+// run shows immediately (the runner can't reach into our localStorage).
+try {
+  const fromUrl = new URLSearchParams(window.location.search).get("campaign");
+  if (fromUrl) localStorage.setItem("launch-audit-campaign", fromUrl);
+} catch { /* no-op */ }
 
 loadCampaign()
   .then((data) => {
@@ -1135,6 +1201,7 @@ loadCampaign()
     initNewCampaign();
     initCampaignSwitcher(data);
     initFilters();
+    startLiveTracking(data);
   })
   .catch((error) => {
     document.getElementById("metrics").innerHTML =

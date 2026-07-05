@@ -146,6 +146,20 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
       if (leaked) throw new Error(`${target}: header "${h}" should not be exposed (leaks "${leaked}")`);
     }
   }
+  if (step.expectHeaderRecommended) {
+    for (const h of step.expectHeaderRecommended) {
+      if (!res.headers.get(h)) throw new Error(`${target}: missing recommended header "${h}" (defense-in-depth)`);
+    }
+  }
+  if (step.expectHeaderExcludesTokens) {
+    for (const [h, tokens] of Object.entries(step.expectHeaderExcludesTokens)) {
+      const val = (res.headers.get(h) ?? "").toLowerCase();
+      if (!val) continue; // presence handled by expectHeaderRecommended/Present
+      for (const t of tokens) {
+        if (val.includes(t.toLowerCase())) throw new Error(`${target}: header "${h}" carries permissive directive "${t}" (defense-in-depth)`);
+      }
+    }
+  }
   if (step.expectJsonKeys) {
     let json: Record<string, unknown>;
     try { json = JSON.parse(text); } catch { throw new Error(`${target}: expected JSON body, got non-JSON`); }
@@ -160,6 +174,14 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
     const lower = text.toLowerCase();
     for (const frag of step.expectBodyExcludesCI) {
       if (lower.includes(frag.toLowerCase())) throw new Error(`${target}: response reflected/leaked "${frag}" (injection signature — unescaped reflection or a DB/engine error)`);
+    }
+  }
+  if (step.expectBodyExcludesRegex) {
+    for (const { label, pattern } of step.expectBodyExcludesRegex) {
+      let re: RegExp;
+      try { re = new RegExp(pattern); } catch { continue; }
+      // Redact: never echo the matched secret — report only the labeled pattern.
+      if (re.test(text)) throw new Error(`${target}: response body exposes ${label}`);
     }
   }
   if (step.expectBodyIncludesAny) {
@@ -236,11 +258,15 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
     case "elevenlabs": await runElevenLabsAssertion(step.agentId, step.apiKeyEnv, step.assert); return;
     case "seo": await runSeoAssertion(resolveUrl(appUrl, step), step.assert); return;
     case "content": await runContentAssertion(resolveUrl(appUrl, step), step.assert); return;
+    case "dep_cve_audit": await runDepCveAudit(step); return;
+    case "secret_scan": await runSecretScan(step); return;
+    case "license_audit": await runLicenseAudit(step); return;
+    case "code_smell_scan": await runCodeSmellScan(step); return;
   }
 }
 
 /** Deterministic, no-browser cards: raw HTTP (BE/RBAC/middleware/security/write-authz), ElevenLabs, and SEO API checks. */
-const NO_BROWSER_ACTIONS = new Set(["http", "elevenlabs", "seo", "content"]);
+const NO_BROWSER_ACTIONS = new Set(["http", "elevenlabs", "seo", "content", "dep_cve_audit", "secret_scan", "license_audit", "code_smell_scan"]);
 export const isNoBrowser = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => NO_BROWSER_ACTIONS.has(s.action));
 
 async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[]): Promise<void> {
@@ -248,7 +274,134 @@ async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[])
   if (step.action === "elevenlabs") return runElevenLabsAssertion(step.agentId, step.apiKeyEnv, step.assert);
   if (step.action === "seo") return runSeoAssertion(resolveUrl(appUrl, step), step.assert);
   if (step.action === "content") return runContentAssertion(resolveUrl(appUrl, step), step.assert);
+  if (step.action === "dep_cve_audit") return runDepCveAudit(step);
+  if (step.action === "secret_scan") return runSecretScan(step);
+  if (step.action === "license_audit") return runLicenseAudit(step);
+  if (step.action === "code_smell_scan") return runCodeSmellScan(step);
   throw new Error(`runNoBrowserStep got a browser action: ${step.action}`);
+}
+
+type OsvBatchResponse = { results?: Array<{ vulns?: Array<{ id?: string }> }> };
+type DepCveStep = { deps?: Array<{ ecosystem: string; name: string; version: string }>; direct?: string[]; imported?: string[] };
+
+/** Pure: turn an OSV querybatch response into a finding summary (exported for tests). */
+export function summarizeOsv(
+  deps: Array<{ name: string; version: string }>,
+  resp: OsvBatchResponse,
+  direct: Set<string>,
+  imported: Set<string> = new Set(),
+): { count: number; directCount: number; importedCount: number; lines: string[] } {
+  const directLines: string[] = [];
+  const transitiveLines: string[] = [];
+  let importedCount = 0;
+  (resp.results ?? []).forEach((r, i) => {
+    const vulns = r?.vulns;
+    const d = deps[i];
+    if (!d || !vulns || vulns.length === 0) return;
+    const ids = vulns.map((v) => v.id).filter(Boolean).slice(0, 4).join(", ");
+    const isImported = imported.has(d.name);
+    if (isImported) importedCount += 1;
+    const line = `${d.name}@${d.version}${isImported ? " [imported]" : ""}: ${vulns.length} advisor${vulns.length === 1 ? "y" : "ies"} (${ids}${vulns.length > 4 ? ", …" : ""})`;
+    (direct.has(d.name) ? directLines : transitiveLines).push(line);
+  });
+  const lines = [...directLines, ...transitiveLines];
+  return { count: lines.length, directCount: directLines.length, importedCount, lines };
+}
+
+async function osvQueryBatch(queries: unknown[]): Promise<OsvBatchResponse> {
+  const res = await fetch("https://api.osv.dev/v1/querybatch", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ queries }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as OsvBatchResponse;
+}
+
+/** SCA: check resolved dependency versions against OSV.dev (free, no key). */
+async function runDepCveAudit(step: DepCveStep): Promise<void> {
+  const deps = step.deps ?? [];
+  if (deps.length === 0) return;
+  const direct = new Set(step.direct ?? []);
+  const queries = deps.map((d) => ({ package: { ecosystem: d.ecosystem, name: d.name }, version: d.version }));
+
+  let resp: OsvBatchResponse;
+  try {
+    const CHUNK = 500;
+    const merged: OsvBatchResponse = { results: [] };
+    for (let i = 0; i < queries.length; i += CHUNK) {
+      const part = await osvQueryBatch(queries.slice(i, i + CHUNK));
+      merged.results = [...(merged.results ?? []), ...(part.results ?? [])];
+    }
+    resp = merged;
+  } catch (e) {
+    // A failed lookup is our tooling/network (classify -> test_bug), never a claim about the app.
+    throw new Error(`OSV query failed (${(e as Error).message}) — could not check dependencies; re-run with network access`);
+  }
+
+  const imported = new Set(step.imported ?? []);
+  const { count, directCount, importedCount, lines } = summarizeOsv(deps, resp, direct, imported);
+  if (count > 0) {
+    const shown = lines.slice(0, 8);
+    const more = count > 8 ? ` | …+${count - 8} more` : "";
+    const reach = importedCount > 0
+      ? `${importedCount} imported by your code`
+      : `none imported by your code (transitive/unused — lower priority)`;
+    throw new Error(
+      `${count} dependency version${count === 1 ? "" : "s"} match a known OSV/GHSA advisory (${directCount} direct; ${reach}): ${shown.join(" | ")}${more}`,
+    );
+  }
+}
+
+type LicenseAuditStep = { flagged?: Array<{ name: string; license: string; kind: "copyleft" | "unknown" }> };
+
+/** License compliance: the read ran in the generator; this reports the flagged set.
+ *  A license obligation is a legal/policy call, not a code defect → classify verifies. */
+async function runLicenseAudit(step: LicenseAuditStep): Promise<void> {
+  const flagged = step.flagged ?? [];
+  if (flagged.length === 0) return;
+  const copyleft = flagged.filter((f) => f.kind === "copyleft");
+  const unknown = flagged.filter((f) => f.kind === "unknown");
+  const parts: string[] = [];
+  if (copyleft.length) parts.push(`${copyleft.length} copyleft (${copyleft.slice(0, 5).map((f) => `${f.name}: ${f.license}`).join(", ")}${copyleft.length > 5 ? ", …" : ""})`);
+  if (unknown.length) parts.push(`${unknown.length} unknown-license (${unknown.slice(0, 5).map((f) => f.name).join(", ")}${unknown.length > 5 ? ", …" : ""})`);
+  throw new Error(`${flagged.length} direct dependenc${flagged.length === 1 ? "y" : "ies"} need license review: ${parts.join("; ")}`);
+}
+
+type CodeSmellStep = { hits?: Array<{ file: string; line: number; rule: string; cwe: string }> };
+
+/** SAST-lite: the grep ran in the generator; this reports the sinks to review.
+ *  A grep match is a sink to confirm, not a proven exploit → classify verifies. */
+async function runCodeSmellScan(step: CodeSmellStep): Promise<void> {
+  const hits = step.hits ?? [];
+  if (hits.length === 0) return;
+  const shown = hits.slice(0, 8).map((h) => `${h.rule} (${h.cwe}) at ${h.file}:${h.line}`);
+  const more = hits.length > 8 ? ` | …+${hits.length - 8} more` : "";
+  throw new Error(`${hits.length} dangerous code sink${hits.length === 1 ? "" : "s"} to review: ${shown.join(" | ")}${more}`);
+}
+
+type SecretScanStep = { hits?: Array<{ file: string; line: number; rule: string; preview: string; knownFormat: boolean }> };
+
+/** Secrets scan: the scan ran in the generator; this turns its REDACTED hits into a finding.
+ *  Never prints a raw secret — the generator already reduced each hit to a first4…last4 preview. */
+async function runSecretScan(step: SecretScanStep): Promise<void> {
+  const hits = step.hits ?? [];
+  if (hits.length === 0) return;
+  // Emit "known" (live-format) first so the summary leads with the highest-severity items.
+  const sorted = [...hits].sort((a, b) => Number(b.knownFormat) - Number(a.knownFormat));
+  const knownCount = hits.filter((h) => h.knownFormat).length;
+  const shown = sorted.slice(0, 8).map((h) => `${h.file}:${h.line} ${h.rule} (${h.preview})`);
+  const more = hits.length > 8 ? ` | …+${hits.length - 8} more` : "";
+  const lead = knownFlag(knownCount, hits.length);
+  throw new Error(`${lead}: ${shown.join(" | ")}${more}`);
+}
+
+/** Phrase the lead so classify can branch: a known-format hit anywhere => the high-severity wording. */
+function knownFlag(knownCount: number, total: number): string {
+  if (knownCount > 0) {
+    return `${total} exposed secret${total === 1 ? "" : "s"} in tracked files (${knownCount} live-format)`;
+  }
+  return `${total} high-entropy secret-like string${total === 1 ? "" : "s"} in tracked files (entropy-only)`;
 }
 
 async function runBrowserAttempt(browser: Browser, card: ExecutableTestCard, options: ExecOptions) {
