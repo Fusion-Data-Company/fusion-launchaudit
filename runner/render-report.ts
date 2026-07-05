@@ -44,7 +44,7 @@ const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (ch) => HTML_ESC
 // needs_verification / needs_input — honest), or when readiness is below the bar.
 const GATE_CATEGORIES = new Set([
   "roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment",
-  "write_authz", "cors", "cookie_security", "tls_hsts", "injection",
+  "write_authz", "privilege_gradient", "cors", "cookie_security", "tls_hsts", "injection",
   "security_headers", "secrets_exposure", "secret_exposure", "dependency_cve",
 ]);
 

@@ -99,6 +99,16 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
     if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed in this environment, so cross-user object access here doesn't prove a production IDOR — re-run with real auth active" };
     return { type: "product_bug", confidence: "high", reason: "an authenticated normal user was served another owner's object by swapping the id — object-level authorization (IDOR/BOLA) is missing (WSTG-ATHZ-04 / CWE-639)" };
   }
+  // Two-identity privilege gradient (metamorphic authz). A "no baseline" failure is our
+  // setup gap (verify), a stubbed-auth env can't conclude, and an actual gradient break —
+  // a lower-privilege identity seeing ~all of admin's content — is a confirmed hole.
+  if (cat === "privilege_gradient") {
+    if (has(err, "admin baseline") || has(err, "[blocked]")) {
+      return { type: "needs_verification", confidence: "medium", reason: "the admin baseline for the two-identity gradient couldn't be established (admin session invalid, or the resource wasn't readable as admin) — provide a valid admin session and a real protected resource, then re-run" };
+    }
+    if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed here, so a lower-privilege identity seeing admin content doesn't prove a production hole — re-run with real auth active" };
+    return { type: "product_bug", confidence: "high", reason: "a lower-privilege identity received ~the same content an admin sees on a protected resource — the authorization gradient is broken (a lower-privilege response must never contain as much as a higher-privilege one; WSTG-ATHZ / SMRL metamorphic relation / CWE-285)" };
+  }
   // Function-level authorization on a privileged mutation by a normal user.
   if (cat === "mutation_authz") {
     if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed here, so a normal user reaching this mutation doesn't prove a production hole — re-run with real auth active" };

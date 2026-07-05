@@ -68,6 +68,22 @@ export type ExecStep =
       corsProbeOrigin?: string;
     }
   | {
+      /**
+       * Two-identity metamorphic authorization probe (read-only). Fetch the SAME
+       * protected resource as the privileged (admin) identity to establish a baseline,
+       * then as each lower-privilege identity. Metamorphic relation, no oracle needed:
+       * a lower-privilege response must be DENIED or contain strictly LESS than the
+       * higher-privilege one. A lower identity that sees ~all of admin's content means
+       * the authorization gradient is broken. Read-only (GET) — never mutates the target.
+       */
+      action: "two_identity";
+      url?: string;
+      path?: string;
+      method?: string;
+      adminCookie: string;
+      lower: Array<{ role: string; cookie?: string }>;
+    }
+  | {
       action: "elevenlabs";
       agentId: string;
       apiKeyEnv?: string;

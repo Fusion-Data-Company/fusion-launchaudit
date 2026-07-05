@@ -13,6 +13,7 @@ import { generateContentIntegrity } from "./generators/content-integrity.ts";
 import { generateAccessibility } from "./generators/accessibility.ts";
 import { generatePerformance } from "./generators/performance.ts";
 import { generateObjectAuthz } from "./generators/object-authz.ts";
+import { generateTwoIdentity } from "./generators/two-identity.ts";
 import { generateMutationAuthz } from "./generators/mutation-authz.ts";
 import { generateCors } from "./generators/cors.ts";
 import { generateCookieSecurity } from "./generators/cookie-security.ts";
@@ -89,6 +90,7 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateAccessibility(scan, crawl, hints, c),
     ...generatePerformance(scan, crawl, hints, c),
     ...generateObjectAuthz(scan, crawl, hints, c),
+    ...generateTwoIdentity(scan, crawl, hints, c),
     ...generateMutationAuthz(scan, crawl, hints, c),
     ...generateCors(scan, crawl, hints, c),
     ...generateCookieSecurity(scan, crawl, hints, c),

@@ -213,6 +213,47 @@ async function runHttp(step: Extract<ExecStep, { action: "http" }>, appUrl: stri
   }
 }
 
+/** Fetch a resource as one identity; return status + visible content length + shell flag. */
+async function fetchAs(appUrl: string, target: string, method: string, cookie: string | undefined): Promise<{ status: number; len: number; shell: boolean }> {
+  const headers: Record<string, string> = {};
+  if (cookie) headers["cookie"] = cookie;
+  const res = await fetch(target, { method, headers, redirect: "manual" });
+  const text = await res.text();
+  const ct = (res.headers.get("content-type") ?? "").toLowerCase();
+  const shell = res.status === 200 && ct.includes("text/html") && (await isClientRenderedShell(appUrl, text));
+  return { status: res.status, len: visibleTextLen(text), shell };
+}
+
+/**
+ * Two-identity metamorphic authorization probe (read-only). See the ExecStep doc.
+ * The relation that needs no oracle: on a resource the ADMIN sees (2xx, non-trivial
+ * body), every lower-privilege identity must be denied OR see strictly less content.
+ * We only flag when a lower identity sees ~all of admin's content (>= 90%), so a
+ * partial/empty/denied/shell response never false-positives.
+ */
+async function runTwoIdentity(step: Extract<ExecStep, { action: "two_identity" }>, appUrl: string, sink?: string[]) {
+  const target = resolveUrl(appUrl, step);
+  const method = (step.method ?? "GET").toUpperCase();
+  const admin = await fetchAs(appUrl, target, method, step.adminCookie);
+  if (sink) sink.push(`${method} ${target} as admin -> ${admin.status} (${admin.len} chars)`);
+
+  // Baseline must be a real, non-trivial admin-only resource; otherwise there's nothing to compare.
+  const adminOk = admin.status >= 200 && admin.status < 300 && !admin.shell && admin.len >= 200;
+  if (!adminOk) {
+    throw new Error(`[BLOCKED] two-identity check needs an admin baseline: as admin, ${method} ${target} returned ${admin.status}${admin.shell ? " (SPA shell)" : ""} with ${admin.len} visible chars — cannot compare privilege levels (re-run with a valid admin session / a resource the admin can read).`);
+  }
+
+  for (const id of step.lower) {
+    const low = await fetchAs(appUrl, target, method, id.cookie);
+    if (sink) sink.push(`${method} ${target} as ${id.role} -> ${low.status} (${low.len} chars)`);
+    const denied = BLOCKED_STATUSES.has(low.status) || low.status === 404 || low.status >= 500;
+    if (denied || low.shell) continue; // properly gated (or unprovable shell) — relation holds
+    if (low.status >= 200 && low.status < 300 && low.len >= 0.9 * admin.len) {
+      throw new Error(`${method} ${target}: the "${id.role}" identity received ${low.status} with ${low.len} visible chars — ~the same content the admin sees (${admin.len}). A lower-privilege response must never contain as much as a higher-privilege one; the authorization gradient is broken (WSTG-ATHZ / SMRL metamorphic relation).`);
+    }
+  }
+}
+
 async function runStep(page: Page, step: ExecStep, state: { consoleErrors: string[]; failedRequests: string[] }, appUrl: string): Promise<void> {
   switch (step.action) {
     case "goto": {
@@ -255,6 +296,7 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
     case "expect_console_clean": if (state.consoleErrors.length) throw new Error(`Console errors: ${state.consoleErrors.slice(0, 3).join(" | ").slice(0, 300)}`); return;
     case "expect_network_clean": if (state.failedRequests.length) throw new Error(`Failed requests: ${state.failedRequests.slice(0, 3).join(" | ").slice(0, 300)}`); return;
     case "http": await runHttp(step, appUrl); return;
+    case "two_identity": await runTwoIdentity(step, appUrl); return;
     case "elevenlabs": await runElevenLabsAssertion(step.agentId, step.apiKeyEnv, step.assert); return;
     case "seo": await runSeoAssertion(resolveUrl(appUrl, step), step.assert); return;
     case "content": await runContentAssertion(resolveUrl(appUrl, step), step.assert); return;
@@ -266,11 +308,12 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
 }
 
 /** Deterministic, no-browser cards: raw HTTP (BE/RBAC/middleware/security/write-authz), ElevenLabs, and SEO API checks. */
-const NO_BROWSER_ACTIONS = new Set(["http", "elevenlabs", "seo", "content", "dep_cve_audit", "secret_scan", "license_audit", "code_smell_scan"]);
+const NO_BROWSER_ACTIONS = new Set(["http", "two_identity", "elevenlabs", "seo", "content", "dep_cve_audit", "secret_scan", "license_audit", "code_smell_scan"]);
 export const isNoBrowser = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => NO_BROWSER_ACTIONS.has(s.action));
 
 async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[]): Promise<void> {
   if (step.action === "http") return runHttp(step, appUrl, sink);
+  if (step.action === "two_identity") return runTwoIdentity(step, appUrl, sink);
   if (step.action === "elevenlabs") return runElevenLabsAssertion(step.agentId, step.apiKeyEnv, step.assert);
   if (step.action === "seo") return runSeoAssertion(resolveUrl(appUrl, step), step.assert);
   if (step.action === "content") return runContentAssertion(resolveUrl(appUrl, step), step.assert);
