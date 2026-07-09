@@ -42,5 +42,7 @@ jobs:
         run: npx playwright install --with-deps chromium chromium-headless-shell
       - name: Fixture gate — recall 5/5 on buggy-shop, 100/100 + 0 false positives on shop-fixed
         run: npm run test:fixtures
+      - name: Calibration — precision/recall gate (Truth Protocol, earned not asserted)
+        run: npm run benchmark
       - name: Mutation kill-rate — every re-introduced defect must be caught
         run: npm run test:mutation
