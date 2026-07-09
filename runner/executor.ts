@@ -35,6 +35,7 @@ export type ExecStep =
   | { action: "expect_console_clean" }
   | { action: "expect_network_clean" }
   | { action: "axe"; impactFloor?: "minor" | "moderate" | "serious" | "critical" }
+  | { action: "wcag22"; check: "target_size" | "focus_order" }
   | { action: "web_vitals" }
   | {
       action: "http";

@@ -244,7 +244,7 @@ const COVERAGE_GROUPS = [
   {
     key: "frontend", title: "Frontend", icon: "i-frontend",
     scope: "UI · a11y · perf · SEO · content",
-    categories: ["core_workflow", "responsive_visual", "console_network", "forms_validation", "accessibility", "performance", "state_persistence", "error_empty_states", "seo", "content_integrity", "mobile", "funnel"],
+    categories: ["core_workflow", "responsive_visual", "console_network", "forms_validation", "accessibility", "wcag22", "focus_order", "performance", "state_persistence", "error_empty_states", "seo", "content_integrity", "mobile", "funnel"],
   },
   {
     key: "backend", title: "Backend & API", icon: "i-backend",
@@ -254,7 +254,7 @@ const COVERAGE_GROUPS = [
   {
     key: "rbac", title: "Access control", icon: "i-rbac",
     scope: "roles · IDOR · writes",
-    categories: ["roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment", "write_authz", "write_authz_unverified"],
+    categories: ["roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment", "write_authz", "write_authz_unverified", "privilege_gradient", "data_exposure"],
   },
   {
     key: "security", title: "Security & hardening", icon: "i-db",

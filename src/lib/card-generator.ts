@@ -19,6 +19,7 @@ import { generateCors } from "./generators/cors.ts";
 import { generateCookieSecurity } from "./generators/cookie-security.ts";
 import { generateMassAssignment } from "./generators/mass-assignment.ts";
 import { generateDataExposure } from "./generators/data-exposure.ts";
+import { generateWcag22 } from "./generators/wcag22.ts";
 import { generateTlsHsts } from "./generators/tls-hsts.ts";
 import { generateInjection } from "./generators/injection.ts";
 import { type Platform } from "./platform/detect.ts";
@@ -89,6 +90,7 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateSeo(scan, crawl, hints, c),
     ...generateContentIntegrity(scan, crawl, hints, c),
     ...generateAccessibility(scan, crawl, hints, c),
+    ...generateWcag22(scan, crawl, hints, c),
     ...generatePerformance(scan, crawl, hints, c),
     ...generateObjectAuthz(scan, crawl, hints, c),
     ...generateTwoIdentity(scan, crawl, hints, c),

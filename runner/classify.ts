@@ -144,6 +144,16 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   if (cat === "accessibility") {
     return { type: "product_bug", confidence: "high", reason: "axe-core found serious/critical WCAG violations on the rendered page — real users (screen readers, keyboard, low-vision) are blocked, and it carries ADA/legal risk" };
   }
+  // WCAG 2.2 AA depth axe can't auto-detect. Reflow (1.4.10) and target size (2.5.8)
+  // are DETERMINISTIC measurements → a confirmed failure. (Focus order lives under its
+  // own category as a review question.)
+  if (cat === "wcag22") {
+    return { type: "product_bug", confidence: "high", reason: "a deterministic WCAG 2.2 AA check failed — content overflows horizontally at 320px (SC 1.4.10 Reflow) or an interactive target is below 24×24px (SC 2.5.8) — real users are blocked and it carries EAA/ADA legal risk" };
+  }
+  // Positive tabindex is a focus-order hazard, not a guaranteed violation → verify.
+  if (cat === "focus_order") {
+    return { type: "needs_verification", confidence: "medium", reason: "a positive tabindex was found, which overrides the natural focus order (WCAG 2.2 SC 2.4.3 hazard) — confirm the intended keyboard order, then remove positive tabindex values in favor of DOM order" };
+  }
   // Core Web Vitals. A single cold headless measurement is a smoke signal, not a
   // lab benchmark — so even a "poor" reading is verify, not a confirmed bug.
   if (cat === "performance") {

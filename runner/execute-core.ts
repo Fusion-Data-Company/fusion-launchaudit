@@ -292,6 +292,7 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
       if (o) throw new Error("Horizontal overflow detected"); return;
     }
     case "axe": await runAxeOnPage(page, step.impactFloor ?? "serious"); return;
+    case "wcag22": await runWcag22Check(page, step.check); return;
     case "web_vitals": await runWebVitalsOnPage(page); return;
     case "expect_console_clean": if (state.consoleErrors.length) throw new Error(`Console errors: ${state.consoleErrors.slice(0, 3).join(" | ").slice(0, 300)}`); return;
     case "expect_network_clean": if (state.failedRequests.length) throw new Error(`Failed requests: ${state.failedRequests.slice(0, 3).join(" | ").slice(0, 300)}`); return;
@@ -305,6 +306,43 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
     case "license_audit": await runLicenseAudit(step); return;
     case "code_smell_scan": await runCodeSmellScan(step); return;
   }
+}
+
+// WCAG 2.2 AA checks that axe can't fully auto-detect (target size 2.5.8, focus order
+// 2.4.3). Measured live in the rendered page. Conservative to stay honest: target-size
+// looks only at real controls (button / submit-inputs / [role=button]/menuitem / select),
+// NOT plain inline text links (2.5.8 exempts inline links in a sentence).
+async function runWcag22Check(page: Page, check: "target_size" | "focus_order"): Promise<void> {
+  if (check === "target_size") {
+    const MIN = 24; // WCAG 2.2 SC 2.5.8 (AA): minimum 24×24 CSS px
+    const undersized = await page.evaluate((min) => {
+      const SEL = 'button, input[type="submit"], input[type="button"], input[type="reset"], [role="button"], [role="menuitem"], [role="tab"], select';
+      const out: string[] = [];
+      for (const el of Array.from(document.querySelectorAll(SEL))) {
+        const r = (el as HTMLElement).getBoundingClientRect();
+        const style = getComputedStyle(el as HTMLElement);
+        if (style.display === "none" || style.visibility === "hidden" || r.width === 0 || r.height === 0) continue;
+        if (r.width < min || r.height < min) {
+          const label = (el as HTMLElement).innerText?.trim().slice(0, 24) || (el as HTMLElement).getAttribute("aria-label") || (el.tagName.toLowerCase());
+          out.push(`${label} (${Math.round(r.width)}×${Math.round(r.height)}px)`);
+        }
+      }
+      return out;
+    }, MIN);
+    if (undersized.length) throw new Error(`${undersized.length} interactive target(s) below 24×24px (WCAG 2.2 SC 2.5.8): ${undersized.slice(0, 6).join(", ")}`);
+    return;
+  }
+  // focus_order (2.4.3) smoke: a positive tabindex overrides the natural DOM order and is a
+  // well-known focus-order hazard. Not a guaranteed violation → surfaced as a question.
+  const positives = await page.evaluate(() => {
+    const out: string[] = [];
+    for (const el of Array.from(document.querySelectorAll("[tabindex]"))) {
+      const t = parseInt(el.getAttribute("tabindex") || "0", 10);
+      if (t > 0) out.push(`${el.tagName.toLowerCase()}[tabindex=${t}]`);
+    }
+    return out;
+  });
+  if (positives.length) throw new Error(`${positives.length} element(s) use a positive tabindex, which overrides natural focus order (WCAG 2.2 SC 2.4.3 hazard): ${positives.slice(0, 6).join(", ")}`);
 }
 
 /** Deterministic, no-browser cards: raw HTTP (BE/RBAC/middleware/security/write-authz), ElevenLabs, and SEO API checks. */
