@@ -23,6 +23,7 @@ import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, typ
 import { humanize, renderReport, renderClientReport, launchGate, type ReportCard } from "./render-report.ts";
 import { renderSarif } from "./sarif.ts";
 import { loadPolicy, evaluatePolicy } from "./policy.ts";
+import { readBaseline, writeBaseline, diffFindings, evaluateDiffGate } from "./diff.ts";
 import { renderDashboard } from "./render-dashboard.ts";
 import { spawn } from "node:child_process";
 import { sealVerdict, type RawResult } from "./verdict.ts";
@@ -475,6 +476,27 @@ async function main() {
   // the Launch Gate fails so a GitHub Action / any CI step blocks the merge. Honest by
   // construction — the gate only fails on confirmed security/authz bugs or sub-threshold
   // readiness (see launchGate), never on needs-verification.
+  // Continuous regression mode: --baseline <path> diffs this run against a stored
+  // snapshot; --fail-on-new gates on NEWLY introduced confirmed bugs only. The baseline
+  // is (re)written at the end so the next run compares against this one.
+  const baseIdx = process.argv.indexOf("--baseline");
+  const baselinePath = baseIdx >= 0 ? process.argv[baseIdx + 1] : undefined;
+  if (baselinePath) {
+    const prior = readBaseline(baselinePath);
+    if (prior) {
+      const d = diffFindings(prior, reportData);
+      const dg = evaluateDiffGate(d);
+      console.error(`\n🔁 Regression vs baseline: ${dg.reason}`);
+      for (const nf of d.newFindings) console.error(`   + NEW ${nf.severity}: ${nf.title}`);
+      if (!dg.pass && (process.argv.includes("--fail-on-new") || process.env.LAUNCHAUDIT_FAIL_ON_NEW === "1")) {
+        process.exitCode = 1;
+      }
+    } else {
+      console.error(`\n🔁 No baseline at ${baselinePath} yet — writing this run as the baseline.`);
+    }
+    writeBaseline(baselinePath, reportData);
+  }
+
   const failOnGate = process.argv.includes("--fail-on-gate") || process.env.LAUNCHAUDIT_FAIL_ON_GATE === "1";
   if (failOnGate) {
     const gate = launchGate(reportData);
