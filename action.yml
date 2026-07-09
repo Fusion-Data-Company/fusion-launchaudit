@@ -1,0 +1,82 @@
+name: "80/20 Launch Audit"
+description: "Deep launch-readiness audit — authorization depth, security, a11y, perf, SEO. Fails the PR on confirmed security/authz bugs and uploads SARIF to code scanning."
+author: "Fusion Data Company"
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  app-url:
+    description: "URL of the running app to audit (e.g. a preview deployment)."
+    required: true
+  name:
+    description: "Project name for the report."
+    required: false
+    default: "app"
+  repo:
+    description: "Path to the repo to scan for deeper checks."
+    required: false
+    default: "."
+  hints:
+    description: "Path to a hints JSON (roles, routes) — enables the authorization wedge."
+    required: false
+    default: ""
+  fail-on-gate:
+    description: "Fail the job when the Launch Gate fails (confirmed security/authz bug or sub-threshold readiness)."
+    required: false
+    default: "true"
+  upload-sarif:
+    description: "Upload the SARIF result to GitHub code scanning."
+    required: false
+    default: "true"
+  out:
+    description: "Output directory for reports + SARIF."
+    required: false
+    default: "launchaudit-out"
+
+outputs:
+  sarif:
+    description: "Path to the emitted SARIF 2.1.0 file."
+    value: ${{ steps.audit.outputs.sarif }}
+  gate-passed:
+    description: "true/false — whether the Launch Gate passed."
+    value: ${{ steps.audit.outputs.gate-passed }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - name: Install engine deps + Chromium
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        npm ci --omit=dev || npm install --omit=dev
+        npx playwright install --with-deps chromium chromium-headless-shell
+
+    - name: Run 80/20 Launch Audit
+      id: audit
+      shell: bash
+      run: |
+        mkdir -p "${{ inputs.out }}"
+        set +e
+        ARGS=(--name "${{ inputs.name }}" --app-url "${{ inputs.app-url }}" --out "${{ inputs.out }}" --no-open)
+        [ -n "${{ inputs.repo }}" ] && ARGS+=(--repo "${{ inputs.repo }}")
+        [ -n "${{ inputs.hints }}" ] && ARGS+=(--hints "${{ inputs.hints }}")
+        [ "${{ inputs.fail-on-gate }}" = "true" ] && ARGS+=(--fail-on-gate)
+        node --experimental-strip-types "${{ github.action_path }}/runner/audit.ts" "${ARGS[@]}"
+        CODE=$?
+        set -e
+        SARIF="${{ inputs.out }}/launchaudit.sarif"
+        echo "sarif=$SARIF" >> "$GITHUB_OUTPUT"
+        if [ "$CODE" -eq 0 ]; then echo "gate-passed=true" >> "$GITHUB_OUTPUT"; else echo "gate-passed=false" >> "$GITHUB_OUTPUT"; fi
+        exit $CODE
+
+    - name: Upload SARIF to code scanning
+      if: ${{ always() && inputs.upload-sarif == 'true' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.audit.outputs.sarif }}

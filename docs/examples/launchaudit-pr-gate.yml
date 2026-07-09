@@ -1,0 +1,31 @@
+# Example consumer workflow — drop this in .github/workflows/ of the app you want gated.
+# It audits a running preview URL on every PR, blocks the merge on a confirmed
+# security/authorization bug, and shows every finding as a code-scanning alert on the diff.
+name: Launch Audit (PR gate)
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write # required to upload SARIF to code scanning
+
+jobs:
+  launch-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ... your own step here that deploys a preview and exposes its URL as
+      # steps.deploy.outputs.url (Vercel/Netlify preview, or a local `npm start`).
+
+      - name: 80/20 Launch Audit
+        uses: Fusion-Data-Company/fusion-launchaudit@v1
+        with:
+          app-url: ${{ steps.deploy.outputs.url }}
+          name: ${{ github.repository }}
+          repo: .
+          # hints: .launchaudit/hints.json   # add to unlock the authorization wedge
+          fail-on-gate: "true"
+          upload-sarif: "true"

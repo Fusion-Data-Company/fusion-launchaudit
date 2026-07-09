@@ -21,6 +21,7 @@ import { blobConfigured, runnerAuthHeaders, safeName, uploadEvidence } from "./b
 import { crawlRuntime, mergeDiscovered } from "./crawler.ts";
 import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, type CardResult } from "./execute-core.ts";
 import { humanize, renderReport, renderClientReport, launchGate, type ReportCard } from "./render-report.ts";
+import { renderSarif } from "./sarif.ts";
 import { renderDashboard } from "./render-dashboard.ts";
 import { spawn } from "node:child_process";
 import { sealVerdict, type RawResult } from "./verdict.ts";
@@ -376,6 +377,10 @@ async function main() {
   const reportFile = await renderReport(reportData, OUT_DIR);
   const clientFile = await renderClientReport(reportData, OUT_DIR);
   const dashboardFile = await renderDashboard(reportData, OUT_DIR);
+  // SARIF 2.1.0 — always emit alongside the HTML so CI (GitHub code-scanning) and
+  // any SARIF viewer can consume the findings. Pure serializer, no network.
+  const sarifFile = path.join(OUT_DIR, "launchaudit.sarif");
+  await fsp.writeFile(sarifFile, renderSarif(reportData), "utf8");
 
   // Optional: sync to hosted command center if configured.
   let hubSynced = false;
@@ -458,11 +463,27 @@ async function main() {
     dashboard: path.resolve(dashboardFile),
     report: path.resolve(reportFile),
     client_report: path.resolve(clientFile),
+    sarif: path.resolve(sarifFile),
     ...(reverify ? { reverify: true, before_after: beforeAfter } : {}),
     product_bugs: productBugs.map((x) => ({ id: x.r.card.id, title: x.r.card.title, confidence: x.cls!.confidence, why: x.cls!.reason })),
     needs_verification_items: needsVerify.map((x) => ({ id: x.r.card.id, title: x.r.card.title, why: x.cls!.reason })),
     needs_input_items: blocked.map((c) => ({ id: c.id, title: c.title, why: c.acceptanceCriteria })),
   }, null, 2));
+
+  // CI gate: with --fail-on-gate (or LAUNCHAUDIT_FAIL_ON_GATE=1), exit non-zero when
+  // the Launch Gate fails so a GitHub Action / any CI step blocks the merge. Honest by
+  // construction — the gate only fails on confirmed security/authz bugs or sub-threshold
+  // readiness (see launchGate), never on needs-verification.
+  const failOnGate = process.argv.includes("--fail-on-gate") || process.env.LAUNCHAUDIT_FAIL_ON_GATE === "1";
+  if (failOnGate) {
+    const gate = launchGate(reportData);
+    if (!gate.pass) {
+      console.error(`\n❌ Launch Gate FAILED: ${gate.reason}`);
+      process.exitCode = 1;
+    } else {
+      console.error(`\n✅ Launch Gate PASSED: ${gate.reason}`);
+    }
+  }
 }
 
 const HUB_OPEN_TIMEOUT_MS = 15000;
