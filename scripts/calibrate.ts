@@ -71,8 +71,9 @@ async function audit(fixtureDir: string, port: number): Promise<Report> {
 
 async function main() {
   console.log("Calibration benchmark — precision/recall vs ground truth\n");
-  const buggy = await audit("fixtures/buggy-shop", 4500);
-  const fixed = await audit("fixtures/shop-fixed", 4501);
+  // The fixture servers bind hardcoded ports (buggy-shop :4400, shop-fixed :4401).
+  const buggy = await audit("fixtures/buggy-shop", 4400);
+  const fixed = await audit("fixtures/shop-fixed", 4401);
 
   const cal = computeCalibration({
     buggyCaught: [...new Set(confirmed(buggy).map((f) => f.category ?? "?"))],
