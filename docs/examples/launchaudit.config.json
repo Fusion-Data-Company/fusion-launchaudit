@@ -1,0 +1,16 @@
+{
+  "readinessMin": 85,
+  "maxProductBugs": 0,
+  "maxByCategory": {
+    "accessibility": 0,
+    "seo": 3
+  },
+  "failOnAnyIn": [
+    "roles_permissions",
+    "object_authz",
+    "mutation_authz",
+    "write_authz",
+    "injection",
+    "secrets_exposure"
+  ]
+}

@@ -22,6 +22,7 @@ import { crawlRuntime, mergeDiscovered } from "./crawler.ts";
 import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, type CardResult } from "./execute-core.ts";
 import { humanize, renderReport, renderClientReport, launchGate, type ReportCard } from "./render-report.ts";
 import { renderSarif } from "./sarif.ts";
+import { loadPolicy, evaluatePolicy } from "./policy.ts";
 import { renderDashboard } from "./render-dashboard.ts";
 import { spawn } from "node:child_process";
 import { sealVerdict, type RawResult } from "./verdict.ts";
@@ -477,11 +478,20 @@ async function main() {
   const failOnGate = process.argv.includes("--fail-on-gate") || process.env.LAUNCHAUDIT_FAIL_ON_GATE === "1";
   if (failOnGate) {
     const gate = launchGate(reportData);
-    if (!gate.pass) {
-      console.error(`\n❌ Launch Gate FAILED: ${gate.reason}`);
+    // Layer the enforced budget policy (launchaudit.config.json or --config) on top
+    // of the wedge gate. The build fails if EITHER the wedge gate fails OR a declared
+    // budget is breached — both are honest (confirmed bugs / readiness floor only).
+    const cfgArgIdx = process.argv.indexOf("--config");
+    const cfgPath = cfgArgIdx >= 0 ? process.argv[cfgArgIdx + 1] : undefined;
+    const { policy, source } = loadPolicy(cfgPath, repoPath ?? process.cwd());
+    const budget = evaluatePolicy(reportData, policy, source);
+    const pass = gate.pass && budget.pass;
+    if (!pass) {
+      if (!gate.pass) console.error(`\n❌ Launch Gate FAILED: ${gate.reason}`);
+      for (const v of budget.violations) console.error(`❌ Budget violation (${source}): ${v}`);
       process.exitCode = 1;
     } else {
-      console.error(`\n✅ Launch Gate PASSED: ${gate.reason}`);
+      console.error(`\n✅ Launch Gate PASSED: ${gate.reason}${source !== "default" ? ` · budget ok (${source})` : ""}`);
     }
   }
 }
