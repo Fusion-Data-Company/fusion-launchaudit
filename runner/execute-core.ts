@@ -14,6 +14,7 @@ import { runSeoAssertion } from "./seo-audit.ts";
 import { runContentAssertion } from "./content-audit.ts";
 import { runAxeOnPage } from "./axe-audit.ts";
 import { runWebVitalsOnPage } from "./web-vitals-audit.ts";
+import { extractCveIds, parseEpssResponse, parseKevCatalog, rankVulns, type VulnEntry } from "../src/lib/report/vuln-priority.ts";
 import type { ExecStep, ExecutableTestCard } from "./executor.ts";
 
 export type CardResult = {
@@ -362,7 +363,7 @@ async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[])
   throw new Error(`runNoBrowserStep got a browser action: ${step.action}`);
 }
 
-type OsvBatchResponse = { results?: Array<{ vulns?: Array<{ id?: string }> }> };
+type OsvBatchResponse = { results?: Array<{ vulns?: Array<{ id?: string; aliases?: string[] }> }> };
 type DepCveStep = { deps?: Array<{ ecosystem: string; name: string; version: string }>; direct?: string[]; imported?: string[] };
 
 /** Pure: turn an OSV querybatch response into a finding summary (exported for tests). */
@@ -421,17 +422,60 @@ async function runDepCveAudit(step: DepCveStep): Promise<void> {
   }
 
   const imported = new Set(step.imported ?? []);
-  const { count, directCount, importedCount, lines } = summarizeOsv(deps, resp, direct, imported);
+  const { count, directCount, importedCount } = summarizeOsv(deps, resp, direct, imported);
   if (count > 0) {
+    // Build per-dep entries with their CVE ids, then prioritize by real exploitability
+    // (CISA KEV + EPSS) so "fix these first" is meaningful, not CVSS noise. Enrichment
+    // is best-effort: a network failure degrades to reachability order, never a throw.
+    const entries: VulnEntry[] = [];
+    (resp.results ?? []).forEach((r, i) => {
+      const vulns = r?.vulns;
+      const d = deps[i];
+      if (!d || !vulns || vulns.length === 0) return;
+      entries.push({ name: d.name, version: d.version, direct: direct.has(d.name), imported: imported.has(d.name), cveIds: extractCveIds(vulns), advisoryCount: vulns.length });
+    });
+    const allCves = [...new Set(entries.flatMap((e) => e.cveIds))];
+    const [epss, kev] = await Promise.all([fetchEpss(allCves), fetchKev()]);
+    const ranked = rankVulns(entries, epss, kev);
+    const kevCount = ranked.filter((r) => r.kev).length;
+    const lines = ranked.map((r) => `${r.name}@${r.version}${r.tag ? " " + r.tag : ""}${r.imported ? " [imported]" : ""}: ${r.advisoryCount} advisor${r.advisoryCount === 1 ? "y" : "ies"} — ${r.priority}`);
     const shown = lines.slice(0, 8);
     const more = count > 8 ? ` | …+${count - 8} more` : "";
-    const reach = importedCount > 0
-      ? `${importedCount} imported by your code`
-      : `none imported by your code (transitive/unused — lower priority)`;
+    const reach = importedCount > 0 ? `${importedCount} imported by your code` : `none imported by your code (transitive/unused — lower priority)`;
+    const kevNote = kevCount > 0 ? `${kevCount} KNOWN-EXPLOITED (CISA KEV) — fix first; ` : "";
     throw new Error(
-      `${count} dependency version${count === 1 ? "" : "s"} match a known OSV/GHSA advisory (${directCount} direct; ${reach}): ${shown.join(" | ")}${more}`,
+      `${count} dependency version${count === 1 ? "" : "s"} match a known OSV/GHSA advisory (${kevNote}${directCount} direct; ${reach}): ${shown.join(" | ")}${more}`,
     );
   }
+}
+
+// EPSS (FIRST) — probability a CVE is exploited in the next 30 days. Best-effort, chunked,
+// short timeout. Never throws — enrichment failure just means no EPSS scores.
+async function fetchEpss(cveIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (cveIds.length === 0) return out;
+  const CHUNK = 90;
+  for (let i = 0; i < cveIds.length; i += CHUNK) {
+    const batch = cveIds.slice(i, i + CHUNK);
+    try {
+      const res = await fetch(`https://api.first.org/data/v1/epss?cve=${batch.join(",")}`, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) continue;
+      for (const [k, v] of parseEpssResponse(await res.json())) out.set(k, v);
+    } catch { /* best-effort */ }
+  }
+  return out;
+}
+
+// CISA Known Exploited Vulnerabilities catalog. Best-effort, short timeout, cached per run.
+let _kevCache: Set<string> | null = null;
+async function fetchKev(): Promise<Set<string>> {
+  if (_kevCache) return _kevCache;
+  try {
+    const res = await fetch("https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", { signal: AbortSignal.timeout(5000) });
+    if (res.ok) { _kevCache = parseKevCatalog(await res.json()); return _kevCache; }
+  } catch { /* best-effort */ }
+  _kevCache = new Set();
+  return _kevCache;
 }
 
 type LicenseAuditStep = { flagged?: Array<{ name: string; license: string; kind: "copyleft" | "unknown" }> };
