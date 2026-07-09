@@ -150,6 +150,11 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   if (cat === "wcag22") {
     return { type: "product_bug", confidence: "high", reason: "a deterministic WCAG 2.2 AA check failed — content overflows horizontally at 320px (SC 1.4.10 Reflow) or an interactive target is below 24×24px (SC 2.5.8) — real users are blocked and it carries EAA/ADA legal risk" };
   }
+  // Org-authored custom rule (rule pack). The org declared the expectation, so a failed
+  // assertion is a confirmed deviation from THEIR policy — a real finding they asked for.
+  if (cat === "custom_rule") {
+    return { type: "product_bug", confidence: "high", reason: "a custom rule-pack assertion failed — the response deviates from a check this org declared in its rule pack" };
+  }
   // Positive tabindex is a focus-order hazard, not a guaranteed violation → verify.
   if (cat === "focus_order") {
     return { type: "needs_verification", confidence: "medium", reason: "a positive tabindex was found, which overrides the natural focus order (WCAG 2.2 SC 2.4.3 hazard) — confirm the intended keyboard order, then remove positive tabindex values in favor of DOM order" };

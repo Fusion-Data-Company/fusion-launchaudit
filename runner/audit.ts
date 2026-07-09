@@ -24,6 +24,7 @@ import { humanize, renderReport, renderClientReport, launchGate, type ReportCard
 import { renderSarif } from "./sarif.ts";
 import { loadPolicy, evaluatePolicy } from "./policy.ts";
 import { readBaseline, writeBaseline, diffFindings, evaluateDiffGate } from "./diff.ts";
+import { loadRulePacksFromDir } from "../src/lib/rulepack.ts";
 import { renderDashboard } from "./render-dashboard.ts";
 import { spawn } from "node:child_process";
 import { sealVerdict, type RawResult } from "./verdict.ts";
@@ -267,7 +268,14 @@ async function main() {
     ? { platform: override, confidence: "high" as const, signals: [`overridden via --platform ${override}`], runnerUp: undefined }
     : detectPlatform(scan, crawl, hints);
   console.error(`      platform: ${PLATFORM_LABEL[platform.platform]} (${platform.confidence} confidence) — ${platform.signals.slice(0, 2).join("; ") || "default"}`);
-  const cards = generateTestCards(scan, crawl, hints, platform.platform);
+  // Extensible rule packs: load org-authored *.rulepack.json from --rules <dir> (default
+  // .launchaudit/rules under the repo). Malformed packs are skipped with a printed reason.
+  const rulesIdx = process.argv.indexOf("--rules");
+  const rulesDir = rulesIdx >= 0 ? process.argv[rulesIdx + 1] : (repoPath ? path.join(repoPath, ".launchaudit", "rules") : undefined);
+  const { packs: rulePacks, skipped: skippedPacks } = rulesDir ? loadRulePacksFromDir(rulesDir) : { packs: [], skipped: [] };
+  for (const s of skippedPacks) console.error(`      (rule pack skipped: ${s.file} — ${s.reason})`);
+  if (rulePacks.length) console.error(`      loaded ${rulePacks.length} rule pack(s): ${rulePacks.map((p) => p.name).join(", ")}`);
+  const cards = generateTestCards(scan, crawl, hints, platform.platform, rulePacks);
 
   // "Prove it's fixed" re-run: re-check ONLY the checks that failed/needed verification
   // in the most recent report, and show before -> after.

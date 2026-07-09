@@ -20,6 +20,7 @@ import { generateCookieSecurity } from "./generators/cookie-security.ts";
 import { generateMassAssignment } from "./generators/mass-assignment.ts";
 import { generateDataExposure } from "./generators/data-exposure.ts";
 import { generateWcag22 } from "./generators/wcag22.ts";
+import { compileRulePack, type RulePack } from "./rulepack.ts";
 import { generateTlsHsts } from "./generators/tls-hsts.ts";
 import { generateInjection } from "./generators/injection.ts";
 import { type Platform } from "./platform/detect.ts";
@@ -76,7 +77,7 @@ function deriveHintsFromScan(scan: RepoScan | null, hints: AuditHints): AuditHin
 }
 
 /** Compose the deep taxonomy: front end, back end, admin/RBAC, middleware, write-authz, ElevenLabs. */
-export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hints: AuditHints = {}, platform?: Platform): GeneratedCard[] {
+export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hints: AuditHints = {}, platform?: Platform, rulePacks: RulePack[] = []): GeneratedCard[] {
   hints = deriveHintsFromScan(scan, hints);
   const c = new Counter();
   const cards: GeneratedCard[] = [
@@ -111,6 +112,10 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
 
   // Platform-specific check set on top of the shared base (empty if no platform passed).
   if (platform) cards.push(...generatePlatformCards(platform, scan, crawl, hints, c));
+
+  // Extensible rule packs (the Nuclei model): org-authored custom checks compile into
+  // cards through the same pipeline. Empty unless the caller loaded any.
+  for (const pack of rulePacks) cards.push(...compileRulePack(pack, c));
 
   if (crawl.has_password_field && !(hints.roles?.admin || hints.roles?.user)) {
     cards.push({

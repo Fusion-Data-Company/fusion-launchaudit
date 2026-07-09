@@ -1,0 +1,29 @@
+{
+  "name": "acme-house-rules",
+  "rules": [
+    {
+      "id": "no-debug-header",
+      "title": "No X-Debug header in production",
+      "path": "/",
+      "method": "GET",
+      "risk": "medium",
+      "description": "Our production responses must never carry the internal X-Debug header.",
+      "expectHeaderAbsent": ["x-debug"]
+    },
+    {
+      "id": "health-ok",
+      "title": "Health endpoint returns 200",
+      "path": "/api/health",
+      "method": "GET",
+      "risk": "high",
+      "expectStatusOneOf": [200]
+    },
+    {
+      "id": "no-stack-traces",
+      "title": "Home page never leaks a stack trace",
+      "path": "/",
+      "method": "GET",
+      "expectBodyExcludesCI": ["at Object.<anonymous>", "Traceback (most recent call last)"]
+    }
+  ]
+}

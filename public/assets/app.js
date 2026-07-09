@@ -249,7 +249,7 @@ const COVERAGE_GROUPS = [
   {
     key: "backend", title: "Backend & API", icon: "i-backend",
     scope: "endpoints · input · injection · code sinks",
-    categories: ["api_contract", "injection", "voice_agent", "code_smell"],
+    categories: ["api_contract", "injection", "voice_agent", "code_smell", "custom_rule"],
   },
   {
     key: "rbac", title: "Access control", icon: "i-rbac",
