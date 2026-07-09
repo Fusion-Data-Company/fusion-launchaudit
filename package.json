@@ -12,6 +12,7 @@
     "runner:scan": "node --experimental-strip-types runner/local-runner.ts --print --repo .",
     "build:api": "node --experimental-strip-types scripts/build-api.ts",
     "audit": "node --experimental-strip-types runner/audit.ts",
+    "init": "node --experimental-strip-types runner/init.ts",
     "mcp": "node --experimental-strip-types runner/mcp-server.ts",
     "test": "node --experimental-strip-types --test 'runner/**/*.test.ts' 'src/**/*.test.ts'",
     "test:fixtures": "node --experimental-strip-types scripts/test-fixtures.ts",
