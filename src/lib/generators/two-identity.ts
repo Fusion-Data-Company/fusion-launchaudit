@@ -20,6 +20,10 @@ export function generateTwoIdentity(scan: RepoScan | null, _crawl: RuntimeCrawl,
   const routes = new Set<string>();
   for (const r of hints.protectedRoutes ?? []) routes.add(r);
   for (const r of scan?.detail?.routes ?? []) if (r.kind === "page" && r.privileged) routes.add(r.url_path);
+  // Extend the metamorphic gradient to privileged JSON APIs — the surface where BOLA/BFLA
+  // actually live. GET-only, so it stays read-only/non-destructive on the API too.
+  for (const a of hints.protectedApis ?? []) if (!a.method || a.method === "GET") routes.add(a.path);
+  for (const r of scan?.detail?.routes ?? []) if (r.kind === "api" && r.privileged && r.methods.includes("GET")) routes.add(r.url_path);
   if (routes.size === 0) return [];
 
   if (!adminCookie) {

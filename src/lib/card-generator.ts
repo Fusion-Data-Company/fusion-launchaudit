@@ -18,6 +18,7 @@ import { generateMutationAuthz } from "./generators/mutation-authz.ts";
 import { generateCors } from "./generators/cors.ts";
 import { generateCookieSecurity } from "./generators/cookie-security.ts";
 import { generateMassAssignment } from "./generators/mass-assignment.ts";
+import { generateDataExposure } from "./generators/data-exposure.ts";
 import { generateTlsHsts } from "./generators/tls-hsts.ts";
 import { generateInjection } from "./generators/injection.ts";
 import { type Platform } from "./platform/detect.ts";
@@ -95,6 +96,7 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateCors(scan, crawl, hints, c),
     ...generateCookieSecurity(scan, crawl, hints, c),
     ...generateMassAssignment(scan, crawl, hints, c),
+    ...generateDataExposure(scan, crawl, hints, c),
     ...generateTlsHsts(scan, crawl, hints, c),
     ...generateInjection(scan, crawl, hints, c),
     ...generateDatabase(scan, crawl, hints, c),

@@ -38,3 +38,22 @@ test("with admin AND user sessions → the gradient tests anon and user", () => 
   assert.deepEqual(step.lower.map((l) => l.role), ["anonymous", "user"]);
   assert.equal(step.lower.find((l) => l.role === "user")?.cookie, "session=user");
 });
+
+test("the gradient now extends to privileged JSON APIs, not just pages", () => {
+  const hints: AuditHints = {
+    protectedApis: [{ path: "/api/admin/stats", method: "GET" }],
+    roles: { admin: { cookie: "session=admin" } },
+  };
+  const cards = generateTwoIdentity(scan, crawl, hints, new Counter());
+  const paths = cards.map((c) => (c.exec[0] as { path: string }).path);
+  assert.ok(paths.includes("/api/admin/stats"), "privileged GET API should be in the gradient");
+});
+
+test("a write-method privileged API is NOT pulled into the read-only gradient", () => {
+  const hints: AuditHints = {
+    protectedApis: [{ path: "/api/admin/delete", method: "POST" }],
+    roles: { admin: { cookie: "session=admin" } },
+  };
+  const cards = generateTwoIdentity(scan, crawl, hints, new Counter());
+  assert.equal(cards.length, 0); // POST-only → not a GET gradient target
+});

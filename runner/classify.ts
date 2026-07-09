@@ -124,6 +124,12 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
     if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed here, so an accepted privileged field doesn't prove a production escalation — re-run with real auth active" };
     return { type: "product_bug", confidence: "high", reason: "an update endpoint accepted/echoed privileged fields (role/isAdmin) — mass-assignment lets a normal user escalate (OWASP API3 / CWE-915)" };
   }
+  // Sensitive-property / excessive-data exposure (READ side of property-level authz).
+  // A NEVER-EXPOSE property (credential/secret/PII) reached a low-privilege response.
+  if (cat === "data_exposure") {
+    if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed here, so a sensitive property reaching this session doesn't prove a production leak — re-run with real auth active" };
+    return { type: "product_bug", confidence: "high", reason: "a JSON response served to a low-privilege user carried a credential/secret/PII property (password/ssn/apiKey/card_number/…) that must never leave the server — excessive data exposure / BOPLA read (OWASP API3:2023 / API6 / CWE-213)" };
+  }
   if (cat === "tls_hsts") {
     return { type: "product_bug", confidence: "medium", reason: "transport security gap — HSTS missing or http does not redirect to https, so credentials/cookies can travel in cleartext or be downgraded" };
   }
