@@ -29,7 +29,7 @@ export type ReportData = {
   failed: number;
   blocked: number;
   cards: ReportCard[];
-  findings: Array<{ id?: string; title: string; category?: string; summary: string; severity: string; fixPrompt?: string }>;
+  findings: Array<{ id?: string; title: string; category?: string; summary: string; severity: string; fixPrompt?: string; repro?: string }>;
   generatedAt: string;
 };
 
@@ -104,7 +104,8 @@ export async function renderReport(data: ReportData, outDir: string): Promise<st
     ${seo.fixes.length ? `<p style="padding:0 40px;color:var(--soft);font-size:13.5px;margin-bottom:8px"><strong>Exact fixes:</strong></p>${seo.fixes.map((f) => `<div class="finding" style="border-left-color:var(--accent)"><p>${esc(f.fix)}</p><p style="font-size:11.5px;color:var(--faint);margin-top:6px">Source: ${esc(f.source)}</p></div>`).join("")}` : ""}`;
 
   const fixBlock = (f: ReportData["findings"][number]) =>
-    f.fixPrompt ? `<details class="fix"><summary>Paste-ready fix for your AI builder</summary><pre>${esc(f.fixPrompt)}</pre></details>` : "";
+    (f.repro ? `<details class="fix"><summary>Reproduce it yourself (proof)</summary><pre>${esc(f.repro)}</pre></details>` : "") +
+    (f.fixPrompt ? `<details class="fix"><summary>Paste-ready fix for your AI builder</summary><pre>${esc(f.fixPrompt)}</pre></details>` : "");
 
   const findingBlocks = data.findings.length
     ? data.findings

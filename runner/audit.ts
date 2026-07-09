@@ -33,6 +33,7 @@ import { probeRuntime, scanRepo } from "./repo-scanner.ts";
 import { classifyFailure, type Classification } from "./classify.ts";
 import { detectPlatform, PLATFORM_LABEL, type Platform } from "../src/lib/platform/detect.ts";
 import { buildFixPrompt } from "../src/lib/report/fixes.ts";
+import { buildRepro, parseStep } from "../src/lib/report/repro.ts";
 
 const args = process.argv.slice(2);
 const arg = (n: string) => { const i = args.indexOf(`--${n}`); return i !== -1 ? args[i + 1] : undefined; };
@@ -367,8 +368,13 @@ async function main() {
   const findings = [...productBugs, ...needsVerify, ...testBugs].map(({ r, cls }) => {
     const severity = cls!.type === "needs_verification" ? "needs verification" : cls!.type === "test_bug" ? "tooling" : r.card.risk;
     const summary = `${cls!.reason}${r.error ? ` [${r.error.slice(0, 160)}]` : ""}`.slice(0, 400);
+    // Reproducible evidence: the exact runnable step + a redacted response slice +
+    // any saved trace/screenshot. Falls back to the card's first exec step when the
+    // failure wasn't tied to a specific step (so a repro is never empty).
+    const step = parseStep(r.failedStep) ?? (r.card.exec?.[0] as Record<string, unknown> | undefined);
+    const repro = buildRepro({ appUrl, step, httpEvidence: r.httpEvidence, tracePath: r.tracePath, screenshotPath: r.screenshotPath });
     return {
-      id: r.card.id, title: r.card.title, category: r.card.category, summary, severity,
+      id: r.card.id, title: r.card.title, category: r.card.category, summary, severity, repro,
       fixPrompt: buildFixPrompt({ id: r.card.id, title: r.card.title, category: r.card.category, severity, summary }),
     };
   });

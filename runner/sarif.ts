@@ -62,7 +62,7 @@ export function buildSarif(data: ReportData): Record<string, unknown> {
     const result: Record<string, unknown> = {
       ruleId,
       level: levelFor(f.severity),
-      message: { text: f.fixPrompt ? `${f.summary}\n\nFix: ${f.fixPrompt}` : f.summary },
+      message: { text: [f.summary, f.repro ? `Reproduce:\n${f.repro}` : "", f.fixPrompt ? `Fix: ${f.fixPrompt}` : ""].filter(Boolean).join("\n\n") },
       locations: [
         {
           physicalLocation: {
