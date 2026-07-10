@@ -37,6 +37,7 @@ export type ExecStep =
   | { action: "axe"; impactFloor?: "minor" | "moderate" | "serious" | "critical" }
   | { action: "wcag22"; check: "target_size" | "focus_order" }
   | { action: "supply_chain_scan"; hits: Array<{ kind: string; pkg: string; detail: string; severity: string }> }
+  | { action: "race_probe"; path: string; method?: string; cookie?: string; body?: unknown; concurrency?: number; successStatus?: number[] }
   | { action: "web_vitals" }
   | {
       action: "http";

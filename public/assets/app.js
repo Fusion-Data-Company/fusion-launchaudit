@@ -254,7 +254,7 @@ const COVERAGE_GROUPS = [
   {
     key: "rbac", title: "Access control", icon: "i-rbac",
     scope: "roles · IDOR · writes",
-    categories: ["roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment", "write_authz", "write_authz_unverified", "privilege_gradient", "data_exposure"],
+    categories: ["roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment", "write_authz", "write_authz_unverified", "privilege_gradient", "data_exposure", "race_condition"],
   },
   {
     key: "security", title: "Security & hardening", icon: "i-db",

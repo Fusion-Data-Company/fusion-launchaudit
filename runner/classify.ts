@@ -150,6 +150,11 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   if (cat === "wcag22") {
     return { type: "product_bug", confidence: "high", reason: "a deterministic WCAG 2.2 AA check failed — content overflows horizontally at 320px (SC 1.4.10 Reflow) or an interactive target is below 24×24px (SC 2.5.8) — real users are blocked and it carries EAA/ADA legal risk" };
   }
+  // Race condition / TOCTOU. Without an oracle for single-use semantics this is a strong
+  // smoke signal, not a proven exploit → verify, honestly.
+  if (cat === "race_condition") {
+    return { type: "needs_verification", confidence: "medium", reason: "concurrent identical requests to a state-changing endpoint all succeeded with no rate-limit or lock — a TOCTOU/double-spend risk IF the action is single-use or quota-limited; confirm the action is idempotent or protected by a DB lock/unique constraint (OWASP race conditions / API6)" };
+  }
   // Malicious-package / supply-chain. A high-severity install-script exfil pattern is a
   // confirmed malicious signal (Shai-Hulud class); typosquat/registry signals are strong
   // but a legit name/registry can match → verify, never over-claim.

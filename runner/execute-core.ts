@@ -305,6 +305,7 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
     case "dep_cve_audit": await runDepCveAudit(step); return;
     case "secret_scan": await runSecretScan(step); return;
     case "supply_chain_scan": await runSupplyChainScan(step); return;
+    case "race_probe": await runRaceProbe(step, appUrl); return;
     case "license_audit": await runLicenseAudit(step); return;
     case "code_smell_scan": await runCodeSmellScan(step); return;
   }
@@ -348,7 +349,7 @@ async function runWcag22Check(page: Page, check: "target_size" | "focus_order"):
 }
 
 /** Deterministic, no-browser cards: raw HTTP (BE/RBAC/middleware/security/write-authz), ElevenLabs, and SEO API checks. */
-const NO_BROWSER_ACTIONS = new Set(["http", "two_identity", "elevenlabs", "seo", "content", "dep_cve_audit", "secret_scan", "license_audit", "code_smell_scan", "supply_chain_scan"]);
+const NO_BROWSER_ACTIONS = new Set(["http", "two_identity", "elevenlabs", "seo", "content", "dep_cve_audit", "secret_scan", "license_audit", "code_smell_scan", "supply_chain_scan", "race_probe"]);
 export const isNoBrowser = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => NO_BROWSER_ACTIONS.has(s.action));
 
 async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[]): Promise<void> {
@@ -362,7 +363,40 @@ async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[])
   if (step.action === "license_audit") return runLicenseAudit(step);
   if (step.action === "code_smell_scan") return runCodeSmellScan(step);
   if (step.action === "supply_chain_scan") return runSupplyChainScan(step);
+  if (step.action === "race_probe") return runRaceProbe(step, appUrl, sink);
   throw new Error(`runNoBrowserStep got a browser action: ${step.action}`);
+}
+
+type RaceStep = { path: string; method?: string; cookie?: string; body?: unknown; concurrency?: number; successStatus?: number[] };
+
+/**
+ * Race-condition / TOCTOU probe — fire N identical requests concurrently at a
+ * state-changing endpoint and see how many "succeed". Standard DAST scanners miss this;
+ * it's the coupon/balance double-spend pattern (parallel redeem before the server marks
+ * the code used). Honest smoke signal: >1 concurrent success with no rate-limit/lock is a
+ * TOCTOU red flag IF the action is meant to be single-use — surfaced as needs_verification,
+ * never an over-claimed bug. Non-destructive-ish: read-mostly; only fires when a hint
+ * declares a limited/single-use endpoint.
+ */
+async function runRaceProbe(step: RaceStep, appUrl: string, sink?: string[]): Promise<void> {
+  const n = Math.min(Math.max(step.concurrency ?? 8, 2), 20);
+  const success = new Set(step.successStatus ?? [200, 201, 204]);
+  const target = resolveUrl(appUrl, step);
+  const headers: Record<string, string> = {};
+  if (step.cookie) headers["cookie"] = step.cookie;
+  let body: string | undefined;
+  if (step.body !== undefined) { body = typeof step.body === "string" ? step.body : JSON.stringify(step.body); headers["content-type"] = "application/json"; }
+  const method = step.method ?? "POST";
+
+  const fire = () => fetch(target, { method, headers, body, redirect: "manual" }).then((r) => r.status).catch(() => 0);
+  const results = await Promise.all(Array.from({ length: n }, fire));
+  const successes = results.filter((s) => success.has(s)).length;
+  const rateLimited = results.some((s) => s === 429);
+  if (sink) sink.push(`${method} ${target} ×${n} concurrent -> ${successes} success, ${rateLimited ? "saw 429" : "no 429"}`);
+
+  // A single (or zero) success, or any 429/lock, means the endpoint serialized/limited it — good.
+  if (successes <= 1 || rateLimited) return;
+  throw new Error(`${method} ${target}: ${successes}/${n} concurrent identical requests all succeeded with no rate-limit (429) or lock observed — if this action is single-use or quota-limited (coupon/redeem/vote/transfer), it is exposed to a TOCTOU race (double-spend); confirm the action is idempotent or add a DB lock/unique constraint (OWASP race conditions / API6)`);
 }
 
 type SupplyChainStep = { hits?: Array<{ kind: string; pkg: string; detail: string; severity: string }> };
