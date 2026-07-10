@@ -22,6 +22,7 @@ import { crawlRuntime, mergeDiscovered } from "./crawler.ts";
 import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, type CardResult } from "./execute-core.ts";
 import { humanize, renderReport, renderClientReport, launchGate, type ReportCard } from "./render-report.ts";
 import { renderSarif } from "./sarif.ts";
+import { buildAttestation } from "./attestation.ts";
 import { loadPolicy, evaluatePolicy } from "./policy.ts";
 import { readBaseline, writeBaseline, diffFindings, evaluateDiffGate } from "./diff.ts";
 import { loadRulePacksFromDir } from "../src/lib/rulepack.ts";
@@ -414,6 +415,11 @@ async function main() {
   // any SARIF viewer can consume the findings. Pure serializer, no network.
   const sarifFile = path.join(OUT_DIR, "launchaudit.sarif");
   await fsp.writeFile(sarifFile, renderSarif(reportData), "utf8");
+  // Tamper-evident audit attestation (in-toto shape). HMAC-signed when
+  // LAUNCHAUDIT_ATTEST_KEY is set, otherwise hash-anchored + marked unsigned.
+  const attestFile = path.join(OUT_DIR, "launchaudit.attestation.json");
+  const attestation = buildAttestation(reportData, launchGate(reportData), process.env.LAUNCHAUDIT_ATTEST_KEY);
+  await fsp.writeFile(attestFile, JSON.stringify(attestation, null, 2), "utf8");
 
   // Optional: sync to hosted command center if configured.
   let hubSynced = false;
@@ -497,6 +503,7 @@ async function main() {
     report: path.resolve(reportFile),
     client_report: path.resolve(clientFile),
     sarif: path.resolve(sarifFile),
+    attestation: path.resolve(attestFile),
     ...(reverify ? { reverify: true, before_after: beforeAfter } : {}),
     product_bugs: productBugs.map((x) => ({ id: x.r.card.id, title: x.r.card.title, confidence: x.cls!.confidence, why: x.cls!.reason })),
     needs_verification_items: needsVerify.map((x) => ({ id: x.r.card.id, title: x.r.card.title, why: x.cls!.reason })),
