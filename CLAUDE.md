@@ -41,7 +41,14 @@ gamed). Bands: Green ≥80 · Yellow 50–79 · Red <50.
 `src/lib/generators/*.ts` — each exports `generate<X>(scan, crawl, hints, counter)`
 returning `GeneratedCard[]`. Current: frontend, backend, admin-rbac, middleware,
 security, write-authz, seo, content-integrity, accessibility, performance, elevenlabs,
-plus the platform check-sets (`platform-checks.ts`) and Component B (DB / MCP-server).
+object-authz, two-identity, mutation-authz, mass-assignment, data-exposure, cors,
+cookie-security, tls-hsts, injection, dependencies (SCA), supply-chain (malicious-package),
+race-condition (TOCTOU), ai-redteam (LLM Top 10), wcag22, secrets-scan, info-disclosure,
+code-smells, plus the platform check-sets (`platform-checks.ts`) and Component B (DB /
+MCP-server). Cross-cutting modules: `src/lib/rulepack.ts` (extensible rule packs),
+`src/lib/spec-ingest.ts` (OpenAPI/HAR → authz surface), `src/lib/report/greybox.ts`
+(source+runtime authz cross-verify), `src/lib/report/fix-plan.ts` (self-heal loop),
+`runner/sarif.ts`, `runner/attestation.ts`, `runner/policy.ts`, `runner/diff.ts`.
 Execution actions live in `runner/executor.ts` (the `ExecStep` union) + are dispatched
 in `runner/execute-core.ts`. Every failure is labeled by `runner/classify.ts` as
 `product_bug | needs_verification | test_bug | flaky | needs_input` — never over-claim.

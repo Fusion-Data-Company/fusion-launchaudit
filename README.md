@@ -67,8 +67,18 @@ Flags:
 - `--name` (required) — human-readable audit name.
 - `--app-url` (required) — the running app to audit. Local or deployed.
 - `--repo` (optional) — path to the app's source. Enables the repo scanner, which finds routes, API endpoints, and middleware so the audit generates far more checks than a blind crawl.
-- `--hints` (optional) — path to a JSON hints file listing protected routes, protected APIs, POST endpoints, a login path, and admin/user credentials. With credentials, the audit captures sessions locally and runs the same surface as each role. Credentials never leave your machine. See `fixtures/buggy-shop/launchaudit-hints.json` for the shape.
+- `--hints` (optional) — path to a JSON hints file listing protected routes, protected APIs, POST endpoints, a login path, and admin/user credentials. With credentials, the audit captures sessions locally and runs the same surface as each role. Credentials never leave your machine. See `fixtures/buggy-shop/launchaudit-hints.json` for the shape. Don't hand-write it — run `npm run init` to scaffold it from a repo scan.
 - `--out` (optional) — output directory. Default: `launchaudit-report/`.
+
+CI / gating flags:
+
+- `--fail-on-gate` — exit non-zero when the Launch Gate fails (a confirmed security/authz bug, or readiness below threshold), so a CI step blocks the merge.
+- `--config <file>` — enforce a budget policy (`launchaudit.config.json`): `readinessMin`, `maxProductBugs`, `maxByCategory`, `failOnAnyIn`. Turns the score into policy. See `docs/examples/launchaudit.config.json`.
+- `--baseline <file>` + `--fail-on-new` — continuous regression mode: diff this run against a stored baseline and fail only on *newly introduced* findings (pre-existing bugs don't block a PR that didn't add them).
+- `--rules <dir>` — load org-authored `*.rulepack.json` custom checks (the Nuclei model). Default: `.launchaudit/rules/`. See `docs/examples/house-rules.rulepack.json`.
+- `--openapi <file>` / `--har <file>` — ingest an OpenAPI spec or a recorded HAR so the authorization wedge runs against *every* parameterized endpoint, not just hand-listed ones.
+
+Every run also writes `launchaudit.sarif` (GitHub code-scanning) and `launchaudit.attestation.json` (a tamper-evident, optionally HMAC-signed record of the audit — set `LAUNCHAUDIT_ATTEST_KEY` to sign). Ship the audit as a PR gate with the first-party GitHub Action (`action.yml`); see `docs/examples/launchaudit-pr-gate.yml`.
 
 The pipeline: scan repo → crawl the running app → generate test cards → execute them in Chromium and over HTTP → collect evidence → classify failures → compute readiness → render the report.
 
@@ -109,6 +119,11 @@ Generator families, made repo-aware when you pass `--repo`:
 - **Accessibility** — axe-core (WCAG 2.0/2.1 A + AA), serious/critical violations only.
 - **Core Web Vitals** — a cold-load LCP/CLS/FCP/TTFB smoke check (poor-range only, reported as needs_verification — one headless run isn't a lab benchmark).
 - **ElevenLabs voice agents** (when agent IDs + an API key are supplied) — config reachable, real system prompt, tools not wiped, HTTPS webhooks, voice + TTS set.
+- **Authorization depth (the wedge)** — cross-identity BOLA/IDOR (anon → user A → user B → admin), BFLA function-level and mutation authorization, mass-assignment/BOPLA (write side), sensitive-property / excessive-data exposure (read side, OWASP API3/API6), and a privilege-gradient probe across pages *and* JSON APIs. Findings that also lack a server-side guard in the handler source are marked **defense-verified** (runtime + source agree).
+- **Supply chain, beyond CVE lookup** — malicious-package signals that have no CVE yet: install-script exfil (the Shai-Hulud pattern), transposition-aware typosquat detection, and lockfile registry-integrity. CVE findings are ranked by real exploitability with **EPSS + CISA KEV** (fix-these-first), not CVSS noise.
+- **Race conditions / TOCTOU** — concurrent double-spend probes on single-use/quota-limited endpoints (coupon, redeem, transfer, vote) — the class standard DAST scanners miss.
+- **AI-feature red-teaming** — OWASP LLM Top 10 canaries (prompt injection, system-prompt leak, unsafe/unescaped output) against configured chat/LLM endpoints.
+- **WCAG 2.2 AA depth** — reflow (1.4.10), target size (2.5.8), focus order (2.4.3) — the success criteria axe can't auto-detect; EAA-relevant.
 
 Every failure is classified before it reaches the report — `product_bug`, `test_bug`, `flaky`, `needs_verification`, or `needs_input` — each with a confidence level and a reason. Timing flakes are retried and recovered, not reported as bugs. If the target serves a **client-rendered SPA shell** on a protected route, the route check is downgraded to `needs_verification` (HTTP can't prove the page is exposed; the API is the real gate) instead of crying wolf. Same honesty rule for stubbed/bypassed dev auth.
 
