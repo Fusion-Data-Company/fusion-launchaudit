@@ -35,6 +35,10 @@ export type AuditHints = {
   /** ElevenLabs agents to audit, plus the env var holding the xi-api-key. */
   elevenLabsAgents?: ElevenLabsAgent[];
   elevenLabsApiKeyEnv?: string;
+  /** LLM/chat endpoints to red-team (prompt injection, system-prompt leak, unsafe output).
+   *  promptField = the JSON body key the user message goes in; replyPath = dot-path to the
+   *  reply text in the JSON response (default: whole body). */
+  aiEndpoints?: Array<{ path: string; method?: string; promptField?: string; replyPath?: string; cookie?: string }>;
   /** A re-runnable login request so cookie-security can inspect the live Set-Cookie flags. */
   loginProbe?: { path: string; body: string; contentType: string };
 };

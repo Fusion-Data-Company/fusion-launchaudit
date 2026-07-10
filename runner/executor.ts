@@ -38,6 +38,7 @@ export type ExecStep =
   | { action: "wcag22"; check: "target_size" | "focus_order" }
   | { action: "supply_chain_scan"; hits: Array<{ kind: string; pkg: string; detail: string; severity: string }> }
   | { action: "race_probe"; path: string; method?: string; cookie?: string; body?: unknown; concurrency?: number; successStatus?: number[] }
+  | { action: "llm_probe"; path: string; method?: string; promptField: string; replyPath?: string; cookie?: string; attack: "injection" | "system_leak" | "unsafe_output" }
   | { action: "web_vitals" }
   | {
       action: "http";

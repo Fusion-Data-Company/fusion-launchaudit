@@ -23,6 +23,7 @@ import { generateWcag22 } from "./generators/wcag22.ts";
 import { compileRulePack, type RulePack } from "./rulepack.ts";
 import { generateSupplyChain } from "./generators/supply-chain.ts";
 import { generateRaceCondition } from "./generators/race-condition.ts";
+import { generateAiRedteam } from "./generators/ai-redteam.ts";
 import { generateTlsHsts } from "./generators/tls-hsts.ts";
 import { generateInjection } from "./generators/injection.ts";
 import { type Platform } from "./platform/detect.ts";
@@ -103,6 +104,7 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateMassAssignment(scan, crawl, hints, c),
     ...generateDataExposure(scan, crawl, hints, c),
     ...generateRaceCondition(scan, crawl, hints, c),
+    ...generateAiRedteam(scan, crawl, hints, c),
     ...generateTlsHsts(scan, crawl, hints, c),
     ...generateInjection(scan, crawl, hints, c),
     ...generateDatabase(scan, crawl, hints, c),
