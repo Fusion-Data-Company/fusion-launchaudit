@@ -304,6 +304,7 @@ async function runStep(page: Page, step: ExecStep, state: { consoleErrors: strin
     case "content": await runContentAssertion(resolveUrl(appUrl, step), step.assert); return;
     case "dep_cve_audit": await runDepCveAudit(step); return;
     case "secret_scan": await runSecretScan(step); return;
+    case "supply_chain_scan": await runSupplyChainScan(step); return;
     case "license_audit": await runLicenseAudit(step); return;
     case "code_smell_scan": await runCodeSmellScan(step); return;
   }
@@ -347,7 +348,7 @@ async function runWcag22Check(page: Page, check: "target_size" | "focus_order"):
 }
 
 /** Deterministic, no-browser cards: raw HTTP (BE/RBAC/middleware/security/write-authz), ElevenLabs, and SEO API checks. */
-const NO_BROWSER_ACTIONS = new Set(["http", "two_identity", "elevenlabs", "seo", "content", "dep_cve_audit", "secret_scan", "license_audit", "code_smell_scan"]);
+const NO_BROWSER_ACTIONS = new Set(["http", "two_identity", "elevenlabs", "seo", "content", "dep_cve_audit", "secret_scan", "license_audit", "code_smell_scan", "supply_chain_scan"]);
 export const isNoBrowser = (card: ExecutableTestCard) => card.exec.length > 0 && card.exec.every((s) => NO_BROWSER_ACTIONS.has(s.action));
 
 async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[]): Promise<void> {
@@ -360,7 +361,25 @@ async function runNoBrowserStep(step: ExecStep, appUrl: string, sink?: string[])
   if (step.action === "secret_scan") return runSecretScan(step);
   if (step.action === "license_audit") return runLicenseAudit(step);
   if (step.action === "code_smell_scan") return runCodeSmellScan(step);
+  if (step.action === "supply_chain_scan") return runSupplyChainScan(step);
   throw new Error(`runNoBrowserStep got a browser action: ${step.action}`);
+}
+
+type SupplyChainStep = { hits?: Array<{ kind: string; pkg: string; detail: string; severity: string }> };
+
+/** Malicious-package signals precomputed in the generator (repo-side). A high-severity
+ *  install-script hit leads the message so classify can treat it as a confirmed bug. */
+async function runSupplyChainScan(step: SupplyChainStep): Promise<void> {
+  const hits = step.hits ?? [];
+  if (hits.length === 0) return;
+  const high = hits.filter((h) => h.severity === "high");
+  const sorted = [...hits].sort((a, b) => Number(b.severity === "high") - Number(a.severity === "high"));
+  const shown = sorted.slice(0, 8).map((h) => `${h.pkg}: ${h.detail} [${h.kind}]`);
+  const more = hits.length > 8 ? ` | …+${hits.length - 8} more` : "";
+  const lead = high.length > 0
+    ? `${hits.length} supply-chain signal${hits.length === 1 ? "" : "s"} (${high.length} MALICIOUS install-script pattern${high.length === 1 ? "" : "s"})`
+    : `${hits.length} supply-chain signal${hits.length === 1 ? "" : "s"} (typosquat/registry — verify)`;
+  throw new Error(`${lead}: ${shown.join(" | ")}${more}`);
 }
 
 type OsvBatchResponse = { results?: Array<{ vulns?: Array<{ id?: string; aliases?: string[] }> }> };

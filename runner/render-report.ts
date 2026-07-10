@@ -45,7 +45,7 @@ const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (ch) => HTML_ESC
 const GATE_CATEGORIES = new Set([
   "roles_permissions", "auth", "object_authz", "mutation_authz", "mass_assignment",
   "write_authz", "privilege_gradient", "cors", "cookie_security", "tls_hsts", "injection",
-  "security_headers", "secrets_exposure", "secret_exposure", "dependency_cve", "data_exposure",
+  "security_headers", "secrets_exposure", "secret_exposure", "dependency_cve", "data_exposure", "supply_chain",
 ]);
 
 export type GateVerdict = { pass: boolean; blockers: ReportData["findings"]; coverageGaps: string[]; readiness: number; threshold: number; reason: string };

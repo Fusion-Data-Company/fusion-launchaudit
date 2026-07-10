@@ -264,7 +264,7 @@ const COVERAGE_GROUPS = [
   {
     key: "supply_chain", title: "Supply chain & secrets", icon: "i-db",
     scope: "dep CVEs · licenses · committed secrets",
-    categories: ["dependency_cve", "dependency_license", "secret_exposure"],
+    categories: ["dependency_cve", "dependency_license", "secret_exposure", "supply_chain"],
   },
   {
     key: "middleware", title: "Middleware & integrations", icon: "i-middleware",

@@ -150,6 +150,15 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   if (cat === "wcag22") {
     return { type: "product_bug", confidence: "high", reason: "a deterministic WCAG 2.2 AA check failed — content overflows horizontally at 320px (SC 1.4.10 Reflow) or an interactive target is below 24×24px (SC 2.5.8) — real users are blocked and it carries EAA/ADA legal risk" };
   }
+  // Malicious-package / supply-chain. A high-severity install-script exfil pattern is a
+  // confirmed malicious signal (Shai-Hulud class); typosquat/registry signals are strong
+  // but a legit name/registry can match → verify, never over-claim.
+  if (cat === "supply_chain") {
+    if (has(err, "malicious install-script")) {
+      return { type: "product_bug", confidence: "high", reason: "a package install-lifecycle script (pre/postinstall) matches an exfil pattern — network-piped-to-shell, secret-reading, or a bundle.js loader — the delivery vector of the Shai-Hulud-class npm attacks; treat as malicious and remove/pin it before install runs anywhere" };
+    }
+    return { type: "needs_verification", confidence: "medium", reason: "a supply-chain signal (a dependency one edit from a popular package, or resolved from a non-official registry) — a strong typosquat/dependency-confusion indicator; confirm the package name and registry are intended before shipping" };
+  }
   // Org-authored custom rule (rule pack). The org declared the expectation, so a failed
   // assertion is a confirmed deviation from THEIR policy — a real finding they asked for.
   if (cat === "custom_rule") {

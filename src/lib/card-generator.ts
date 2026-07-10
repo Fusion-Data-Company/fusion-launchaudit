@@ -21,6 +21,7 @@ import { generateMassAssignment } from "./generators/mass-assignment.ts";
 import { generateDataExposure } from "./generators/data-exposure.ts";
 import { generateWcag22 } from "./generators/wcag22.ts";
 import { compileRulePack, type RulePack } from "./rulepack.ts";
+import { generateSupplyChain } from "./generators/supply-chain.ts";
 import { generateTlsHsts } from "./generators/tls-hsts.ts";
 import { generateInjection } from "./generators/injection.ts";
 import { type Platform } from "./platform/detect.ts";
@@ -105,6 +106,7 @@ export function generateTestCards(scan: RepoScan | null, crawl: RuntimeCrawl, hi
     ...generateDatabase(scan, crawl, hints, c),
     ...generateMcpServer(scan, crawl, hints, c),
     ...generateDependencies(scan, crawl, hints, c),
+    ...generateSupplyChain(scan, crawl, hints, c),
     ...generateSecretsScan(scan, crawl, hints, c),
     ...generateInfoDisclosure(scan, crawl, hints, c),
     ...generateCodeSmells(scan, crawl, hints, c),
