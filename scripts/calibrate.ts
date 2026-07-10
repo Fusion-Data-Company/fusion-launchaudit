@@ -14,6 +14,7 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { computeCalibration, gateCalibration, renderCalibrationTable } from "../src/lib/report/calibration.ts";
+import { renderLeaderboard } from "../src/lib/report/benchmark.ts";
 
 type Report = { readiness: number; findings: Array<{ category?: string; severity: string; title: string }> };
 
@@ -82,6 +83,12 @@ async function main() {
   });
 
   console.log(renderCalibrationTable(cal));
+  console.log("\nLeaderboard (our measured row; run competitors against fixtures/ to populate):");
+  console.log(renderLeaderboard([
+    { tool: "80/20 Launch Audit", measured: true, recall: cal.recall, precision: cal.precision, f1: cal.f1 },
+    { tool: "OWASP ZAP (baseline)", measured: false, note: "run to populate" },
+    { tool: "Nuclei", measured: false, note: "run to populate" },
+  ]));
   const gate = gateCalibration(cal);
   console.log("");
   if (!gate.pass) {
