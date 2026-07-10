@@ -25,6 +25,10 @@ import { renderSarif } from "./sarif.ts";
 import { loadPolicy, evaluatePolicy } from "./policy.ts";
 import { readBaseline, writeBaseline, diffFindings, evaluateDiffGate } from "./diff.ts";
 import { loadRulePacksFromDir } from "../src/lib/rulepack.ts";
+import fs from "node:fs";
+import { sourceHasAuthGuard } from "./repo-scanner.ts";
+import { buildGuardIndex, sourceConfirmsMissingGuard, cardPath } from "../src/lib/report/greybox.ts";
+import type { CardResult } from "./execute-core.ts";
 import { renderDashboard } from "./render-dashboard.ts";
 import { spawn } from "node:child_process";
 import { sealVerdict, type RawResult } from "./verdict.ts";
@@ -325,9 +329,22 @@ async function main() {
   const devStubAuth = isLocal && (scan?.repo_summary.env_keys_present ?? []).some((k) => DEV_BYPASS_ENV.includes(k));
   if (devStubAuth) console.error("      note: auth looks stubbed here (local + dev-bypass key) — RBAC exposures flagged 'needs verification', not vulnerabilities");
 
+  // Grey-box: index whether each route's handler source has a server-side auth guard, so
+  // classify can mark a runtime authz finding "defense-verified" when source agrees. Reads
+  // each route file once (bounded), best-effort — a file we can't read is simply omitted.
+  const guardIndex = scan?.detail?.repo_path
+    ? buildGuardIndex(scan.detail.routes ?? [], (file) => {
+        try { return sourceHasAuthGuard(fs.readFileSync(path.join(scan.detail.repo_path, file), "utf8")); } catch { return undefined; }
+      })
+    : [];
+  const sourceMissingGuard = (r: CardResult) => {
+    const p = cardPath(r.card);
+    return p ? sourceConfirmsMissingGuard(p, guardIndex) : null;
+  };
+
   const watchdogReason = "Watchdog could not independently reproduce this pass (the re-run came back non-pass or without evidence) — re-verify before trusting it.";
   const classified = results.map((r) => {
-    if (r.status === "failed") return { r, cls: classifyFailure(r, { appUrl, devStubAuth }) };
+    if (r.status === "failed") return { r, cls: classifyFailure(r, { appUrl, devStubAuth, sourceMissingGuard }) };
     if (intermittentWedgeIds.has(r.card.id)) {
       const i = intermittentById.get(r.card.id)!;
       return { r, cls: { type: "product_bug", confidence: "high", reason: `intermittent authorization — this access-control check held only ${i.passes}/${i.runs} independent re-runs. A guard that passes some of the time and fails the rest is worse than one that's always open: it hides from a single test. Treat it as a race/ordering bug in the authorization path and make it deterministic.` } as Classification };

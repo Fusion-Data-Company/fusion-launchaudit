@@ -14,7 +14,21 @@ import type { CardResult } from "./execute-core.ts";
 
 export type FindingType = "product_bug" | "test_bug" | "flaky" | "needs_verification" | "needs_input";
 export type Classification = { type: FindingType; confidence: "high" | "medium" | "low"; reason: string };
-export type ClassifyContext = { appUrl: string; devStubAuth: boolean };
+export type ClassifyContext = {
+  appUrl: string;
+  devStubAuth: boolean;
+  // Grey-box: given a failed card, returns the source file that confirms a MISSING guard
+  // for this route (or null). Lets authz findings carry a "defense-verified" note.
+  sourceMissingGuard?: (result: CardResult) => { file: string } | null;
+};
+
+// Append a source-confirmation note to an authz classification when the handler source
+// also lacks a guard — runtime + source agree, the highest-confidence a finding gets.
+function withGreybox(cls: Classification, result: CardResult, ctx: ClassifyContext): Classification {
+  const hit = ctx.sourceMissingGuard?.(result);
+  if (!hit) return cls;
+  return { type: cls.type, confidence: "high", reason: `${cls.reason} — DEFENSE-VERIFIED: the handler source (${hit.file}) has no server-side authorization guard, so runtime + source agree` };
+}
 
 const has = (s: string | undefined, frag: string) => (s ?? "").toLowerCase().includes(frag.toLowerCase());
 
@@ -77,11 +91,11 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   }
   // Privileged surface reachable with real auth in play → the high-value finding.
   if (isRbac && isExposure) {
-    return {
+    return withGreybox({
       type: "product_bug",
       confidence: "high",
       reason: "a privileged surface answered an unauthenticated request — server-side authorization is missing, not just UI-hidden",
-    };
+    }, result, ctx);
   }
   // SEO / structured data. Title + viewport are universal page quality (a real
   // miss); the rest (description, canonical, OG, JSON-LD, noindex) are public-
@@ -97,7 +111,7 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   // object is a confirmed hole — unless auth is stubbed here (can't conclude).
   if (cat === "object_authz") {
     if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed in this environment, so cross-user object access here doesn't prove a production IDOR — re-run with real auth active" };
-    return { type: "product_bug", confidence: "high", reason: "an authenticated normal user was served another owner's object by swapping the id — object-level authorization (IDOR/BOLA) is missing (WSTG-ATHZ-04 / CWE-639)" };
+    return withGreybox({ type: "product_bug", confidence: "high", reason: "an authenticated normal user was served another owner's object by swapping the id — object-level authorization (IDOR/BOLA) is missing (WSTG-ATHZ-04 / CWE-639)" }, result, ctx);
   }
   // Two-identity privilege gradient (metamorphic authz). A "no baseline" failure is our
   // setup gap (verify), a stubbed-auth env can't conclude, and an actual gradient break —
@@ -112,7 +126,7 @@ export function classifyFailure(result: CardResult, ctx: ClassifyContext): Class
   // Function-level authorization on a privileged mutation by a normal user.
   if (cat === "mutation_authz") {
     if (ctx.devStubAuth) return { type: "needs_verification", confidence: "high", reason: "auth is stubbed/bypassed here, so a normal user reaching this mutation doesn't prove a production hole — re-run with real auth active" };
-    return { type: "product_bug", confidence: "high", reason: "a normal user's privileged mutation was not rejected (no 401/403) — function-level authorization is missing; the denial that would prove no state change never happened (OWASP API5 / CWE-285)" };
+    return withGreybox({ type: "product_bug", confidence: "high", reason: "a normal user's privileged mutation was not rejected (no 401/403) — function-level authorization is missing; the denial that would prove no state change never happened (OWASP API5 / CWE-285)" }, result, ctx);
   }
   if (cat === "cors") {
     return { type: "product_bug", confidence: "high", reason: "CORS reflects an arbitrary Origin together with Access-Control-Allow-Credentials: true — any site can make credentialed cross-origin requests (CWE-942)" };
