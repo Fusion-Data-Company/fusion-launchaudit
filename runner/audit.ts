@@ -23,6 +23,7 @@ import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, typ
 import { humanize, renderReport, renderClientReport, launchGate, type ReportCard } from "./render-report.ts";
 import { renderSarif } from "./sarif.ts";
 import { buildAttestation } from "./attestation.ts";
+import { parseOpenApi, parseHar, endpointsToHints } from "../src/lib/spec-ingest.ts";
 import { loadPolicy, evaluatePolicy } from "./policy.ts";
 import { readBaseline, writeBaseline, diffFindings, evaluateDiffGate } from "./diff.ts";
 import { loadRulePacksFromDir } from "../src/lib/rulepack.ts";
@@ -259,6 +260,22 @@ async function main() {
         console.error(`      authenticated crawl: +${crawl.links.length - before} pages behind login`);
       }
     } catch (e) { console.error(`      (authenticated crawl skipped: ${e instanceof Error ? e.message : "?"})`); }
+  }
+
+  // Fold an OpenAPI spec / HAR recording into hints so the authz wedge runs against EVERY
+  // parameterized endpoint, not just hand-listed ones. --openapi <file> and/or --har <file>.
+  for (const [flag, kind] of [["--openapi", "openapi"], ["--har", "har"]] as const) {
+    const i = process.argv.indexOf(flag);
+    if (i < 0) continue;
+    try {
+      const doc = JSON.parse(fs.readFileSync(process.argv[i + 1], "utf8"));
+      const endpoints = kind === "openapi" ? parseOpenApi(doc) : parseHar(doc, new URL(appUrl).host);
+      const add = endpointsToHints(endpoints);
+      hints.protectedApis = [...(hints.protectedApis ?? []), ...add.protectedApis];
+      hints.writeApis = [...(hints.writeApis ?? []), ...add.writeApis];
+      hints.postEndpoints = [...(hints.postEndpoints ?? []), ...add.postEndpoints];
+      console.error(`      ingested ${endpoints.length} endpoints from ${kind} (${add.protectedApis.length} id-bearing, ${add.writeApis.length} write)`);
+    } catch (e) { console.error(`      (${kind} ingest skipped: ${e instanceof Error ? e.message : "?"})`); }
   }
 
   // Fold the API routes the crawl observed in live fetch/XHR traffic into hints so
