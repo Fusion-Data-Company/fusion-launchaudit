@@ -23,6 +23,7 @@ import { executeCards, executeNoBrowserCards, isNoBrowser, registerArtifact, typ
 import { humanize, renderReport, renderClientReport, launchGate, type ReportCard } from "./render-report.ts";
 import { renderSarif } from "./sarif.ts";
 import { buildAttestation } from "./attestation.ts";
+import { buildFixPlan } from "../src/lib/report/fix-plan.ts";
 import { parseOpenApi, parseHar, endpointsToHints } from "../src/lib/spec-ingest.ts";
 import { loadPolicy, evaluatePolicy } from "./policy.ts";
 import { readBaseline, writeBaseline, diffFindings, evaluateDiffGate } from "./diff.ts";
@@ -516,6 +517,9 @@ async function main() {
     platform: { kind: platform.platform, label: PLATFORM_LABEL[platform.platform], confidence: platform.confidence, signals: platform.signals },
     readiness, passed, flaky, to_fix: failed, needs_verification: needsVerify.length, needs_input: blocked.length,
     launch_gate: launchGate(reportData),
+    // The self-healing loop's executable spine: ordered per-blocker {fix, repro, verify}
+    // the host coding agent applies and proves, looping until the gate passes.
+    fix_plan: buildFixPlan(reportData.findings as Parameters<typeof buildFixPlan>[0]),
     dashboard: path.resolve(dashboardFile),
     report: path.resolve(reportFile),
     client_report: path.resolve(clientFile),
