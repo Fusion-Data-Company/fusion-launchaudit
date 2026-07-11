@@ -24,6 +24,8 @@ jobs:
         run: npm ci
       - name: Unit tests (node:test, no browser needed)
         run: npm test
+      - name: Elite-wedge proof — catch modern bugs on a realistic vuln app (no browser)
+        run: npm run proof:elite
       - name: Dependency audit
         run: npm audit --audit-level=high
 
