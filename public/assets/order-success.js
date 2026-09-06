@@ -34,7 +34,7 @@
       else { stGraded.className='now'; grade.innerHTML='<div class="loading">Running your instant surface grade…</div>'; if(tries<40) setTimeout(poll, delay); }
       if(d.tier==='single'){
         report.hidden=false;
-        report.innerHTML=d.grade?'<p class="grade-sum" style="margin:0 0 6px">Single Run complete.</p><p class="muted" style="margin:0">This grade is your deliverable. Want the deep audit in a real browser (authz, admin/RBAC, a11y, perf) with an evidence report? <a href="/landing#order">Order a Hosted Deep Audit</a>.</p>':'<p class="muted" style="margin:0">Your grade will appear above as soon as the scan finishes.</p>';
+        report.innerHTML=d.grade?'<p class="grade-sum" style="margin:0 0 6px">Single Run complete.</p><p class="muted" style="margin:0">This grade is your deliverable. Want the deep audit in a real browser (authz, admin/RBAC, a11y, perf) with an evidence report? <a href="/#order">Order a Hosted Deep Audit</a>.</p>':'<p class="muted" style="margin:0">Your grade will appear above as soon as the scan finishes.</p>';
       } else if(d.status==='delivered' && d.report_url){
         stReport.className='done';
         report.hidden=false;

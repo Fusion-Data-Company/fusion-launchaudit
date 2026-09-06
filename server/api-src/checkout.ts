@@ -44,7 +44,7 @@ export default async function handler(req: Req, res: Res) {
       payment_intent_data: { metadata: { target_url: url, tier } },
       success_url: `${SITE}/order/success?session_id={CHECKOUT_SESSION_ID}`,
       // The order section lives on /landing (the root serves the dashboard).
-      cancel_url: `${SITE}/landing#order`,
+      cancel_url: `${SITE}/#order`,
     });
     res.status(200).json({ ok: true, url: session.url, session_id: session.id });
   } catch (e) {
