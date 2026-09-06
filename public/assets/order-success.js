@@ -27,11 +27,15 @@
         grade.innerHTML='<div class="loading">Your payment went through, but confirmation is still syncing. Your grade and report will arrive by email — no action needed. You can also reload this page later.</div>';
         return;
       }
-      meta.textContent='Order for '+d.target_url+' · '+(d.tier==='pro'?'Pro':'Standard')+' tier';
+      meta.textContent='Order for '+d.target_url+' · '+(d.tier==='pro'?'Pro':d.tier==='single'?'Single Run':'Standard')+' tier';
+      if(d.tier==='single'){var pr=document.getElementById('promise');if(pr)pr.textContent='Single Run: your instant grade below is the deliverable. Upgrade to a deep audit any time from the order page.';if(stReport)stReport.hidden=true;}
       if(d.grade){ stGraded.className='done'; renderGrade(d.grade); }
       else if(d.grade_error){ stGraded.className='now'; grade.innerHTML='<div class="loading">The instant scan could not reach '+esc(d.target_url)+' ('+esc(d.grade_error)+'). We will grade it manually as part of your report.</div>'; }
       else { stGraded.className='now'; grade.innerHTML='<div class="loading">Running your instant surface grade…</div>'; if(tries<40) setTimeout(poll, delay); }
-      if(d.status==='delivered' && d.report_url){
+      if(d.tier==='single'){
+        report.hidden=false;
+        report.innerHTML=d.grade?'<p class="grade-sum" style="margin:0 0 6px">Single Run complete.</p><p class="muted" style="margin:0">This grade is your deliverable. Want the deep audit in a real browser (authz, admin/RBAC, a11y, perf) with an evidence report? <a href="/landing#order">Order a Hosted Deep Audit</a>.</p>':'<p class="muted" style="margin:0">Your grade will appear above as soon as the scan finishes.</p>';
+      } else if(d.status==='delivered' && d.report_url){
         stReport.className='done';
         report.hidden=false;
         report.innerHTML='<p class="grade-sum">Your full evidence report is ready.</p><a class="btn" href="'+esc(d.report_url)+'" target="_blank" rel="noopener">Open report →</a>';

@@ -37,12 +37,13 @@ function parseTargetUrl(input) {
 
 // src/lib/checkout-input.ts
 var AUDIT_TIERS = {
+  single: { label: "Single Run", amountCents: 7900, priceEnv: "STRIPE_PRICE_AUDIT_SINGLE" },
   standard: { label: "Hosted Deep Audit", amountCents: 14900, priceEnv: "STRIPE_PRICE_AUDIT" },
   pro: { label: "Hosted Deep Audit \u2014 Pro", amountCents: 49900, priceEnv: "STRIPE_PRICE_AUDIT_PRO" }
 };
 var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 function isAuditTier(value) {
-  return value === "standard" || value === "pro";
+  return value === "single" || value === "standard" || value === "pro";
 }
 function validateCheckoutInput(body) {
   const b = body && typeof body === "object" ? body : {};
@@ -52,7 +53,7 @@ function validateCheckoutInput(body) {
   if (!email) return { ok: false, error: "Enter the email the report should go to." };
   if (email.length > 320 || !EMAIL_RE.test(email)) return { ok: false, error: "Enter a valid email." };
   const tier = b.tier ?? "standard";
-  if (!isAuditTier(tier)) return { ok: false, error: 'tier must be "standard" or "pro".' };
+  if (!isAuditTier(tier)) return { ok: false, error: 'tier must be "single", "standard" or "pro".' };
   return { ok: true, value: { url: parsed.url.origin + (parsed.url.pathname === "/" ? "" : parsed.url.pathname), email, tier } };
 }
 

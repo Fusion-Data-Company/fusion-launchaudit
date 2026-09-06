@@ -62,7 +62,12 @@ export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise
   const parsed = parseTargetUrl(row.target_url);
   const result = parsed.ok ? await runInstantGrade(parsed.url) : { ok: false as const, status: 400, error: parsed.error };
   if (result.ok) {
-    await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
+    // Single Run: the instant grade IS the deliverable, so the order completes here with no human step.
+    if (row.tier === "single") {
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1`, [row.id, JSON.stringify(result)]);
+    } else {
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
+    }
   } else {
     // Keep status 'queued' so a retry (Stripe redelivery or the worker) can grade it later.
     await sql(`update paid_audits set grade_json = $2::jsonb where id = $1`, [row.id, JSON.stringify({ error: result.error })]);

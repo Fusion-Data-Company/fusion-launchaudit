@@ -34,6 +34,7 @@ test("validateCheckoutInput applies the same SSRF guard as the free grader", () 
 });
 
 test("tier price table matches the advertised prices", () => {
+  assert.equal(AUDIT_TIERS.single.amountCents, 7900);
   assert.equal(AUDIT_TIERS.standard.amountCents, 14900);
   assert.equal(AUDIT_TIERS.pro.amountCents, 49900);
 });

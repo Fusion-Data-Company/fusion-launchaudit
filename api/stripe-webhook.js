@@ -14495,7 +14495,11 @@ async function gradePaidAudit(sql, row) {
   const parsed = parseTargetUrl(row.target_url);
   const result = parsed.ok ? await runInstantGrade(parsed.url) : { ok: false, status: 400, error: parsed.error };
   if (result.ok) {
-    await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
+    if (row.tier === "single") {
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1`, [row.id, JSON.stringify(result)]);
+    } else {
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
+    }
   } else {
     await sql(`update paid_audits set grade_json = $2::jsonb where id = $1`, [row.id, JSON.stringify({ error: result.error })]);
   }
@@ -14504,7 +14508,7 @@ async function gradePaidAudit(sql, row) {
 
 // src/lib/checkout-input.ts
 function isAuditTier(value) {
-  return value === "standard" || value === "pro";
+  return value === "single" || value === "standard" || value === "pro";
 }
 
 // server/api-src/stripe-webhook.ts

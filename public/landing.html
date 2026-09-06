@@ -328,8 +328,8 @@
   .brand-word{font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-.01em;color:var(--ink);}
 
   /* ---- ORDER (hosted audit) ---- */
-  .tiers{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:900px;margin:0 auto 28px;}
-  @media(max-width:760px){.tiers{grid-template-columns:1fr;}}
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1080px;margin:0 auto 28px;}
+  @media(max-width:960px){.tiers{grid-template-columns:1fr;max-width:520px;}}
   .tier{position:relative;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow-card);padding:26px 24px;cursor:pointer;transition:border-color .15s;}
   .tier:hover{border-color:var(--line-strong);}
   .tier.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow-card);}
@@ -440,8 +440,21 @@
     </div>
     <form id="order-form" class="order-form" novalidate>
       <div class="tiers" role="radiogroup" aria-label="Audit tier">
+        <label class="tier" for="tier-single">
+          <input type="radio" name="tier" id="tier-single" value="single" />
+          <p class="tier-name">Single Run</p>
+          <div class="tier-price">$79 <small>one-time</small></div>
+          <ul>
+            <li>Instant surface grade of one live URL</li>
+            <li>Headers, cookies, CORS, exposed secrets, SEO</li>
+            <li>0–100 score with a finding list, on screen in seconds</li>
+            <li>Fully automated, no waiting on a human</li>
+            <li>Upgrade to a deep audit any time</li>
+          </ul>
+        </label>
         <label class="tier selected" for="tier-standard">
           <input type="radio" name="tier" id="tier-standard" value="standard" checked />
+          <span class="tier-badge">Most chosen</span>
           <p class="tier-name">Hosted Deep Audit</p>
           <div class="tier-price">$149 <small>one-time</small></div>
           <ul>
