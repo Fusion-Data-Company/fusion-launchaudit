@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Order received — 80/20 Launch Audit</title>
+<meta name="robots" content="noindex" />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="/favicon-32.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{--bg:#0b0c14;--panel:rgba(20,22,34,0.75);--line:rgba(255,255,255,0.09);--line-strong:rgba(255,255,255,0.18);--ink:#eef0f6;--ink-mut:#aab0c3;--ink-faint:#7b8196;--accent:#7c83ff;--font:"Inter",system-ui,sans-serif;--font-display:"Space Grotesk","Inter",system-ui,sans-serif;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:820px;margin:0 auto;padding:40px 22px 80px;}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);margin-bottom:40px;}
+  .brand img{height:26px;}
+  .brand span{font-family:var(--font-display);font-weight:700;font-size:16px;}
+  .kicker{font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+  h1{font-family:var(--font-display);font-size:34px;letter-spacing:-.02em;margin:0 0 12px;}
+  .lead{font-size:16.5px;color:var(--ink-mut);margin:0 0 28px;}
+  .card{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:26px;margin-bottom:18px;}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0;padding:0;list-style:none;}
+  @media(max-width:640px){.steps{grid-template-columns:1fr;}}
+  .steps li{border:1px solid var(--line);border-radius:12px;padding:14px;font-size:14px;color:var(--ink-mut);}
+  .steps li b{display:block;color:var(--ink);margin-bottom:4px;}
+  .steps li.done{border-color:rgba(126,224,168,.45);}
+  .steps li.done b::before{content:"✓ ";color:#7ee0a8;}
+  .steps li.now b::before{content:"● ";color:var(--accent);}
+  .grade-card{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;}
+  .grade-score{flex:none;width:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;padding:20px 10px;background:rgba(0,0,0,.25);}
+  .gs-num{font-family:var(--font-display);font-size:58px;font-weight:700;line-height:1;letter-spacing:-.02em;}
+  .gs-den{font-family:ui-monospace,monospace;font-size:12px;color:var(--ink-mut);margin-top:2px;}
+  .gs-cap{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mut);margin-top:8px;}
+  .band-green .gs-num{color:#7ee0a8;} .band-yellow .gs-num{color:#e0b23c;} .band-red .gs-num{color:#f0696a;}
+  .grade-body{flex:1;min-width:260px;}
+  .grade-sum{font-size:16px;margin:0 0 14px;font-weight:600;}
+  .grade-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px;}
+  .gf{display:flex;gap:12px;font-size:14px;}
+  .gf-sev{flex:none;width:64px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding-top:3px;}
+  .gf-txt b{display:block;} .gf-txt span{color:var(--ink-mut);font-size:13px;}
+  .grade-clean{color:#7ee0a8;margin:0;}
+  .muted{color:var(--ink-faint);font-size:13px;}
+  .loading{color:var(--ink-mut);text-align:center;padding:22px;}
+  .err{color:#f0a3a3;}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border-radius:12px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;font-size:14px;}
+  .btn.ghost{background:rgba(255,255,255,.035);border:1px solid var(--line-strong);color:var(--ink);}
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
+  .promise{border-left:3px solid var(--accent);padding:12px 16px;background:rgba(124,131,255,.08);border-radius:0 12px 12px 0;font-size:15px;margin:0 0 18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="brand" href="/landing"><img src="/logo-80-20.png" alt="80/20" /><span>Launch Audit</span></a>
+  <div class="kicker">Order received</div>
+  <h1>Thanks — your hosted audit is in the queue.</h1>
+  <p class="lead">Payment confirmed. Here's exactly what happens next, and what's already done.</p>
+
+  <p class="promise">Your full evidence report will be emailed within 2 business days.</p>
+
+  <div class="card">
+    <ul class="steps" id="steps">
+      <li id="st-paid" class="done"><b>Paid</b>Stripe confirmed your order.</li>
+      <li id="st-graded"><b>Instant surface grade</b>Headers, cookies, CORS, exposed secrets, SEO — runs automatically right now.</li>
+      <li id="st-report"><b>Deep audit &amp; report</b>Run by us in a real browser (authz, admin/RBAC, a11y, perf), then emailed to you.</li>
+    </ul>
+  </div>
+
+  <div class="card" id="grade"><div class="loading">Waiting for payment confirmation and running your instant grade… this usually takes 10–30 seconds.</div></div>
+
+  <div class="card" id="report" hidden></div>
+
+  <p class="muted" id="meta"></p>
+  <div class="actions">
+    <a class="btn ghost" href="/landing#connect">Run the deep audit yourself — free</a>
+    <a class="btn ghost" href="/landing#contact">Questions? Contact us</a>
+  </div>
+</div>
+<script src="/assets/order-success.js" defer></script>
+</body>
+</html>

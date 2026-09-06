@@ -117,3 +117,29 @@
     btn.disabled=false; btn.textContent=prev;
   });
 })();
+
+
+(function(){
+  // ---- Hosted audit order (Stripe Checkout) ----
+  var f=document.getElementById('order-form'); if(!f) return;
+  var out=document.getElementById('order-result'), btn=document.getElementById('order-btn');
+  var tiers=Array.prototype.slice.call(f.querySelectorAll('.tier'));
+  function syncTiers(){ tiers.forEach(function(t){ var r=t.querySelector('input[type=radio]'); t.classList.toggle('selected', !!(r&&r.checked)); }); }
+  tiers.forEach(function(t){ var r=t.querySelector('input[type=radio]'); if(r){ r.addEventListener('change', syncTiers); } });
+  syncTiers();
+  f.addEventListener('submit', async function(e){
+    e.preventDefault();
+    var url=(document.getElementById('order-url').value||'').trim();
+    var email=(document.getElementById('order-email').value||'').trim();
+    var tierEl=f.querySelector('input[name=tier]:checked'); var tier=tierEl?tierEl.value:'standard';
+    if(!url||!email){ out.hidden=false; out.className='cf-result err'; out.textContent='Add the app URL and the email the report should go to.'; return; }
+    var prev=btn.textContent; btn.disabled=true; btn.textContent='Starting checkout…';
+    try{
+      var r=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:url,email:email,tier:tier})});
+      var d=await r.json();
+      if(d && d.ok && d.url){ window.location.href=d.url; return; }
+      out.hidden=false; out.className='cf-result err'; out.textContent=(d&&d.error)||'Could not start checkout — try again.';
+    }catch(err){ out.hidden=false; out.className='cf-result err'; out.textContent='Could not start checkout — try again.'; }
+    btn.disabled=false; btn.textContent=prev;
+  });
+})();

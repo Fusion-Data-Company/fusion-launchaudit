@@ -42,7 +42,7 @@ async function main() {
     `select table_name from information_schema.tables where table_schema = 'public' order by table_name`,
   );
   const tableNames = tables.map((row) => String(row.table_name));
-  for (const expected of ["projects", "campaigns", "runner_sessions", "test_cards", "runs", "artifacts", "findings", "repair_tasks", "model_tasks"]) {
+  for (const expected of ["projects", "campaigns", "runner_sessions", "test_cards", "runs", "artifacts", "findings", "repair_tasks", "model_tasks", "paid_audits"]) {
     check(`schema: table ${expected} exists`, tableNames.includes(expected));
   }
 

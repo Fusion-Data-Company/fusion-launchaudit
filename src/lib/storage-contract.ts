@@ -155,6 +155,24 @@ export const blobArtifacts: BlobArtifactContract[] = [
   },
 ];
 
+/** db/migrations/003_paid_audits.sql — hosted deep-audit orders paid through Stripe Checkout. */
+export const paidAuditsSchemaSql = `create table if not exists paid_audits (
+  id text primary key,
+  stripe_session_id text not null unique,
+  email text not null,
+  target_url text not null,
+  tier text not null,
+  amount_cents integer not null default 0,
+  status text not null default 'queued',
+  grade_json jsonb,
+  created_at timestamptz not null default now(),
+  completed_at timestamptz,
+  report_url text
+);
+
+create index if not exists paid_audits_status_idx on paid_audits (status, created_at);`;
+
+/** Mirrors db/migrations/001..003 (idempotent; applied by ensureSchema at runtime). */
 export const storageSchemaSql = `create table if not exists projects (
   id text primary key,
   owner_id text not null,
@@ -262,7 +280,9 @@ alter table campaigns add column if not exists name text not null default 'Launc
 
 alter table campaigns add column if not exists repo_path_hint text;
 
-alter table test_cards add column if not exists exec jsonb not null default '[]'::jsonb;`;
+alter table test_cards add column if not exists exec jsonb not null default '[]'::jsonb;
+
+${paidAuditsSchemaSql}`;
 
 export function getStorageRuntimeReadiness(env: Record<string, string | undefined>) {
   return storageReadiness.map((item) => {

@@ -3,6 +3,10 @@
   "cleanUrls": true,
   "buildCommand": "npm run build",
   "outputDirectory": "public",
+  "functions": {
+    "api/stripe-webhook.js": { "maxDuration": 60 },
+    "api/grade.js": { "maxDuration": 30 }
+  },
   "headers": [
     {
       "source": "/(.*)",

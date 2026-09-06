@@ -327,6 +327,25 @@
   .brand-logo{height:26px;width:auto;display:block;}
   .brand-word{font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-.01em;color:var(--ink);}
 
+  /* ---- ORDER (hosted audit) ---- */
+  .tiers{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:900px;margin:0 auto 28px;}
+  @media(max-width:760px){.tiers{grid-template-columns:1fr;}}
+  .tier{position:relative;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow-card);padding:26px 24px;cursor:pointer;transition:border-color .15s;}
+  .tier:hover{border-color:var(--line-strong);}
+  .tier.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow-card);}
+  .tier input[type=radio]{position:absolute;opacity:0;pointer-events:none;}
+  .tier-name{font-family:var(--font-display);font-weight:700;font-size:18px;margin:0 0 4px;}
+  .tier-price{font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:-.02em;margin:6px 0 2px;}
+  .tier-price small{font-size:13px;font-weight:500;color:var(--ink-mut);letter-spacing:0;}
+  .tier ul{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--ink-mut);}
+  .tier li::before{content:"✓";color:#7ee0a8;margin-right:8px;font-weight:700;}
+  .tier-badge{position:absolute;top:14px;right:14px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:3px 9px;}
+  .order-form{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+  .order-form .cf-row input{width:100%;flex:1;min-width:200px;padding:13px 15px;border-radius:12px;border:1px solid var(--line-strong);background:rgba(0,0,0,.32);color:var(--ink);font-family:var(--font);font-size:15px;}
+  .order-form input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  .order-form button{align-self:flex-start;}
+  .order-fine{font-size:12.5px;color:var(--ink-faint);line-height:1.6;max-width:640px;margin:16px auto 0;text-align:center;}
+
   /* ---- CONTACT ---- */
   .contact-form{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
   .cf-row{display:flex;gap:12px;flex-wrap:wrap;}
@@ -358,6 +377,7 @@
     <nav class="nav-links" aria-label="Primary">
       <a class="nlink" href="#connect">Connect</a>
       <a class="nlink" href="#grade">Grade my app</a>
+      <a class="nlink" href="#order">Order an audit</a>
       <a class="nlink" href="#receipts">Receipts</a>
       <a class="nlink" href="#catches">What it catches</a>
       <a class="nlink" href="#how">How it works</a>
@@ -407,6 +427,53 @@
       <button class="btn btn-primary" type="submit" id="grade-btn">Grade my app →</button>
     </form>
     <div id="grade-result" class="grade-result" hidden></div>
+  </div>
+</section>
+
+<!-- ORDER A HOSTED AUDIT (paid) -->
+<section class="block" id="order">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">Don't want to run it yourself?</div>
+      <h2 class="sec-title">Order a hosted audit</h2>
+      <p class="sec-sub">The tool stays free and MIT — run the full deep audit in your own agent any time. If you'd rather not, we run it for you, hosted, and hand you a client-ready evidence report. You get the instant surface grade the moment you pay; the full Playwright deep audit (broken access control, admin/RBAC, write-authz, a11y, perf, SEO) is run by us and emailed within 2 business days.</p>
+    </div>
+    <form id="order-form" class="order-form" novalidate>
+      <div class="tiers" role="radiogroup" aria-label="Audit tier">
+        <label class="tier selected" for="tier-standard">
+          <input type="radio" name="tier" id="tier-standard" value="standard" checked />
+          <p class="tier-name">Hosted Deep Audit</p>
+          <div class="tier-price">$149 <small>one-time</small></div>
+          <ul>
+            <li>Instant surface grade on payment</li>
+            <li>Full deep audit of one live app URL</li>
+            <li>Client-ready evidence report (PDF + JSON)</li>
+            <li>0–100 readiness score with proof per check</li>
+            <li>Emailed within 2 business days</li>
+          </ul>
+        </label>
+        <label class="tier" for="tier-pro">
+          <input type="radio" name="tier" id="tier-pro" value="pro" />
+          <span class="tier-badge">Pro</span>
+          <p class="tier-name">Hosted Deep Audit — Pro</p>
+          <div class="tier-price">$499 <small>one-time</small></div>
+          <ul>
+            <li>Everything in Standard</li>
+            <li>Authenticated checks (you provide a test login)</li>
+            <li>Prioritized fix plan with paste-ready patches</li>
+            <li>One re-audit after you ship the fixes</li>
+            <li>30-minute walkthrough call</li>
+          </ul>
+        </label>
+      </div>
+      <div class="cf-row">
+        <input id="order-url" type="url" inputmode="url" autocomplete="url" placeholder="https://your-app.com" aria-label="App URL to audit" required />
+        <input id="order-email" type="email" autocomplete="email" placeholder="you@email.com (report goes here)" aria-label="Your email" required />
+      </div>
+      <button class="btn btn-primary" type="submit" id="order-btn">Continue to payment →</button>
+      <div id="order-result" class="cf-result" hidden></div>
+    </form>
+    <p class="order-fine">Secure checkout by Stripe. We only ever touch the public URL you give us (plus a test login for Pro, if you choose to share one). Prefer to keep it in-house? The same audit is free in your own agent — <a href="#connect">connect it above</a>.</p>
   </div>
 </section>
 
@@ -737,6 +804,7 @@
         <div class="foot-col">
           <h5>Product</h5>
           <a href="#connect">Connect</a>
+          <a href="#order">Order a hosted audit</a>
           <a href="#catches">What it catches</a>
           <a href="#how">How it works</a>
         </div>

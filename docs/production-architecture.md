@@ -27,6 +27,8 @@ Minimum production schema:
 Current migration artifact:
 
 - `db/migrations/001_launch_audit_core.sql`
+- `db/migrations/002_executable_cards_multi_campaign.sql`
+- `db/migrations/003_paid_audits.sql` (hosted-audit orders via Stripe; see `paid_audits`)
 
 ## Blob Storage
 

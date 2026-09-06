@@ -9,6 +9,9 @@ const entries: Array<[string, string]> = [
   ["server/api-src/campaigns.ts", "api/campaigns.js"],
   ["server/api-src/grade.ts", "api/grade.js"],
   ["server/api-src/contact.ts", "api/contact.js"],
+  ["server/api-src/checkout.ts", "api/checkout.js"],
+  ["server/api-src/stripe-webhook.ts", "api/stripe-webhook.js"],
+  ["server/api-src/order-status.ts", "api/order-status.js"],
   ["server/api-src/runner/sync.ts", "api/runner/sync.js"],
   ["server/api-src/storage/register-artifact.ts", "api/storage/register-artifact.js"],
 ];
