@@ -2,14 +2,15 @@
  * paid_audits store — hosted deep-audit orders (see db/migrations/003_paid_audits.sql).
  *
  * What is automatic today: on checkout.session.completed we insert the order and
- * immediately run the instant surface grade (grade_json, status 'graded').
+ * immediately run the site-wide URL-only deep grade (grade_json; Single Run → delivered, others → graded).
  * What is NOT automatic: the Playwright deep audit needs Chromium, which Vercel
  * functions don't have. Rows stay at 'graded' until a worker/human runs it and
  * sets report_url + status 'delivered'. Never claim otherwise in the UI.
  */
 import type { SqlClient } from "./db.ts";
 import { paidAuditsSchemaSql } from "./storage-contract.ts";
-import { parseTargetUrl, runInstantGrade, type InstantGrade } from "./instant-grade.ts";
+import { parseTargetUrl, type InstantGrade } from "./instant-grade.ts";
+import { runDeepGrade, type DeepGrade } from "./deep-grade.ts";
 
 export type PaidAuditStatus = "queued" | "graded" | "delivered";
 
@@ -21,7 +22,7 @@ export type PaidAuditRow = {
   tier: string;
   amount_cents: number;
   status: PaidAuditStatus;
-  grade_json: InstantGrade | { error: string } | null;
+  grade_json: InstantGrade | DeepGrade | { error: string } | null;
   created_at: string;
   completed_at: string | null;
   report_url: string | null;
@@ -56,11 +57,14 @@ export async function getPaidAuditBySession(sql: SqlClient, stripeSessionId: str
   return (rows[0] as PaidAuditRow | undefined) ?? null;
 }
 
-/** Run the instant grader for a queued order and persist the result. Safe to re-run. */
+/**
+ * Run the paid (site-wide) grader for a queued order and persist the result. Safe to re-run.
+ * Every paid tier gets the deep URL-only grade; the free /api/grade stays the single-URL surface scan.
+ */
 export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise<PaidAuditRow> {
   if (row.status !== "queued") return row;
   const parsed = parseTargetUrl(row.target_url);
-  const result = parsed.ok ? await runInstantGrade(parsed.url) : { ok: false as const, status: 400, error: parsed.error };
+  const result = parsed.ok ? await runDeepGrade(parsed.url) : { ok: false as const, status: 400, error: parsed.error };
   if (result.ok) {
     // Single Run: the instant grade IS the deliverable, so the order completes here with no human step.
     if (row.tier === "single") {
@@ -86,7 +90,13 @@ export function publicOrderStatus(row: PaidAuditRow) {
     completed_at: row.completed_at,
     report_url: row.report_url,
     grade: g
-      ? { url: g.url, score: g.score, band: g.band, passed: g.passed, summary: g.summary, findings: g.findings }
+      ? {
+          url: g.url, score: g.score, band: g.band, passed: g.passed, summary: g.summary, findings: g.findings,
+          kind: "kind" in g ? g.kind : "surface",
+          pages_scanned: "pages_scanned" in g ? g.pages_scanned : 1,
+          checks_run: "checks_run" in g ? g.checks_run : null,
+          lighthouse: "lighthouse" in g ? g.lighthouse : null,
+        }
       : null,
     grade_error: row.grade_json && "error" in row.grade_json ? row.grade_json.error : null,
   };
