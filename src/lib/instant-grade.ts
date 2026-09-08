@@ -7,9 +7,10 @@
  */
 import dns from "node:dns/promises";
 import net from "node:net";
+import { runVibeChecks } from "./vibe-checks.ts";
 
 export type Sev = "critical" | "high" | "medium" | "low";
-export type Finding = { title: string; severity: Sev; detail: string; category: string };
+export type Finding = { title: string; severity: Sev; detail: string; category: string; fix?: string };
 export type InstantGrade = {
   ok: true;
   url: string;
@@ -94,6 +95,42 @@ async function grab(url: string, opts: RequestInit = {}, ms = 8000) {
   const t = setTimeout(() => ctrl.abort(), ms);
   try { return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": "8020LaunchAudit-Grader/1.0", ...(opts.headers || {}) } }); }
   finally { clearTimeout(t); }
+}
+
+/** A grab that never throws (returns null) — for the vibe probes that fan out. */
+async function safeGrab(url: string, opts: RequestInit = {}, ms = 6000): Promise<Response | null> {
+  try { return await grab(url, opts, ms); } catch { return null; }
+}
+
+/** Fetch same-origin JS bundles the page ships, capped, so the vibe checks can
+ *  read the client for leaked keys / dev artifacts. Best-effort, time-boxed. */
+async function fetchJsBundles(html: string, origin: URL, max = 6, capBytes = 600_000): Promise<string[]> {
+  const srcs = new Set<string>();
+  for (const m of html.matchAll(/<script\b[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi)) {
+    try { const u = new URL(m[1], origin); if (u.origin === origin.origin && /\.(js|mjs)(\?|$)/i.test(u.pathname + u.search)) srcs.add(u.toString()); } catch { /* ignore */ }
+  }
+  const list = [...srcs].slice(0, max);
+  const texts = await Promise.all(list.map(async (u) => {
+    const r = await safeGrab(u, {}, 6000);
+    if (!r || r.status !== 200) return "";
+    try { return (await r.text()).slice(0, capBytes); } catch { return ""; }
+  }));
+  return texts.filter(Boolean);
+}
+
+/** Fallback fix prompt by category, so every surface finding is agent-ready. */
+const SURFACE_FIX: Record<string, string> = {
+  TLS: "Serve the whole site over HTTPS, 301-redirect http->https at the edge, and send Strict-Transport-Security (max-age=63072000; includeSubDomains; preload). Standard: OWASP Secure Headers / Mozilla TLS.",
+  "Security headers": "Set the missing response headers at the platform level so every route gets them: Content-Security-Policy, X-Frame-Options: DENY (or CSP frame-ancestors), X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin. In Next.js use the headers() config or middleware; on Vercel use vercel.json headers. Remove X-Powered-By. Standard: OWASP Secure Headers.",
+  Cookies: "Set session cookies with HttpOnly, Secure, and SameSite=Lax (or Strict). Standard: CWE-1004 / CWE-614.",
+  CORS: "Never reflect an arbitrary Origin in Access-Control-Allow-Origin together with Access-Control-Allow-Credentials: true. Allowlist your exact known origins in the server CORS config. Standard: CWE-942.",
+  Secrets: "Remove the exposed file/secret from what the server serves publicly, block it at the edge (deny /.env, /.git/*), and rotate anything leaked. Standard: OWASP WSTG configuration / CWE-798.",
+  SEO: "Add a unique <title> (50-60 chars), a meta description, a canonical link, Open Graph tags, and a viewport meta; make sure the page is not accidentally noindex. Standard: Google Search Central.",
+};
+
+export function ensureFix(f: Finding): Finding {
+  if (f.fix) return f;
+  return { ...f, fix: SURFACE_FIX[f.category] ?? `Address "${f.title}": ${f.detail}` };
 }
 
 /** Run the surface scan against an already-validated URL. Performs DNS + HTTP. */
@@ -181,17 +218,29 @@ export async function runInstantGrade(target: URL): Promise<InstantGrade | Grade
     else findings.push({ category: "SEO", severity: sev, title: `Missing ${label}`, detail: `The page is missing ${label}.` });
   }
 
-  const penalty = findings.reduce((s, f) => s + PENALTY[f.severity], 0);
+  // --- Vibe-coder checks: Supabase/Firebase rules, leaked keys, open admin,
+  //     dev-build leaks, placeholder copy — the class the free tools ignore. ---
+  let passedCount = passed.length;
+  try {
+    const jsTexts = await fetchJsBundles(html, u, 6);
+    const vibe = await runVibeChecks({ origin: u, html, jsTexts, grab: safeGrab });
+    findings.push(...vibe.findings);
+    passedCount += vibe.passed;
+  } catch { /* vibe checks are best-effort; never fail the whole grade */ }
+
+  const withFixes = findings.map(ensureFix);
+  const penalty = withFixes.reduce((s, f) => s + PENALTY[f.severity], 0);
   const score = Math.max(0, Math.min(100, 100 - penalty));
   const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
   const order: Record<Sev, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-  findings.sort((a, b) => order[a.severity] - order[b.severity]);
+  withFixes.sort((a, b) => order[a.severity] - order[b.severity]);
+  findings.length = 0; findings.push(...withFixes);
 
   return {
     ok: true,
     url: u.origin,
     score, band,
-    passed: passed.length,
+    passed: passedCount,
     summary: findings.length
       ? `Surface scan found ${findings.length} issue${findings.length === 1 ? "" : "s"} on ${u.host}.`
       : `No surface-level issues found on ${u.host} — nice. The deep checks still need your repo.`,

@@ -21,7 +21,7 @@
  */
 import dns from "node:dns/promises";
 import tls from "node:tls";
-import { runInstantGrade, type Finding, type GradeFailure, type InstantGrade, type Sev } from "./instant-grade.ts";
+import { ensureFix, runInstantGrade, type Finding, type GradeFailure, type InstantGrade, type Sev } from "./instant-grade.ts";
 
 export const PAGE_BUDGET = 8;
 const PAGE_TIMEOUT = 7000;
@@ -345,7 +345,7 @@ export async function runDeepGrade(target: URL): Promise<DeepGrade | GradeFailur
     byCategory.set(f.category, c + add);
     penalty += add;
   }
-  findings.length = 0; findings.push(...deduped);
+  findings.length = 0; findings.push(...deduped.map(ensureFix));
   const score = Math.max(0, Math.min(100, 100 - penalty));
   const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
   const order: Record<Sev, number> = { critical: 0, high: 1, medium: 2, low: 3 };
