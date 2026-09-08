@@ -323,6 +323,57 @@
   .grade-clean{color:#7ee0a8;font-size:14px;margin:0 0 14px;}
   .grade-note{font-size:12.5px;color:var(--ink-faint);border-top:1px solid var(--line);padding-top:14px;margin:14px 0;line-height:1.6;}
 
+  /* ---- ELITE REPORT (free scan result) ---- */
+  .rep{max-width:860px;margin:26px auto 0;}
+  .rep-top{display:flex;gap:22px;align-items:stretch;flex-wrap:wrap;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--shadow-card);padding:22px;}
+  .rep-score{flex:none;width:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;padding:18px 10px;background:rgba(0,0,0,.28);}
+  .rep-score .n{font-family:var(--font-display);font-size:54px;font-weight:700;line-height:1;letter-spacing:-.02em;}
+  .rep-score .d{font-family:var(--mono);font-size:12px;color:var(--ink-mut);margin-top:2px;}
+  .rep-score .cap{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mut);margin-top:9px;}
+  .band-green .n{color:#48c98a;}.band-yellow .n{color:#e0b23c;}.band-red .n{color:#f0696a;}
+  .band-green{box-shadow:inset 0 0 0 1px rgba(72,201,138,.45);}.band-yellow{box-shadow:inset 0 0 0 1px rgba(224,178,60,.45);}.band-red{box-shadow:inset 0 0 0 1px rgba(240,105,106,.45);}
+  .rep-head{flex:1;min-width:240px;display:flex;flex-direction:column;justify-content:center;}
+  .rep-head .sum{font-size:16.5px;font-weight:600;color:var(--ink);margin:0 0 12px;line-height:1.4;}
+  .sevbar{display:flex;gap:8px;flex-wrap:wrap;}
+  .sevchip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink-soft);}
+  .sevchip .sd{width:8px;height:8px;border-radius:50%;flex:none;}
+  .sd.critical,.sd.high{background:#f0696a;}.sd.medium{background:#e0b23c;}.sd.low{background:#7c83ff;}.sd.pass{background:#48c98a;}
+  .rep-cat{margin-top:20px;}
+  .rep-cat h4{font-family:var(--font-display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mut);margin:0 0 10px;padding-left:2px;}
+  .fcard{position:relative;border:1px solid var(--line);border-left:4px solid var(--ink-faint);border-radius:12px;background:var(--panel);box-shadow:var(--shadow-card);padding:15px 16px 15px 18px;margin-bottom:10px;overflow:hidden;}
+  .fcard.sev-critical,.fcard.sev-high{border-left-color:#f0696a;}
+  .fcard.sev-medium{border-left-color:#e0b23c;}
+  .fcard.sev-low{border-left-color:#7c83ff;}
+  .fcard-head{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .fcard-sev{flex:none;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;font-weight:700;}
+  .sev-critical .fcard-sev,.sev-high .fcard-sev{color:#f0696a;background:rgba(240,105,106,.12);}
+  .sev-medium .fcard-sev{color:#e0b23c;background:rgba(224,178,60,.12);}
+  .sev-low .fcard-sev{color:#a3a9ff;background:rgba(124,131,255,.12);}
+  .fcard-title{font-size:14.5px;font-weight:650;color:var(--ink);flex:1;min-width:180px;line-height:1.35;}
+  .fcard-detail{font-size:13px;color:var(--ink-mut);line-height:1.55;margin:8px 0 0;}
+  .fcard-fix{margin-top:12px;border:1px solid var(--line-soft);border-radius:9px;background:#0a0b12;overflow:hidden;}
+  .fcard-fix summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:12.5px;font-weight:600;color:var(--accent-ink);user-select:none;}
+  .fcard-fix summary::-webkit-details-marker{display:none;}
+  .fcard-fix summary svg{width:14px;height:14px;}
+  .fcard-fix summary .grow{flex:1;}
+  .fix-copy{display:inline-flex;align-items:center;gap:6px;font-family:var(--font);font-size:11.5px;font-weight:600;color:var(--ink-soft);background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:7px;padding:5px 10px;cursor:pointer;transition:all .15s;}
+  .fix-copy:hover{color:#fff;border-color:var(--accent);background:rgba(124,131,255,.12);}
+  .fix-copy.copied{color:#fff;border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.16);}
+  .fix-body{margin:0;padding:0 12px 13px;font-family:var(--mono);font-size:12px;line-height:1.65;color:#e7e9f5;white-space:pre-wrap;word-break:break-word;}
+  /* locked / unlock */
+  .rep-locked{position:relative;margin-top:16px;border:1px dashed var(--line-strong);border-radius:14px;background:rgba(124,131,255,.05);padding:22px;text-align:center;}
+  .rep-locked .lk-blur{position:absolute;inset:0;border-radius:14px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.02) 0 14px,transparent 14px 28px);filter:blur(1px);pointer-events:none;opacity:.5;}
+  .rep-locked h4{position:relative;font-family:var(--font-display);font-size:18px;margin:0 0 6px;color:#fff;}
+  .rep-locked p{position:relative;font-size:14px;color:var(--ink-soft);margin:0 auto 16px;max-width:52ch;line-height:1.55;}
+  .rep-locked .lk-sev{position:relative;justify-content:center;margin-bottom:16px;}
+  .unlock-form{position:relative;display:flex;gap:10px;max-width:460px;margin:0 auto;flex-wrap:wrap;justify-content:center;}
+  .unlock-form input{flex:1;min-width:220px;padding:12px 15px;border-radius:11px;border:1px solid var(--line-strong);background:rgba(0,0,0,.35);color:var(--ink);font-family:var(--font);font-size:14.5px;}
+  .unlock-form input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  .unlock-mon{position:relative;display:flex;gap:8px;align-items:center;justify-content:center;margin-top:12px;font-size:13px;color:var(--ink-mut);cursor:pointer;}
+  .unlock-mon input{accent-color:var(--accent);width:15px;height:15px;}
+  .rep-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;align-items:center;}
+  .rep-note{font-size:12.5px;color:var(--ink-faint);border-top:1px solid var(--line);padding-top:14px;margin-top:18px;line-height:1.6;}
+
 
   .brand-logo{height:26px;width:auto;display:block;}
   .brand-word{font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-.01em;color:var(--ink);}
@@ -389,6 +440,7 @@
     <nav class="nav-links" aria-label="Primary">
       <a class="nlink" href="#connect">Connect</a>
       <a class="nlink" href="#grade">Grade my app</a>
+      <a class="nlink" href="/monitor">Monitor</a>
       <a class="nlink" href="#order">Order an audit</a>
       <a class="nlink" href="#receipts">Receipts</a>
       <a class="nlink" href="#catches">What it catches</a>
@@ -407,7 +459,7 @@
 <section class="hero" id="top-hero">
   <div class="hero-inner wrap">
     <div class="hero-copy">
-      <span class="eyebrow"><span class="dot" aria-hidden="true"></span>From Fusion Data Company · Open source (MIT), audit it yourself · Hosted Single Run $79</span>
+      <span class="eyebrow"><span class="dot" aria-hidden="true"></span>From Fusion Data Company · Free surface scan + agent-ready fixes · Open source (MIT)</span>
       <h1 class="hero-title">Your AI built the easy 80%. <span class="grad">We finish the 20% that ships broken.</span></h1>
       <p class="subhead">Your builder nails the happy path, then swears it’s done. The other 20% — broken access control, unguarded admin APIs, 500s on bad input, secrets in the bundle — is where every AI build quietly fails. <strong>80/20 Launch Audit</strong> is the senior developer that breaks into your app, proves what’s broken with evidence, and refuses to call anything done on a hunch. It runs inside <strong>your own</strong> Claude Code, Cursor, or Codex — your code never leaves your machine.</p>
       <div class="hero-cta">
@@ -432,7 +484,7 @@
     <div class="sec-head">
       <div class="sec-kicker">Free · 10 seconds · no install</div>
       <h2 class="sec-title">Grade your app right now</h2>
-      <p class="sec-sub">Paste your live URL. We run a surface scan on the spot — security headers, exposed secrets, CORS, cookies, HTTPS, SEO. No signup, no code upload; only the URL leaves your browser. The deep audit (broken access control, admin/RBAC, your repo) runs free in your own agent.</p>
+      <p class="sec-sub">Paste your live URL. We run the checks the free tools skip — Supabase / Firebase rules read with your own public key, API keys leaked in the bundle, admin routes open without auth, Stripe test keys in production, dev builds shipped by mistake — plus headers, cookies, CORS, HTTPS and SEO. Every finding comes with a paste-ready fix for Claude Code or Cursor. No signup, no code upload; only the URL leaves your browser.</p>
     </div>
     <form id="grade-form" class="grade-form" novalidate>
       <input id="grade-url" type="url" inputmode="url" autocomplete="url" placeholder="https://your-app.com" aria-label="Your app URL" required />
