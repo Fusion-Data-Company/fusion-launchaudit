@@ -41,7 +41,7 @@ That last step (`npm run dashboard`) opens your **home base** at `http://localho
 { "mcpServers": { "launchaudit": { "command": "node", "args": ["--experimental-strip-types", "./runner/mcp-server.ts"] } } }
 ```
 
-No agent? Run the standalone CLI (below). Want to see what it produces first? Paste your URL into the free instant grader at **[launch-audit-platform.vercel.app/landing](https://launch-audit-platform.vercel.app/landing)**.
+No agent? Run the standalone CLI (below). Want to see what it produces first? Paste your URL into the free instant grader at **[80-20.dev](https://80-20.dev/#grade)**.
 
 ## Requirements
 
@@ -157,7 +157,7 @@ Covers the scanner's HTTP-method extraction, the failure classifier (the honesty
 
 ## Who's behind it
 
-Built and maintained by **Rob at [Fusion Data Company](https://fusiondataco.com)** — we ship AI-assisted web and mobile apps for clients, and this is the senior-dev review we run before anything we build goes live. Free and open source because every vibecoder shipping to production needs it. Questions, ideas, or a check you want in the default suite? The contact form on the [landing page](https://launch-audit-platform.vercel.app/landing) comes straight to me.
+Built and maintained by **Rob at [Fusion Data Company](https://fusiondataco.com)** — we ship AI-assisted web and mobile apps for clients, and this is the senior-dev review we run before anything we build goes live. Free and open source because every vibecoder shipping to production needs it. Questions, ideas, or a check you want in the default suite? The contact form on [80-20.dev](https://80-20.dev/#contact) comes straight to me.
 
 ## License
 

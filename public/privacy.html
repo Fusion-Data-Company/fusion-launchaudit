@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy policy - 80/20 Launch Audit</title>
+<meta name="description" content="What 80-20.dev collects when you scan, order or contact us, and what it does with it." />
+<link rel="canonical" href="https://80-20.dev/privacy" />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="/favicon-32.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{--bg:#0b0c14;--panel:rgba(20,22,34,0.75);--line:rgba(255,255,255,0.09);--ink:#eef0f6;--ink-mut:#aab0c3;--ink-faint:#7b8196;--accent:#7c83ff;--font:"Inter",system-ui,sans-serif;--font-display:"Space Grotesk","Inter",system-ui,sans-serif;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:40px 22px 80px;}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);margin-bottom:40px;}
+  .brand img{height:26px;} .brand span{font-family:var(--font-display);font-weight:700;font-size:16px;}
+  .kicker{font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+  h1{font-family:var(--font-display);font-size:34px;letter-spacing:-.02em;margin:0 0 8px;}
+  h2{font-family:var(--font-display);font-size:20px;margin:34px 0 8px;}
+  p,li{color:var(--ink-mut);font-size:15.5px;} .meta{color:var(--ink-faint);font-size:13px;margin:0 0 28px;}
+  a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;}
+  .foot{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-faint);display:flex;gap:16px;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="brand" href="/"><img src="/logo-80-20.png" alt="80/20" /><span>Launch Audit</span></a>
+  <div class="kicker">Legal</div>
+  <h1>Privacy policy</h1>
+  <p class="meta">Fusion Data Company · Last updated 8 September 2026</p>
+
+  <p>This policy explains what we collect on 80-20.dev and why. The open-source tool runs on your own machine and sends us nothing.</p>
+
+  <h2>Free grader</h2>
+  <p>We receive the URL you submit and your IP address. The URL is used to run the scan and is not stored beyond server logs. The IP address is used to rate-limit the scanner. Results are returned to your browser and are not saved.</p>
+
+  <h2>Hosted audit orders</h2>
+  <p>When you order we store the target URL, the email you enter, the tier, the amount, the Stripe checkout session id, timestamps, and the audit result. This is what lets the order page show your report. Payment details go to Stripe and never touch our servers; Stripe's own privacy policy applies to them. We keep order records for as long as needed to serve the report and to meet accounting obligations.</p>
+
+  <h2>Contact form</h2>
+  <p>We store the name, email and message you send so we can reply.</p>
+
+  <h2>Site analytics and cookies</h2>
+  <p>The site sets no advertising or tracking cookies. The order page uses the session id in its URL, not a cookie. The operator dashboard at /app uses browser storage to remember an operator key on the operator's own device.</p>
+
+  <h2>Third parties</h2>
+  <p>Stripe (payments), Vercel (hosting), Neon (database) and Google Fonts (typefaces) process data on our behalf as described in their own policies. We do not sell or share your data for advertising.</p>
+
+  <h2>Your rights</h2>
+  <p>Email rob@fusiondataco.com to ask what we hold about you, to correct it, or to have it deleted. Deleting an order record also removes the report page for that order.</p>
+  <div class="foot">
+    <span>Fusion Data Company · 7908 Katella Way, Citrus Heights, CA 95621 · (916) 507-4160 · <a href="mailto:rob@fusiondataco.com">rob@fusiondataco.com</a></span>
+    <a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refunds">Refunds</a><a href="/">Home</a>
+  </div>
+</div>
+</body>
+</html>

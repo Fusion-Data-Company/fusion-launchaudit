@@ -27,9 +27,11 @@ const campaignPayload = {
 };
 
 import { getSqlClient } from "../../src/lib/db.ts";
+import { authorizeRunnerWrite } from "./runner-auth.ts";
 
 type VercelRequest = {
   method?: string;
+  headers?: Record<string, string | string[] | undefined>;
   query?: Record<string, string | string[]>;
 };
 
@@ -54,6 +56,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   if (!sql) {
     response.status(200).json({ ...campaignPayload, persistence: SEEDED_PERSISTENCE });
+    return;
+  }
+  // Live campaign data is operator-only in production. Anonymous visitors get the seeded
+  // sample bundle, flagged as such, plus `locked: true` so the dashboard can ask for the key.
+  if (process.env.VERCEL_ENV === "production" && !authorizeRunnerWrite(request.headers).ok) {
+    response.status(200).json({
+      ...campaignPayload,
+      locked: true,
+      persistence: { mode: "seeded", detail: "Live campaigns need the operator key. Showing the built-in sample." },
+    });
     return;
   }
 

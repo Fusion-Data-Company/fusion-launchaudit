@@ -3,6 +3,15 @@
 // src/lib/instant-grade.ts
 import dns from "node:dns/promises";
 import net from "node:net";
+var CHALLENGE_SIGNS = [/cf-browser-verification/i, /_cf_chl_opt/i, /cf-chl/i, /Attention Required!\s*\|\s*Cloudflare/i, /Just a moment\.\.\./i, /Access Denied/i, /Request unsuccessful\. Incapsula/i, /_Incapsula_Resource/i, /Reference #\d+\.[0-9a-f]+\.[0-9a-f]+\.[0-9a-f]+/i, /akamai/i, /Pardon Our Interruption/i, /PerimeterX/i, /px-captcha/i, /distil_r_captcha/i, /DataDome/i, /Please verify you are a human/i, /enable JavaScript and cookies to continue/i];
+function blockedReason(status, html) {
+  if (status >= 400) return `The site answered our scanner with HTTP ${status}, so what we saw was an error page, not your site.`;
+  if (status >= 300) return `The site kept redirecting (HTTP ${status}) and never served a page to our scanner.`;
+  const body = html.trim();
+  if (body.length < 500) return `The site returned only ${body.length} bytes to our scanner, which is not a real page. It may be blocking automated traffic.`;
+  for (const re of CHALLENGE_SIGNS) if (re.test(body.slice(0, 2e4))) return "The site put a bot-protection challenge (Cloudflare, Akamai or similar) in front of our scanner instead of the page.";
+  return null;
+}
 var PENALTY = { critical: 22, high: 13, medium: 7, low: 3 };
 var INSTANT_GRADE_NOTE = "This is the free 10-second surface scan (no code, no install). The deep audit \u2014 broken access control (IDOR), admin/RBAC, write-authz, and your actual code \u2014 runs free inside your own agent; your code never leaves your machine.";
 function privateIp(ip) {
@@ -78,6 +87,10 @@ async function runInstantGrade(target) {
   } catch {
     return { ok: false, status: 502, error: `Couldn't reach ${u.origin}. Make sure it's live and public.` };
   }
+  const blocked = blockedReason(main.status, html);
+  if (blocked) {
+    return { ok: false, status: 409, blocked: true, http_status: main.status, error: `${blocked} We do not score what we cannot see: allow the user agent 8020LaunchAudit-Grader/1.0 (or your CDN's verified-bot list) and run it again, or ask for a refund.` };
+  }
   const H = (n) => main.headers.get(n);
   if (u.protocol !== "https:") findings.push({ category: "TLS", severity: "high", title: "No HTTPS", detail: "The site is served over plain http \u2014 credentials and cookies travel in cleartext." });
   else if (!H("strict-transport-security")) findings.push({ category: "TLS", severity: "medium", title: "Missing HSTS", detail: "No Strict-Transport-Security header \u2014 browsers can be downgraded to http before the redirect." });
@@ -149,10 +162,46 @@ async function runInstantGrade(target) {
   };
 }
 
+// src/lib/rate-limit.ts
+var buckets = /* @__PURE__ */ new Map();
+var MAX_KEYS = 5e3;
+function consumeAttempt(opts) {
+  const now = opts.now ?? Date.now();
+  const id = `${opts.scope}:${opts.key}`;
+  let b = buckets.get(id);
+  if (!b || b.resetAt <= now) {
+    if (buckets.size >= MAX_KEYS) sweep(now);
+    b = { count: 0, resetAt: now + opts.windowMs };
+    buckets.set(id, b);
+  }
+  b.count += 1;
+  if (b.count > opts.limit) return { ok: false, retryAfterSec: Math.max(1, Math.ceil((b.resetAt - now) / 1e3)) };
+  return { ok: true, remaining: opts.limit - b.count };
+}
+function sweep(now) {
+  for (const [k, v] of buckets) if (v.resetAt <= now) buckets.delete(k);
+  if (buckets.size >= MAX_KEYS) buckets.clear();
+}
+function clientIp(headers) {
+  const h = headers ?? {};
+  const pick = (name) => {
+    const v = h[name] ?? h[name.toLowerCase()];
+    return Array.isArray(v) ? v[0] : v;
+  };
+  const xff = pick("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim() || "unknown";
+  return pick("x-real-ip")?.trim() || "unknown";
+}
+
 // server/api-src/grade.ts
 async function handler(request, response) {
   if (request.method !== "POST") {
     response.status(405).json({ error: "POST a JSON body { url }." });
+    return;
+  }
+  const rl = consumeAttempt({ scope: "grade", key: clientIp(request.headers), limit: 10, windowMs: 10 * 6e4 });
+  if (!rl.ok) {
+    response.status(429).json({ error: `Too many scans from this address. Try again in ${rl.retryAfterSec}s, or run the audit free in your own agent.` });
     return;
   }
   const parsed = parseTargetUrl(request.body?.url);

@@ -11,8 +11,9 @@ import type { SqlClient } from "./db.ts";
 import { paidAuditsSchemaSql } from "./storage-contract.ts";
 import { parseTargetUrl, type InstantGrade } from "./instant-grade.ts";
 import { runDeepGrade, type DeepGrade } from "./deep-grade.ts";
+import { stripeGet, stripeRequest } from "./stripe.ts";
 
-export type PaidAuditStatus = "queued" | "graded" | "delivered";
+export type PaidAuditStatus = "queued" | "graded" | "delivered" | "blocked" | "payment_failed" | "refunded" | "disputed";
 
 export type PaidAuditRow = {
   id: string;
@@ -72,23 +73,58 @@ export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise
     } else {
       await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
     }
+  } else if ("blocked" in result && result.blocked) {
+    // The target would not let us see it. That is a real outcome the buyer must
+    // be told about, and it is the refund trigger the refund policy names.
+    const refund = await refundBlockedOrder(row);
+    await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund })]);
   } else {
-    // Keep status 'queued' so a retry (Stripe redelivery or the worker) can grade it later.
+    // Keep status 'queued' so a retry (the next poll or the sweep) can grade it later.
     await sql(`update paid_audits set grade_json = $2::jsonb where id = $1`, [row.id, JSON.stringify({ error: result.error })]);
   }
   return (await getPaidAuditBySession(sql, row.stripe_session_id)) ?? row;
 }
 
+/**
+ * The refund policy promises a blocked run is refunded in full, automatically. Do it here,
+ * idempotent on the session id, and record the outcome in grade_json so the order page and
+ * the operator can both see whether it went through. A failure never hides the blocked result.
+ */
+async function refundBlockedOrder(row: PaidAuditRow): Promise<{ id?: string; error?: string; skipped?: string }> {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) return { skipped: "STRIPE_SECRET_KEY unset" };
+  if (process.env.AUTO_REFUND_BLOCKED === "0") return { skipped: "AUTO_REFUND_BLOCKED=0" };
+  try {
+    const session = await stripeGet<{ payment_intent?: string | null }>(secret, `/v1/checkout/sessions/${encodeURIComponent(row.stripe_session_id)}`);
+    if (!session.payment_intent) return { error: "session has no payment_intent" };
+    const r = await stripeRequest<{ id: string }>(
+      secret,
+      "/v1/refunds",
+      { payment_intent: session.payment_intent, reason: "requested_by_customer", metadata: { launchaudit_order: row.id, cause: "blocked" } },
+      { idempotencyKey: `launchaudit-refund-${row.stripe_session_id}` },
+    );
+    return { id: r.id };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** Public-safe projection for the success page (no email, no internal ids). */
 export function publicOrderStatus(row: PaidAuditRow) {
-  const g = row.grade_json && "ok" in row.grade_json && row.grade_json.ok ? row.grade_json : null;
+  const closed = row.status === "refunded" || row.status === "disputed";
+  const g = !closed && row.grade_json && "ok" in row.grade_json && row.grade_json.ok ? row.grade_json : null;
+  const gj = row.grade_json as { blocked?: boolean; error?: string; refund?: { id?: string; error?: string; skipped?: string } } | null;
+  const blocked = gj && gj.blocked ? gj.error ?? null : null;
+  const refunded = !!(gj && gj.refund && gj.refund.id);
   return {
     status: row.status,
+    blocked,
+    refunded,
     tier: row.tier,
     target_url: row.target_url,
     created_at: row.created_at,
     completed_at: row.completed_at,
-    report_url: row.report_url,
+    report_url: closed ? null : row.report_url,
     grade: g
       ? {
           url: g.url, score: g.score, band: g.band, passed: g.passed, summary: g.summary, findings: g.findings,

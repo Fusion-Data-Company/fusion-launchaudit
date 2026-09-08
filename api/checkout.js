@@ -52,8 +52,10 @@ function validateCheckoutInput(body) {
   const email = typeof b.email === "string" ? b.email.trim() : "";
   if (!email) return { ok: false, error: "Enter the email the report should go to." };
   if (email.length > 320 || !EMAIL_RE.test(email)) return { ok: false, error: "Enter a valid email." };
-  const tier = b.tier ?? "standard";
+  const tier = b.tier ?? "single";
   if (!isAuditTier(tier)) return { ok: false, error: 'tier must be "single", "standard" or "pro".' };
+  if (tier !== "single") return { ok: false, error: "Deep and Pro audits are quoted by hand. Use the contact form and we will reply with a scope and a price." };
+  if (b.authorized !== true) return { ok: false, error: "Confirm that you own this site or are authorised to test it." };
   return { ok: true, value: { url: parsed.url.origin + (parsed.url.pathname === "/" ? "" : parsed.url.pathname), email, tier } };
 }
 
@@ -83,11 +85,47 @@ async function stripeRequest(secretKey, path, body, opts = {}) {
   return json;
 }
 
+// src/lib/rate-limit.ts
+var buckets = /* @__PURE__ */ new Map();
+var MAX_KEYS = 5e3;
+function consumeAttempt(opts) {
+  const now = opts.now ?? Date.now();
+  const id = `${opts.scope}:${opts.key}`;
+  let b = buckets.get(id);
+  if (!b || b.resetAt <= now) {
+    if (buckets.size >= MAX_KEYS) sweep(now);
+    b = { count: 0, resetAt: now + opts.windowMs };
+    buckets.set(id, b);
+  }
+  b.count += 1;
+  if (b.count > opts.limit) return { ok: false, retryAfterSec: Math.max(1, Math.ceil((b.resetAt - now) / 1e3)) };
+  return { ok: true, remaining: opts.limit - b.count };
+}
+function sweep(now) {
+  for (const [k, v] of buckets) if (v.resetAt <= now) buckets.delete(k);
+  if (buckets.size >= MAX_KEYS) buckets.clear();
+}
+function clientIp(headers) {
+  const h = headers ?? {};
+  const pick = (name) => {
+    const v = h[name] ?? h[name.toLowerCase()];
+    return Array.isArray(v) ? v[0] : v;
+  };
+  const xff = pick("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim() || "unknown";
+  return pick("x-real-ip")?.trim() || "unknown";
+}
+
 // server/api-src/checkout.ts
 var SITE = "https://80-20.dev";
 async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST a JSON body { url, email, tier }." });
+    return;
+  }
+  const rl = consumeAttempt({ scope: "checkout", key: clientIp(req.headers), limit: 6, windowMs: 10 * 6e4 });
+  if (!rl.ok) {
+    res.status(429).json({ error: `Too many checkout attempts. Try again in ${rl.retryAfterSec}s.` });
     return;
   }
   const input = validateCheckoutInput(req.body);
@@ -114,12 +152,15 @@ async function handler(req, res) {
   try {
     const session = await stripeRequest(secret, "/v1/checkout/sessions", {
       mode: "payment",
+      // Card and Link only. Delayed-notification methods (Klarna, Afterpay, ACH, Cash App)
+      // complete the session unpaid and settle later; the buyer would sit on the success
+      // page with no report. The webhook handles async_payment_* anyway, belt and braces.
+      payment_method_types: ["card", "link"],
       line_items: [lineItem],
       customer_email: email,
       metadata: { target_url: url, tier },
       payment_intent_data: { metadata: { target_url: url, tier } },
       success_url: `${SITE}/order/success?session_id={CHECKOUT_SESSION_ID}`,
-      // The order section lives on /landing (the root serves the dashboard).
       cancel_url: `${SITE}/#order`
     });
     res.status(200).json({ ok: true, url: session.url, session_id: session.id });

@@ -132,7 +132,7 @@ export async function runDeepGrade(target: URL): Promise<DeepGrade | GradeFailur
   const origin = new URL(surface.url);
   const findings: Finding[] = [...surface.findings];
   let passed = surface.passed;
-  let checks = 12; // the surface scan's own check groups
+  let checks = 12; // the surface scan's own check groups; the counts below are added only when a check actually ran
   const F = (category: string, severity: Sev, title: string, detail: string) => findings.push({ category, severity, title, detail });
   const dedupe = new Set(findings.map((f) => f.title));
   const Fonce = (category: string, severity: Sev, title: string, detail: string) => { if (!dedupe.has(title)) { dedupe.add(title); F(category, severity, title, detail); } };
@@ -162,6 +162,9 @@ export async function runDeepGrade(target: URL): Promise<DeepGrade | GradeFailur
 
   // ---- per-page checks ---------------------------------------------------
   const okPages = pages.filter((p) => p.status > 0 && p.status < 400 && p.html);
+  if (okPages.length === 0) {
+    return { ok: false, status: 409, blocked: true, http_status: home?.status ?? 0, error: `We could not load a single page on ${origin.host} from our scanner (home page answered HTTP ${home?.status ?? "nothing"}). We do not score what we cannot see: allow the user agent 8020LaunchAudit-Grader/1.0 and run it again, or ask for a refund.` };
+  }
   let noAlt = 0, noH1: string[] = [], noLang = false, emptyBtn = 0, mixed: string[] = [], httpForms: string[] = [], noCanon: string[] = [], noTitle: string[] = [], noViewport: string[] = [];
   let headerGaps = 0;
   for (const p of okPages) {
@@ -256,8 +259,8 @@ export async function runDeepGrade(target: URL): Promise<DeepGrade | GradeFailur
   if (mapHit) F("Secrets", "low", "Source maps are public", `${mapHit} ships your original source to anyone who asks. Disable productionBrowserSourceMaps / devtool in production builds.`);
 
   // ---- TLS + redirect ----------------------------------------------------
-  checks += 2;
   if (origin.protocol === "https:") {
+    checks += 2;
     const days = await certExpiryDays(origin.hostname);
     if (days !== null && days < 14) F("TLS", days < 3 ? "critical" : "high", `TLS certificate expires in ${days} day${days === 1 ? "" : "s"}`, "When it lapses every visitor gets a full-page browser warning. Check that auto-renewal is actually running.");
     else if (days !== null) passed++;
@@ -299,9 +302,9 @@ export async function runDeepGrade(target: URL): Promise<DeepGrade | GradeFailur
   else passed++;
 
   // ---- Core Web Vitals / Lighthouse (when PageSpeed answers) -----------------
-  checks += 4;
   const lh = await pageSpeed(origin.toString());
   if (lh) {
+    checks += 4;
     if (lh.performance !== null && lh.performance < 50) F("Performance", "high", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"}${lh.inp_ms != null ? `, INP ${lh.inp_ms}ms` : ""} (${lh.source} data). Below 50 is the range where users bounce before the page paints.`);
     else if (lh.performance !== null && lh.performance < 80) F("Performance", "medium", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"} (${lh.source} data). Google's 'good' bar is LCP under 2.5s and CLS under 0.1.`);
     else if (lh.performance !== null) passed++;
@@ -314,7 +317,35 @@ export async function runDeepGrade(target: URL): Promise<DeepGrade | GradeFailur
   }
 
   // ---- score -------------------------------------------------------------
-  const penalty = findings.reduce((s, f) => s + PENALTY[f.severity], 0);
+  // One real problem is priced once. A site-wide finding ("8 pages missing X")
+  // replaces the single-page version of the same problem, and no category can
+  // take more than a fixed share of the score, so a site with no critical
+  // finding cannot land in the red on repetition alone.
+  const twins: Array<[RegExp, RegExp]> = [
+    [/^Missing a mobile viewport tag$/, /pages missing the mobile viewport tag$/],
+    [/^Missing a real <title>$/, /pages without a <title>$/],
+    [/^Missing (Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy)/, /^Security headers not applied site-wide$/],
+  ];
+  const deduped = findings.filter((f) => {
+    for (const [single, siteWide] of twins) {
+      if (single.test(f.title) && findings.some((g) => siteWide.test(g.title))) {
+        // keep the header singles (they name the header); drop the site-wide roll-up instead
+        if (/^Security headers not applied site-wide$/.test(f.title)) return false;
+        if (!/^Missing (Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy)/.test(f.title)) return false;
+      }
+    }
+    return true;
+  });
+  const CATEGORY_CAP = 30;
+  const byCategory = new Map<string, number>();
+  let penalty = 0;
+  for (const f of deduped) {
+    const c = byCategory.get(f.category) || 0;
+    const add = Math.min(PENALTY[f.severity], Math.max(0, CATEGORY_CAP - c));
+    byCategory.set(f.category, c + add);
+    penalty += add;
+  }
+  findings.length = 0; findings.push(...deduped);
   const score = Math.max(0, Math.min(100, 100 - penalty));
   const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
   const order: Record<Sev, number> = { critical: 0, high: 1, medium: 2, low: 3 };

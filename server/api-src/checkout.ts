@@ -1,18 +1,21 @@
 /**
  * /api/checkout — POST { url, email, tier } → { url: <Stripe Checkout URL> }.
- * Creates a Stripe Checkout Session (payment mode) for a hosted deep audit.
+ * Creates a Stripe Checkout Session (payment mode) for a hosted Single Run audit.
  * The target URL goes through the same SSRF guard as the free grader.
  */
 import { validateCheckoutInput, AUDIT_TIERS } from "../../src/lib/checkout-input.ts";
 import { stripeRequest } from "../../src/lib/stripe.ts";
+import { clientIp, consumeAttempt } from "../../src/lib/rate-limit.ts";
 
-type Req = { method?: string; body?: unknown };
+type Req = { method?: string; headers?: Record<string, string | string[] | undefined>; body?: unknown };
 type Res = { status: (n: number) => Res; json: (b: unknown) => void };
 
 const SITE = "https://80-20.dev";
 
 export default async function handler(req: Req, res: Res) {
   if (req.method !== "POST") { res.status(405).json({ error: "POST a JSON body { url, email, tier }." }); return; }
+  const rl = consumeAttempt({ scope: "checkout", key: clientIp(req.headers), limit: 6, windowMs: 10 * 60_000 });
+  if (!rl.ok) { res.status(429).json({ error: `Too many checkout attempts. Try again in ${rl.retryAfterSec}s.` }); return; }
   const input = validateCheckoutInput(req.body);
   if (!input.ok) { res.status(400).json({ error: input.error }); return; }
   const { url, email, tier } = input.value;
@@ -38,12 +41,15 @@ export default async function handler(req: Req, res: Res) {
   try {
     const session = await stripeRequest<{ id: string; url: string }>(secret, "/v1/checkout/sessions", {
       mode: "payment",
+      // Card and Link only. Delayed-notification methods (Klarna, Afterpay, ACH, Cash App)
+      // complete the session unpaid and settle later; the buyer would sit on the success
+      // page with no report. The webhook handles async_payment_* anyway, belt and braces.
+      payment_method_types: ["card", "link"],
       line_items: [lineItem],
       customer_email: email,
       metadata: { target_url: url, tier },
       payment_intent_data: { metadata: { target_url: url, tier } },
       success_url: `${SITE}/order/success?session_id={CHECKOUT_SESSION_ID}`,
-      // The order section lives on /landing (the root serves the dashboard).
       cancel_url: `${SITE}/#order`,
     });
     res.status(200).json({ ok: true, url: session.url, session_id: session.id });

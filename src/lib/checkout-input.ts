@@ -27,7 +27,11 @@ export function validateCheckoutInput(body: unknown): { ok: true; value: Checkou
   const email = typeof b.email === "string" ? b.email.trim() : "";
   if (!email) return { ok: false, error: "Enter the email the report should go to." };
   if (email.length > 320 || !EMAIL_RE.test(email)) return { ok: false, error: "Enter a valid email." };
-  const tier = b.tier ?? "standard";
+  const tier = b.tier ?? "single";
   if (!isAuditTier(tier)) return { ok: false, error: "tier must be \"single\", \"standard\" or \"pro\"." };
+  // Only the automated tier is sold from the page. The deep and Pro audits are done by a
+  // person and have no fulfilment path in this codebase yet, so they cannot be bought here.
+  if (tier !== "single") return { ok: false, error: "Deep and Pro audits are quoted by hand. Use the contact form and we will reply with a scope and a price." };
+  if (b.authorized !== true) return { ok: false, error: "Confirm that you own this site or are authorised to test it." };
   return { ok: true, value: { url: parsed.url.origin + (parsed.url.pathname === "/" ? "" : parsed.url.pathname), email, tier } };
 }

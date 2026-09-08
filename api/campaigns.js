@@ -14801,6 +14801,13 @@ async function handler(request, response) {
   try {
     await ensureCampaignReady(sql);
     if (request.method === "GET") {
+      if (process.env.VERCEL_ENV === "production") {
+        const auth = authorizeRunnerWrite(request.headers);
+        if (!auth.ok) {
+          response.status(auth.status).json({ error: auth.error });
+          return;
+        }
+      }
       response.status(200).json({ campaigns: await listCampaigns(sql), persistence: { mode: "postgres" } });
       return;
     }

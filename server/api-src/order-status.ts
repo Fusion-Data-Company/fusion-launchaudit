@@ -4,7 +4,7 @@
  * Stripe webhook hasn't landed yet (keep polling).
  */
 import { getSqlClient } from "../../src/lib/db.ts";
-import { ensurePaidAuditsTable, getPaidAuditBySession, publicOrderStatus } from "../../src/lib/paid-audits.ts";
+import { ensurePaidAuditsTable, getPaidAuditBySession, gradePaidAudit, publicOrderStatus } from "../../src/lib/paid-audits.ts";
 
 type Req = { method?: string; query?: Record<string, string | string[] | undefined>; url?: string };
 type Res = { status: (n: number) => Res; setHeader?: (k: string, v: string) => void; json: (b: unknown) => void };
@@ -21,8 +21,11 @@ export default async function handler(req: Req, res: Res) {
   if (!sql) { res.status(503).json({ error: "Order status is temporarily unavailable." }); return; }
   try {
     await ensurePaidAuditsTable(sql);
-    const row = await getPaidAuditBySession(sql, sid);
+    let row = await getPaidAuditBySession(sql, sid);
     if (!row) { res.status(200).json({ ok: true, status: "pending", grade: null, report_url: null }); return; }
+    // The webhook only records the order. The first poll that finds it queued
+    // runs the grade right here, inside this function's own time budget.
+    if (row.status === "queued") row = await gradePaidAudit(sql, row);
     res.status(200).json({ ok: true, ...publicOrderStatus(row) });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Could not load order." });

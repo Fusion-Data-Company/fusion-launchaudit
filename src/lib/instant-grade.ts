@@ -20,7 +20,24 @@ export type InstantGrade = {
   findings: Finding[];
   note: string;
 };
-export type GradeFailure = { ok: false; status: number; error: string };
+export type GradeFailure = { ok: false; status: number; error: string; blocked?: boolean; http_status?: number };
+
+/** Bot-management challenge pages we refuse to grade as if they were the customer's site. */
+const CHALLENGE_SIGNS = [/cf-browser-verification/i, /_cf_chl_opt/i, /cf-chl/i, /Attention Required!\s*\|\s*Cloudflare/i, /Just a moment\.\.\./i, /Access Denied/i, /Request unsuccessful\. Incapsula/i, /_Incapsula_Resource/i, /Reference #\d+\.[0-9a-f]+\.[0-9a-f]+\.[0-9a-f]+/i, /akamai/i, /Pardon Our Interruption/i, /PerimeterX/i, /px-captcha/i, /distil_r_captcha/i, /DataDome/i, /Please verify you are a human/i, /enable JavaScript and cookies to continue/i];
+
+/**
+ * A response we cannot honestly grade: an error status, a body too short to
+ * be a page, or a bot-management challenge. Returning a distinct failure
+ * instead of a score is the difference between a report and a fabrication.
+ */
+export function blockedReason(status: number, html: string): string | null {
+  if (status >= 400) return `The site answered our scanner with HTTP ${status}, so what we saw was an error page, not your site.`;
+  if (status >= 300) return `The site kept redirecting (HTTP ${status}) and never served a page to our scanner.`;
+  const body = html.trim();
+  if (body.length < 500) return `The site returned only ${body.length} bytes to our scanner, which is not a real page. It may be blocking automated traffic.`;
+  for (const re of CHALLENGE_SIGNS) if (re.test(body.slice(0, 20000))) return "The site put a bot-protection challenge (Cloudflare, Akamai or similar) in front of our scanner instead of the page.";
+  return null;
+}
 
 const PENALTY: Record<Sev, number> = { critical: 22, high: 13, medium: 7, low: 3 };
 
@@ -96,6 +113,10 @@ export async function runInstantGrade(target: URL): Promise<InstantGrade | Grade
     html = (await main.text()).slice(0, 200000);
   } catch {
     return { ok: false, status: 502, error: `Couldn't reach ${u.origin}. Make sure it's live and public.` };
+  }
+  const blocked = blockedReason(main.status, html);
+  if (blocked) {
+    return { ok: false, status: 409, blocked: true, http_status: main.status, error: `${blocked} We do not score what we cannot see: allow the user agent 8020LaunchAudit-Grader/1.0 (or your CDN's verified-bot list) and run it again, or ask for a refund.` };
   }
   const H = (n: string) => main!.headers.get(n);
 

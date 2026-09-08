@@ -14136,458 +14136,39 @@ shared_preload_libraries=${r.join(",")}`;
   }
 });
 
-// src/lib/campaign-data.ts
-var campaign = {
-  id: "cmp_launch_001",
-  name: "Demo: Sample Campaign",
-  status: "report_ready",
-  readinessScore: 82,
-  appUrl: "https://demo.example/sample-app",
-  repoPath: "~/demo/sample-app",
-  depth: "Full launch audit",
-  runner: {
-    status: "connected",
-    host: "demo-runner (sample)",
-    version: "mcp-runner 0.1.0",
-    lastSync: "sample data"
-  },
-  environment: {
-    framework: "Next.js / TypeScript / Playwright candidate",
-    supportTier: "first-class",
-    auth: "captured locally",
-    scripts: ["npm run dev", "npm run lint", "npm run test:e2e"],
-    unsupportedGaps: ["Webhook side effects need sandbox provider keys before execution."]
+// src/lib/db.ts
+var cachedClient = null;
+async function getSqlClient(env = process.env) {
+  if (cachedClient) {
+    return cachedClient;
   }
-};
-var stages = [
-  { label: "Context", status: "complete", detail: "Repo + runtime mapped" },
-  { label: "Plan", status: "complete", detail: "5 test cards generated" },
-  { label: "Review", status: "complete", detail: "High-risk cards approved" },
-  { label: "Run", status: "complete", detail: "2 passed / 2 failed / 1 blocked" },
-  { label: "Analyze", status: "complete", detail: "Findings classified" },
-  { label: "Report", status: "active", detail: "Client-ready audit assembled" }
-];
-var testCards = [
-  {
-    id: "TC-101",
-    title: "Authenticated user can complete the primary workflow without hidden console failures",
-    category: "core_workflow",
-    status: "passed",
-    risk: "critical",
-    goal: "Prove the app's highest-value workflow works from first page load through final confirmation.",
-    steps: [
-      "Reuse captured local auth state.",
-      "Open dashboard from a clean browser context.",
-      "Create a new record with valid boundary data.",
-      "Verify confirmation, persisted state, and reload behavior."
-    ],
-    expectedEvidence: ["Trace", "Before/after screenshots", "Network log", "Persisted record assertion"],
-    dataNeeds: ["Authenticated builder account", "Fresh test record name"],
-    acceptanceCriteria: "The record exists after reload and no console error or failed API request appears during the flow."
-  },
-  {
-    id: "TC-118",
-    title: "Role boundary prevents client user from reaching admin-only repair actions",
-    category: "roles_permissions",
-    status: "failed",
-    risk: "high",
-    goal: "Confirm role separation is enforced at navigation, page load, and API mutation layers.",
-    steps: [
-      "Load captured client-role auth state.",
-      "Attempt direct navigation to admin repair task URL.",
-      "Attempt the backing mutation request from the browser context.",
-      "Capture server response and visible UI state."
-    ],
-    expectedEvidence: ["403/redirect proof", "Screenshot", "Network request/response pair"],
-    dataNeeds: ["Client role session", "Known admin task id"],
-    acceptanceCriteria: "Client role receives a blocked state and cannot mutate or view admin-only repair tasks."
-  },
-  {
-    id: "TC-124",
-    title: "Slow API response preserves form input and shows a recoverable state",
-    category: "forms_validation",
-    status: "passed",
-    risk: "medium",
-    goal: "Expose the common launch bug where slow services erase user work or double-submit forms.",
-    steps: [
-      "Throttle submit endpoint to 4 seconds.",
-      "Submit a valid form.",
-      "Verify disabled state, spinner, and no duplicate request.",
-      "Refresh after completion and confirm saved data."
-    ],
-    expectedEvidence: ["Network throttle trace", "DOM disabled-state assertion", "Screenshot"],
-    dataNeeds: ["Valid form payload", "Network interception rule"],
-    acceptanceCriteria: "Only one mutation fires, user input remains visible, and the saved state survives reload."
-  },
-  {
-    id: "TC-142",
-    title: "Mobile audit report is readable without horizontal overflow",
-    category: "responsive_visual",
-    status: "failed",
-    risk: "medium",
-    goal: "Verify the client-ready report can be reviewed on mobile without clipped tables or overlapping action buttons.",
-    steps: [
-      "Open report page at 390px width.",
-      "Scroll every section.",
-      "Inspect issue table, evidence gallery, and repair task cards.",
-      "Capture screenshot and overflow metrics."
-    ],
-    expectedEvidence: ["Mobile screenshot", "Layout overflow measurement", "DOM bounding boxes"],
-    dataNeeds: ["Generated audit report with at least two findings"],
-    acceptanceCriteria: "No primary content overflows the viewport and all action labels remain readable."
-  },
-  {
-    id: "TC-153",
-    title: "Webhook/payment side effects are declared instead of silently skipped",
-    category: "integration_side_effects",
-    status: "blocked",
-    risk: "high",
-    goal: "Prevent fake confidence by forcing unsupported third-party checks into the audit report.",
-    steps: [
-      "Inspect env and integration code references.",
-      "Detect missing sandbox keys.",
-      "Mark affected checks as blocked with exact reason."
-    ],
-    expectedEvidence: ["Env-key presence map", "Integration file references", "Blocked finding"],
-    dataNeeds: ["Sandbox provider keys or explicit skip approval"],
-    acceptanceCriteria: "The report names the blocked integration checks and does not count them as passed."
-  },
-  {
-    id: "TC-201",
-    title: "No cross-user object access by swapping an id (IDOR)",
-    category: "object_authz",
-    status: "failed",
-    risk: "critical",
-    goal: "A normal user requesting another owner's object id must be denied, never served the other owner's record.",
-    steps: ["Capture a normal 'user' session.", "GET another owner's object id (e.g. /api/orders/1).", "Confirm the response is 401/403/404, not the other owner's data."],
-    expectedEvidence: ["Network request/response pair", "Captured user session"],
-    dataNeeds: ["A non-admin test account"],
-    acceptanceCriteria: "As 'user', the swapped-id request returns 401/403/404, not a 2xx with another owner's object. WSTG-ATHZ-04 / CWE-639."
-  },
-  {
-    id: "TC-202",
-    title: "Account detail endpoint enforces ownership",
-    category: "object_authz",
-    status: "passed",
-    risk: "critical",
-    goal: "Prove the per-user record endpoint checks ownership server-side.",
-    steps: ["As 'user', request the user's own object (allowed).", "As 'user', request a neighbouring owner's id (denied)."],
-    expectedEvidence: ["Network log", "Positive + negative control"],
-    dataNeeds: ["A non-admin test account"],
-    acceptanceCriteria: "Owner can read their object; cross-owner read is blocked. WSTG-ATHZ-04 / CWE-639."
-  },
-  {
-    id: "TC-203",
-    title: "Normal user is denied a privileged mutation (BFLA)",
-    category: "mutation_authz",
-    status: "failed",
-    risk: "critical",
-    goal: "A privileged state-changing call by a normal user must be rejected with 401/403 before any write \u2014 the denial proves no state change.",
-    steps: ["As 'user', POST the privileged endpoint (e.g. /api/admin/delete-user).", "Confirm a 401/403, not a 2xx."],
-    expectedEvidence: ["Network request/response pair"],
-    dataNeeds: ["A non-admin test account"],
-    acceptanceCriteria: "As 'user', the privileged mutation returns 401/403 before any write. OWASP API5 / CWE-285."
-  },
-  {
-    id: "TC-204",
-    title: "Update endpoint ignores privileged fields (mass-assignment)",
-    category: "mass_assignment",
-    status: "needs_verification",
-    risk: "high",
-    goal: 'Sending role:"admin"/isAdmin:true to a profile-update endpoint must be ignored, not persisted.',
-    steps: ["As 'user', PATCH the profile with extra privileged fields.", "Re-read the record and confirm role/isAdmin did not change."],
-    expectedEvidence: ["Request body", "Re-read of the persisted record"],
-    dataNeeds: ["A non-admin test account", "An object-update endpoint"],
-    acceptanceCriteria: "Privileged fields are not accepted or echoed as persisted. OWASP API3 / CWE-915."
-  },
-  {
-    id: "TC-205",
-    title: "Session cookie carries HttpOnly, Secure, and SameSite",
-    category: "cookie_security",
-    status: "failed",
-    risk: "high",
-    goal: "A session cookie without HttpOnly is JS-readable (XSS theft); without Secure it leaks over http; without SameSite it is CSRF-exposed.",
-    steps: ["Log in and capture the Set-Cookie.", "Check for HttpOnly, Secure, and SameSite attributes."],
-    expectedEvidence: ["Set-Cookie header transcript"],
-    dataNeeds: ["A login that issues a session cookie"],
-    acceptanceCriteria: "The session Set-Cookie includes HttpOnly, Secure, and SameSite. CWE-1004 / CWE-614."
-  },
-  {
-    id: "TC-206",
-    title: "CORS does not reflect a hostile Origin with credentials",
-    category: "cors",
-    status: "passed",
-    risk: "high",
-    goal: "An arbitrary Origin must not be echoed in Access-Control-Allow-Origin together with Access-Control-Allow-Credentials: true.",
-    steps: ["Send a request with Origin: https://evil.example.", "Confirm the probe Origin is not reflected with credentials enabled."],
-    expectedEvidence: ["Response header transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "No credentialed reflection of an arbitrary Origin. CWE-942."
-  },
-  {
-    id: "TC-207",
-    title: "HSTS (Strict-Transport-Security) is present",
-    category: "tls_hsts",
-    status: "passed",
-    risk: "medium",
-    goal: "Without HSTS a browser will still try http first and can be downgraded before the redirect.",
-    steps: ["GET / over https.", "Confirm a Strict-Transport-Security response header."],
-    expectedEvidence: ["Response header transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "Response carries Strict-Transport-Security. OWASP Secure Headers / Mozilla TLS."
-  },
-  {
-    id: "TC-208",
-    title: "http redirects to https",
-    category: "tls_hsts",
-    status: "needs_verification",
-    risk: "medium",
-    goal: "Plain http must redirect to https so credentials/cookies never travel in cleartext.",
-    steps: ["GET the http:// origin.", "Confirm a 301/308 whose Location is https."],
-    expectedEvidence: ["Redirect transcript"],
-    dataNeeds: ["A reachable http endpoint to probe"],
-    acceptanceCriteria: "http requests 301/308-redirect to https."
-  },
-  {
-    id: "TC-209",
-    title: "SQL-injection canary is handled safely",
-    category: "injection",
-    status: "failed",
-    risk: "high",
-    goal: "A non-destructive SQLi canary must not 500 the server or leak a database error.",
-    steps: ["POST a field with the canary ' OR '1'='1.", "Confirm no 500 and no SQL/engine error text in the body."],
-    expectedEvidence: ["Request + response transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "No 500 and no DB-error text on the canary. WSTG-INPV / CWE-89."
-  },
-  {
-    id: "TC-210",
-    title: "XSS canary is escaped, not reflected",
-    category: "injection",
-    status: "passed",
-    risk: "high",
-    goal: "A reflected XSS canary must come back escaped, never as live markup.",
-    steps: ["Send the canary <svg/onload=alert(1)>.", "Confirm the raw payload is not reflected unescaped."],
-    expectedEvidence: ["Response body excerpt"],
-    dataNeeds: [],
-    acceptanceCriteria: "The raw XSS payload is not present unescaped in the response. WSTG-INPV / CWE-79."
-  },
-  {
-    id: "TC-211",
-    title: "Security headers are present and carry safe values",
-    category: "security_headers",
-    status: "failed",
-    risk: "high",
-    goal: "The hardening headers that stop clickjacking, MIME-sniffing, and stack-banner leaks must be set.",
-    steps: ["GET /.", "Check Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy.", "Confirm no X-Powered-By banner."],
-    expectedEvidence: ["Response header transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "CSP, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy are present with safe values. OWASP Secure Headers."
-  },
-  {
-    id: "TC-212",
-    title: "Secret and VCS files are not publicly downloadable",
-    category: "secrets_exposure",
-    status: "passed",
-    risk: "critical",
-    goal: "Config and version-control files must never be served to the public.",
-    steps: ["Request /.env, /.env.local, /.git/config, /.git/HEAD.", "Confirm each is blocked (not 200 with file content)."],
-    expectedEvidence: ["Per-path response transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "No /.env* or /.git/* path returns downloadable content. OWASP WSTG configuration testing."
+  if (env.POSTGRES_URL) {
+    const { neon } = await Promise.resolve().then(() => (init_serverless(), serverless_exports));
+    const sql = neon(env.POSTGRES_URL);
+    cachedClient = async (text, params = []) => {
+      const result = await sql.query(text, params);
+      if (Array.isArray(result)) {
+        return result;
+      }
+      return result.rows ?? [];
+    };
+    return cachedClient;
   }
-];
-var findings = [
-  {
-    id: "FD-118",
-    type: "product_bug",
-    severity: "high",
-    title: "Client role can load admin repair task detail by direct URL",
-    testCardId: "TC-118",
-    evidenceRefs: ["trace://TC-118/direct-url.zip", "screenshot://TC-118/admin-detail.png"],
-    summary: "Navigation hides the admin action, but the route-level loader returns repair task details for a client-role session."
-  },
-  {
-    id: "FD-142",
-    type: "product_bug",
-    severity: "medium",
-    title: "Mobile report table overflows 390px viewport",
-    testCardId: "TC-142",
-    evidenceRefs: ["screenshot://TC-142/mobile-overflow.png", "metric://TC-142/body-scroll-width"],
-    summary: "The evidence table uses fixed columns and pushes primary actions outside the viewport."
-  },
-  {
-    id: "FD-153",
-    type: "environment_issue",
-    severity: "high",
-    title: "Webhook checks blocked by missing sandbox keys",
-    testCardId: "TC-153",
-    evidenceRefs: ["env-map://campaign/cmp_launch_001"],
-    summary: "Payment/webhook confidence cannot be claimed until sandbox credentials are present or the check is explicitly waived."
+  if (env.LAUNCHAUDIT_LOCAL_DB) {
+    const { PGlite } = await Promise.resolve().then(() => (init_dist(), dist_exports));
+    const pg = new PGlite(env.LAUNCHAUDIT_LOCAL_DB);
+    const ready = pg.waitReady;
+    if (ready) await ready;
+    cachedClient = async (text, params = []) => {
+      const result = await pg.query(text, params);
+      return result.rows ?? [];
+    };
+    return cachedClient;
   }
-];
-var repairTasks = [
-  {
-    finding_id: "FD-118",
-    severity: "high",
-    title: "Enforce server-side role guard on repair task detail route",
-    why_it_matters: "The UI hides admin actions, but direct navigation still exposes admin-only repair task details to a client user.",
-    evidence_refs: ["trace://TC-118/direct-url.zip", "screenshot://TC-118/admin-detail.png"],
-    likely_files: ["src/app/admin/repair-tasks/[id]/page.tsx", "src/lib/auth/roles.ts", "src/app/api/repair-tasks/[id]/route.ts"],
-    reproduction_steps: [
-      "Login with captured client-role browser state.",
-      "Navigate directly to /admin/repair-tasks/rt_102.",
-      "Observe repair task title, likely files, and agent prompt in the rendered page."
-    ],
-    expected_behavior: "Client role should receive a 403 page or redirect and API detail route should return 403.",
-    verification_command: "npx playwright test tests/roles/repair-task-guard.spec.ts",
-    agent_prompt: "Patch the repair task detail page and API route so authorization is enforced server-side. Keep admin access unchanged, return 403 for client users, and add a Playwright regression for direct URL access."
-  },
-  {
-    finding_id: "FD-142",
-    severity: "medium",
-    title: "Make audit report evidence table responsive",
-    why_it_matters: "The launch audit is supposed to be client-ready, but the mobile report currently clips evidence and action labels.",
-    evidence_refs: ["screenshot://TC-142/mobile-overflow.png", "metric://TC-142/body-scroll-width"],
-    likely_files: ["src/app/reports/[id]/page.tsx", "src/components/report/evidence-table.tsx"],
-    reproduction_steps: [
-      "Open /reports/rpt_launch_001 at 390px viewport width.",
-      "Scroll to Evidence.",
-      "Observe horizontal overflow and clipped action column."
-    ],
-    expected_behavior: "Evidence rows collapse into readable stacked rows on narrow screens with no body overflow.",
-    verification_command: "npx playwright test tests/responsive/audit-report-mobile.spec.ts",
-    agent_prompt: "Refactor the audit evidence table responsive layout so mobile uses stacked row cards while desktop preserves the dense table. Verify no horizontal body overflow at 390px."
-  }
-];
+  return null;
+}
 
 // src/lib/storage-contract.ts
-var storageReadiness = [
-  {
-    subsystem: "postgres",
-    label: "Campaign database",
-    status: "missing_secret",
-    requiredEnv: ["POSTGRES_URL"],
-    purpose: "Durably stores projects, campaigns, test cards, runs, findings, repair tasks, model task logs, and artifact metadata.",
-    productionGate: "A campaign must survive deploys and page refreshes without depending on seeded JSON."
-  },
-  {
-    subsystem: "blob",
-    label: "Evidence artifact store",
-    status: "missing_secret",
-    requiredEnv: ["BLOB_READ_WRITE_TOKEN"],
-    purpose: "Stores screenshots, traces, videos, network logs, accessibility snapshots, and exported client reports.",
-    productionGate: "Every failed or blocked test must have durable evidence refs that can be opened from the audit report."
-  },
-  {
-    subsystem: "runner",
-    label: "Runner sync authentication",
-    status: "missing_secret",
-    requiredEnv: ["RUNNER_SYNC_SECRET"],
-    purpose: "Protects local runner sync and artifact registration endpoints from unauthenticated writes.",
-    productionGate: "Runner writes must be signed or rejected before accepting real customer campaign data."
-  }
-];
-var databaseTables = [
-  {
-    table: "projects",
-    purpose: "One customer app/repo under audit.",
-    keyColumns: ["id", "owner_id", "repo_url", "framework", "support_tier", "created_at"],
-    requiredForV1: true
-  },
-  {
-    table: "campaigns",
-    purpose: "Launch audit campaign state and readiness score.",
-    keyColumns: ["id", "project_id", "status", "app_url", "depth", "readiness_score", "created_at"],
-    requiredForV1: true
-  },
-  {
-    table: "runner_sessions",
-    purpose: "Local MCP runner identity, version, host, and last sync metadata.",
-    keyColumns: ["id", "campaign_id", "runner_host", "version", "auth_state_ref", "last_sync_at"],
-    requiredForV1: true
-  },
-  {
-    table: "test_cards",
-    purpose: "Generated, reviewed, and executed evidence-gated test cards.",
-    keyColumns: ["id", "campaign_id", "category", "risk", "status", "goal", "acceptance_criteria"],
-    requiredForV1: true
-  },
-  {
-    table: "runs",
-    purpose: "Per-test execution attempts with pass/fail/blocked state.",
-    keyColumns: ["id", "campaign_id", "test_card_id", "status", "started_at", "ended_at"],
-    requiredForV1: true
-  },
-  {
-    table: "artifacts",
-    purpose: "Blob-backed evidence metadata and redaction state.",
-    keyColumns: ["id", "run_id", "artifact_type", "blob_path", "sha256", "redaction_status"],
-    requiredForV1: true
-  },
-  {
-    table: "findings",
-    purpose: "Classified failures and blocked areas.",
-    keyColumns: ["id", "campaign_id", "test_card_id", "type", "severity", "summary"],
-    requiredForV1: true
-  },
-  {
-    table: "repair_tasks",
-    purpose: "Coding-agent-ready repair packets generated from product bugs.",
-    keyColumns: ["id", "finding_id", "title", "likely_files", "verification_command", "agent_prompt"],
-    requiredForV1: true
-  },
-  {
-    table: "model_tasks",
-    purpose: "Model routing audit trail, prompt/output hashes, latency, cost, and quality gate status.",
-    keyColumns: ["id", "campaign_id", "category", "provider_slot_id", "model", "status", "prompt_hash", "output_hash"],
-    requiredForV1: true
-  }
-];
-var blobArtifacts = [
-  {
-    artifactType: "trace",
-    pathTemplate: "campaigns/{campaign_id}/runs/{run_id}/traces/{test_card_id}.zip",
-    access: "private",
-    retention: "180 days",
-    redactionRequired: true
-  },
-  {
-    artifactType: "screenshot",
-    pathTemplate: "campaigns/{campaign_id}/runs/{run_id}/screenshots/{test_card_id}-{viewport}.png",
-    access: "private",
-    retention: "180 days",
-    redactionRequired: true
-  },
-  {
-    artifactType: "video",
-    pathTemplate: "campaigns/{campaign_id}/runs/{run_id}/videos/{test_card_id}.webm",
-    access: "private",
-    retention: "90 days",
-    redactionRequired: true
-  },
-  {
-    artifactType: "network_log",
-    pathTemplate: "campaigns/{campaign_id}/runs/{run_id}/network/{test_card_id}.har.json",
-    access: "private",
-    retention: "180 days",
-    redactionRequired: true
-  },
-  {
-    artifactType: "accessibility_snapshot",
-    pathTemplate: "campaigns/{campaign_id}/runs/{run_id}/a11y/{test_card_id}.json",
-    access: "private",
-    retention: "180 days",
-    redactionRequired: false
-  },
-  {
-    artifactType: "report_pdf",
-    pathTemplate: "campaigns/{campaign_id}/reports/{report_id}.pdf",
-    access: "private",
-    retention: "365 days",
-    redactionRequired: true
-  }
-];
 var paidAuditsSchemaSql = `create table if not exists paid_audits (
   id text primary key,
   stripe_session_id text not null unique,
@@ -14714,688 +14295,624 @@ alter table test_cards add column if not exists exec jsonb not null default '[]'
 
 ${paidAuditsSchemaSql}`;
 
-// src/lib/campaign-store.ts
-var SEED_PROJECT_ID = "proj_local_001";
-var SEED_OWNER_ID = "owner_fusion_rob";
-async function ensureSchema(sql) {
-  const statements = storageSchemaSql.split(";").map((statement) => statement.trim()).filter((statement) => statement.length > 0);
-  for (const statement of statements) {
-    await sql(statement);
-  }
-}
-var readyPromise2 = null;
-function ensureCampaignReady(sql) {
-  if (!readyPromise2) {
-    readyPromise2 = (async () => {
-      await ensureSchema(sql);
-      await seedCampaignData(sql);
-    })().catch((error) => {
-      readyPromise2 = null;
-      throw error;
-    });
-  }
-  return readyPromise2;
-}
-async function seedCampaignData(sql) {
-  await sql(
-    `insert into projects (id, owner_id, repo_path_hint, framework, support_tier)
-     values ($1, $2, $3, $4, $5)
-     on conflict (id) do nothing`,
-    [SEED_PROJECT_ID, SEED_OWNER_ID, campaign.repoPath, campaign.environment.framework, campaign.environment.supportTier]
-  );
-  await sql(
-    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score, name, repo_path_hint)
-     values ($1, $2, $3, $4, $5, $6, $7, $8)
-     on conflict (id) do nothing`,
-    [campaign.id, SEED_PROJECT_ID, campaign.status, campaign.appUrl, campaign.depth, campaign.readinessScore, campaign.name, campaign.repoPath]
-  );
-  for (const card of testCards) {
-    await sql(
-      `insert into test_cards (id, campaign_id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       on conflict (id) do nothing`,
-      [
-        card.id,
-        campaign.id,
-        card.category,
-        card.risk,
-        card.status,
-        card.title,
-        card.goal,
-        JSON.stringify(card.steps),
-        JSON.stringify(card.expectedEvidence),
-        JSON.stringify(card.dataNeeds),
-        card.acceptanceCriteria
-      ]
-    );
-  }
-  for (const finding of findings) {
-    await sql(
-      `insert into findings (id, campaign_id, test_card_id, type, severity, title, summary, evidence_refs)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
-       on conflict (id) do nothing`,
-      [
-        finding.id,
-        campaign.id,
-        finding.testCardId,
-        finding.type,
-        finding.severity,
-        finding.title,
-        finding.summary,
-        JSON.stringify(finding.evidenceRefs)
-      ]
-    );
-  }
-  for (const task of repairTasks) {
-    await sql(
-      `insert into repair_tasks (id, finding_id, severity, title, why_it_matters, evidence_refs, likely_files, reproduction_steps, expected_behavior, verification_command, agent_prompt)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       on conflict (id) do nothing`,
-      [
-        `rt_${task.finding_id}`,
-        task.finding_id,
-        task.severity,
-        task.title,
-        task.why_it_matters,
-        JSON.stringify(task.evidence_refs),
-        JSON.stringify(task.likely_files),
-        JSON.stringify(task.reproduction_steps),
-        task.expected_behavior,
-        task.verification_command,
-        task.agent_prompt
-      ]
-    );
-  }
-}
-function asStringArray(value) {
-  if (Array.isArray(value)) {
-    return value.map(String);
-  }
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed.map(String) : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
-async function loadCampaignBundle(sql, campaignId = campaign.id) {
-  const campaignRows = await sql(
-    `select id, status, app_url, depth, readiness_score, updated_at, name, repo_path_hint from campaigns where id = $1`,
-    [campaignId]
-  );
-  if (campaignRows.length === 0) {
-    return null;
-  }
-  const row = campaignRows[0];
-  const sessionRows = await sql(
-    `select runner_host, version, last_sync_at from runner_sessions where campaign_id = $1 order by last_sync_at desc nulls last limit 1`,
-    [campaignId]
-  );
-  const cardRows = await sql(
-    `select id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria, exec
-     from test_cards where campaign_id = $1 order by id`,
-    [campaignId]
-  );
-  const findingRows = await sql(
-    `select id, test_card_id, type, severity, title, summary, evidence_refs from findings where campaign_id = $1 order by id`,
-    [campaignId]
-  );
-  const repairRows = await sql(
-    `select r.finding_id, r.severity, r.title, r.why_it_matters, r.evidence_refs, r.likely_files, r.reproduction_steps, r.expected_behavior, r.verification_command, r.agent_prompt
-     from repair_tasks r join findings f on f.id = r.finding_id
-     where f.campaign_id = $1 order by r.id`,
-    [campaignId]
-  );
-  const session = sessionRows[0];
-  const campaign2 = {
-    ...campaign,
-    id: String(row.id),
-    name: String(row.name ?? campaign.name),
-    repoPath: String(row.repo_path_hint ?? campaign.repoPath),
-    status: String(row.status),
-    appUrl: String(row.app_url),
-    readinessScore: Number(row.readiness_score),
-    runner: {
-      ...campaign.runner,
-      host: session ? String(session.runner_host) : campaign.runner.host,
-      version: session ? String(session.version) : campaign.runner.version,
-      lastSync: session?.last_sync_at ? new Date(String(session.last_sync_at)).toISOString() : "never",
-      status: session?.last_sync_at ? "connected" : "offline"
-    }
-  };
-  const testCards2 = cardRows.map((card) => ({
-    id: String(card.id),
-    title: String(card.title),
-    category: String(card.category),
-    status: String(card.status),
-    risk: String(card.risk),
-    goal: String(card.goal),
-    steps: asStringArray(card.steps),
-    expectedEvidence: asStringArray(card.expected_evidence),
-    dataNeeds: asStringArray(card.data_needs),
-    acceptanceCriteria: String(card.acceptance_criteria),
-    exec: typeof card.exec === "string" ? JSON.parse(card.exec) : card.exec ?? []
-  }));
-  const findings2 = findingRows.map((finding) => ({
-    id: String(finding.id),
-    type: String(finding.type),
-    severity: String(finding.severity),
-    title: String(finding.title),
-    testCardId: String(finding.test_card_id ?? ""),
-    summary: String(finding.summary),
-    evidenceRefs: asStringArray(finding.evidence_refs)
-  }));
-  const repairTasks2 = repairRows.map((task) => ({
-    finding_id: String(task.finding_id),
-    severity: String(task.severity),
-    title: String(task.title),
-    why_it_matters: String(task.why_it_matters),
-    evidence_refs: asStringArray(task.evidence_refs),
-    likely_files: asStringArray(task.likely_files),
-    reproduction_steps: asStringArray(task.reproduction_steps),
-    expected_behavior: String(task.expected_behavior),
-    verification_command: String(task.verification_command),
-    agent_prompt: String(task.agent_prompt)
-  }));
-  const runRows = await sql(
-    `select count(*)::int as runs, count(distinct test_card_id)::int as executed from runs where campaign_id = $1`,
-    [campaignId]
-  );
-  const executedRows = await sql(
-    `select distinct test_card_id from runs where campaign_id = $1`,
-    [campaignId]
-  );
-  const artifactRows = await sql(`select count(*)::int as n from artifacts`);
-  return {
-    campaign: campaign2,
-    testCards: testCards2,
-    findings: findings2,
-    repairTasks: repairTasks2,
-    runStats: {
-      runs: Number(runRows[0]?.runs ?? 0),
-      artifacts: Number(artifactRows[0]?.n ?? 0),
-      executedCardIds: executedRows.map((row2) => String(row2.test_card_id))
-    },
-    persistence: {
-      mode: "postgres",
-      detail: "Campaign state loaded from Postgres. Presentation-only fields (name, stages, environment metadata) remain seed-configured until campaign creation UI ships."
-    }
-  };
-}
-
-// src/lib/competitive-data.ts
-var competitiveScorecard = [
-  {
-    category: "Codebase context",
-    testspriteBaseline: "URL, PRD, generated test plan, and black-box crawl are the public baseline.",
-    fusionAdvantage: "Local MCP runner inspects repo structure, scripts, routes, API handlers, env expectations, and test tooling before planning.",
-    proofGate: "Campaign cannot mark context complete until repo summary and runtime summary sync under one campaign ID.",
-    status: "implemented"
-  },
-  {
-    category: "Test specificity",
-    testspriteBaseline: "Generic AI-generated happy-path and broad E2E coverage.",
-    fusionAdvantage: "Each card includes risk, data needs, evidence gates, acceptance criteria, and blocked-gap policy.",
-    proofGate: "Every generated card must include goal, steps, expected evidence, data needs, and acceptance criteria.",
-    status: "implemented"
-  },
-  {
-    category: "Repair quality",
-    testspriteBaseline: "Reports failure and may suggest a fix.",
-    fusionAdvantage: "Creates coding-agent repair packets with likely files, exact repro, expected behavior, verification command, and agent prompt.",
-    proofGate: "Product bugs are not complete until a repair task can be handed to Codex, Claude, Cursor, or a local model.",
-    status: "implemented"
-  },
-  {
-    category: "Evidence integrity",
-    testspriteBaseline: "Screenshots/video/report artifacts after execution.",
-    fusionAdvantage: "Treats unsupported integrations and missing sandbox keys as blocked findings, never as implicit passes.",
-    proofGate: "Audit score must include blocked checks and unsupported gaps as first-class report items.",
-    status: "implemented"
-  },
-  {
-    category: "Model harness",
-    testspriteBaseline: "Vendor model behavior is hidden behind the product.",
-    fusionAdvantage: "Category router assigns repo context, runtime crawl, test generation, classification, repair writing, visual review, and traffic analysis to different managed, OpenRouter, Genspark, Docker, or proprietary model slots.",
-    proofGate: "ModelTask contracts, provider slots, route assignments, fallbacks, and quality gates are exposed through the campaign API before live model invocation is enabled.",
-    status: "implemented"
-  },
-  {
-    category: "Deployment ownership",
-    testspriteBaseline: "Hosted vendor workflow.",
-    fusionAdvantage: "Vercel static/serverless app plus local runner keeps private code local while web reporting stays shareable.",
-    proofGate: "Static app loads without framework dev server; API accepts runner sync; artifacts can move to Blob and campaign state to Postgres.",
-    status: "implemented"
-  }
-];
-
-// src/lib/flagship-features.ts
-var flagshipFeatures = [
-  {
-    id: "traffic-insight-debugger",
-    sourceInspiredBy: "Fiddler MCP",
-    name: "Traffic Insight Debugger",
-    fusionVersion: "Captured HTTP sessions become campaign evidence, finding context, and coding-agent repair packet inputs instead of separate debugging work.",
-    status: "runner_contract",
-    whyItMatters: "Coding agents and QA reports should reason from actual requests, responses, headers, status codes, and timing, not guesses from UI symptoms.",
-    evidence: ["network request/response pairs", "status-code timeline", "redacted header/body map", "slow and failed request summary"],
-    proofGate: "Every failed API/network-related test must attach the exact request and response pair or mark traffic capture as blocked."
-  },
-  {
-    id: "audited-self-healing",
-    sourceInspiredBy: "mabl",
-    name: "Audited Self-Healing",
-    fusionVersion: "Locator drift can be repaired, but every heal is logged as an audit event with visual/behavioral confirmation instead of silently turning green.",
-    status: "runner_contract",
-    whyItMatters: "Self-healing is useful only when it does not hide real product behavior changes or create false confidence.",
-    evidence: ["old selector", "new selector", "visual diff", "behavior assertion", "heal confidence score"],
-    proofGate: "A healed test cannot be promoted unless the intent assertion and visual check still match the original test card."
-  },
-  {
-    id: "knowledge-workspace",
-    sourceInspiredBy: "Leapwork AI Studio",
-    name: "AI Test Workspace",
-    fusionVersion: "Requirements, docs, code, tickets, existing Playwright scripts, and recorded user actions become one campaign knowledge base before tests are generated.",
-    status: "implemented_seed",
-    whyItMatters: "The strongest test plans come from joined context, not a blank canvas or a single URL crawl.",
-    evidence: ["requirement map", "route map", "existing test inventory", "recorded action transcript", "generated test-card lineage"],
-    proofGate: "Every generated test card must show which source artifacts created it and what launch risk it covers."
-  }
-];
-var trafficInsights = [
-  {
-    method: "GET",
-    url: "/api/repair-tasks/rt_102",
-    status: 200,
-    durationMs: 184,
-    risk: "sensitive",
-    attachedFindingId: "FD-118"
-  },
-  {
-    method: "POST",
-    url: "/api/forms/submit",
-    status: 201,
-    durationMs: 4028,
-    risk: "slow"
-  },
-  {
-    method: "POST",
-    url: "/api/webhooks/payment-test",
-    status: 0,
-    durationMs: 0,
-    risk: "failed",
-    attachedFindingId: "FD-153"
-  }
-];
-var healEvents = [
-  {
-    testCardId: "TC-142",
-    event: "Report table action selector changed from data-testid=export-report to aria-label=Export audit report.",
-    confidence: 0.91,
-    disposition: "needs_review",
-    auditNote: "Selector can heal, but mobile visual overflow still fails, so the run remains red."
-  },
-  {
-    testCardId: "TC-124",
-    event: "Submit button text changed from Save to Submit.",
-    confidence: 0.88,
-    disposition: "approved",
-    auditNote: "Behavior assertion and network mutation stayed identical after heal."
-  }
-];
-
-// src/lib/model-routing.ts
-var modelProviderSlots = [
-  {
-    id: "platform-default",
-    label: "Fusion managed default",
-    kind: "platform_default",
-    status: "ready",
-    endpoint: "server-managed",
-    secretEnv: "OPENAI_API_KEY",
-    bestFor: ["test_generation", "failure_classification", "repair_task_writing"],
-    guardrail: "Used when no customer model route is configured; prompts and outputs are logged to the campaign audit trail."
-  },
-  {
-    id: "openrouter-coding",
-    label: "OpenRouter coding model",
-    kind: "openrouter",
-    status: "needs_secret",
-    endpoint: "https://openrouter.ai/api/v1/chat/completions",
-    secretEnv: "OPENROUTER_API_KEY",
-    bestFor: ["patch_planning", "repair_task_writing", "test_generation"],
-    guardrail: "Allowed for code-aware work only after the project owner approves which repo excerpts can leave the local runner."
-  },
-  {
-    id: "genspark-agent",
-    label: "Genspark agent bridge",
-    kind: "genspark_bridge",
-    status: "configurable",
-    endpoint: "customer-configured HTTPS bridge",
-    secretEnv: "GENSPARK_BRIDGE_TOKEN",
-    bestFor: ["runtime_crawl", "visual_review", "traffic_analysis"],
-    guardrail: "Bridge receives sanitized tasks and artifact references, not raw production credentials."
-  },
-  {
-    id: "docker-local-llm",
-    label: "Docker hosted local LLM",
-    kind: "docker_openai_compatible",
-    status: "configurable",
-    endpoint: "http://host.docker.internal:11434/v1/chat/completions",
-    secretEnv: "LOCAL_LLM_API_KEY",
-    bestFor: ["repo_context", "patch_planning", "traffic_analysis"],
-    guardrail: "Can run fully local for private code; must return structured JSON that passes the ModelTask schema."
-  },
-  {
-    id: "proprietary-finetune",
-    label: "Proprietary QA model",
-    kind: "proprietary_finetune",
-    status: "planned",
-    endpoint: "customer-owned OpenAI-compatible endpoint",
-    secretEnv: "PROPRIETARY_QA_MODEL_KEY",
-    bestFor: ["test_generation", "failure_classification", "visual_review"],
-    guardrail: "Trained only from approved campaign artifacts; production secrets and credentials stay excluded from training data."
-  }
-];
-var modelRoutes = [
-  {
-    task: "repo_context",
-    label: "Repo inspection summarizer",
-    providerSlotId: "docker-local-llm",
-    model: "local-code-context:latest",
-    temperature: 0.1,
-    maxTokens: 6e3,
-    fallbackProviderSlotId: "platform-default",
-    qualityGate: "Must cite files, scripts, routes, env keys, and unsupported gaps without inventing dependencies."
-  },
-  {
-    task: "runtime_crawl",
-    label: "Runtime workflow mapper",
-    providerSlotId: "genspark-agent",
-    model: "genspark-browser-agent",
-    temperature: 0.2,
-    maxTokens: 5e3,
-    fallbackProviderSlotId: "platform-default",
-    qualityGate: "Must produce route inventory, reachable states, console/network issues, and auth assumptions."
-  },
-  {
-    task: "test_generation",
-    label: "Deep test-card generator",
-    providerSlotId: "platform-default",
-    model: "managed-strong-reasoning",
-    temperature: 0.25,
-    maxTokens: 9e3,
-    fallbackProviderSlotId: "openrouter-coding",
-    qualityGate: "Every card needs exact steps, data needs, evidence gates, risk, and acceptance criteria."
-  },
-  {
-    task: "failure_classification",
-    label: "Failure classifier",
-    providerSlotId: "platform-default",
-    model: "managed-strong-reasoning",
-    temperature: 0,
-    maxTokens: 3e3,
-    fallbackProviderSlotId: "proprietary-finetune",
-    qualityGate: "Must classify as product bug, test bug, environment issue, flaky behavior, missing context, or unclear requirement."
-  },
-  {
-    task: "repair_task_writing",
-    label: "Coding-agent repair packet writer",
-    providerSlotId: "openrouter-coding",
-    model: "coding-agent-selected-by-owner",
-    temperature: 0.15,
-    maxTokens: 7e3,
-    fallbackProviderSlotId: "platform-default",
-    qualityGate: "Must include likely files, repro steps, expected behavior, verification command, and a ready agent prompt."
-  },
-  {
-    task: "visual_review",
-    label: "Visual and responsive auditor",
-    providerSlotId: "genspark-agent",
-    model: "vision-browser-agent",
-    temperature: 0.1,
-    maxTokens: 5e3,
-    fallbackProviderSlotId: "platform-default",
-    qualityGate: "Must attach viewport, screenshot refs, overflow metrics, and concrete visual defects."
-  },
-  {
-    task: "traffic_analysis",
-    label: "Network traffic analyst",
-    providerSlotId: "docker-local-llm",
-    model: "local-traffic-analyst:latest",
-    temperature: 0,
-    maxTokens: 5e3,
-    fallbackProviderSlotId: "platform-default",
-    qualityGate: "Must map failed requests to cards/findings and redact sensitive headers before sync."
-  }
-];
-var modelTaskContracts = [
-  {
-    id: "modeltask.repo_context.v1",
-    category: "repo_context",
-    inputShape: "{ repo_summary, file_manifest, package_scripts, route_inventory }",
-    outputShape: "{ framework, workflows[], risk_areas[], likely_files[], unsupported_gaps[] }",
-    evidenceRequired: ["file refs", "script refs", "route refs"]
-  },
-  {
-    id: "modeltask.test_generation.v1",
-    category: "test_generation",
-    inputShape: "{ campaign_context, runtime_map, repo_context, prd_notes?, auth_roles? }",
-    outputShape: "{ test_cards: TestCard[], blocked_gaps[], generation_lineage[] }",
-    evidenceRequired: ["source artifact refs", "risk reason", "acceptance criteria"]
-  },
-  {
-    id: "modeltask.repair_packet.v1",
-    category: "repair_task_writing",
-    inputShape: "{ finding, evidence_refs, repo_context, traffic_insights? }",
-    outputShape: "RepairTask",
-    evidenceRequired: ["repro steps", "likely files", "verification command"]
-  }
-];
-
-// src/lib/mcp-runner-contract.ts
-var runnerTools = [
-  {
-    name: "qa.inspect_repo",
-    description: "Inspect package metadata, scripts, route files, API handlers, env expectations, and existing test tooling.",
-    inputShape: "{ repo_path: string }",
-    outputShape: "{ framework, package_manager, scripts, route_count, api_route_count, env_keys }"
-  },
-  {
-    name: "qa.detect_app",
-    description: "Detect app stack and support tier so the audit report names first-class and generic coverage honestly.",
-    inputShape: "{ repo_summary: RepoSummary }",
-    outputShape: "{ framework, support_tier, unsupported_gaps[] }"
-  },
-  {
-    name: "qa.capture_auth_state",
-    description: "Open a controlled browser session and store encrypted local Playwright storage state without sending credentials to the web app.",
-    inputShape: "{ campaign_id: string, app_url: string }",
-    outputShape: "{ auth_state_ref, expires_at, roles_detected[] }"
-  },
-  {
-    name: "qa.start_or_verify_app",
-    description: "Run or verify the local app URL, then collect console, network, and route reachability facts.",
-    inputShape: "{ app_url: string, start_command?: string }",
-    outputShape: "{ reachable, console_errors, failed_requests, discovered_routes[] }"
-  },
-  {
-    name: "qa.run_test_card",
-    description: "Execute an approved test card with Playwright and persist trace, screenshot, video, and structured assertions.",
-    inputShape: "{ campaign_id: string, test_card_id: string, storage_state_ref?: string }",
-    outputShape: "{ status, assertions[], artifact_refs[], finding_seed? }"
-  },
-  {
-    name: "qa.collect_artifacts",
-    description: "Normalize traces, screenshots, videos, network logs, and accessibility snapshots into report-ready artifact references.",
-    inputShape: "{ campaign_id: string, run_id: string }",
-    outputShape: "{ artifact_refs[], evidence_summary }"
-  },
-  {
-    name: "qa.sync_campaign_results",
-    description: "Send sanitized campaign results to the web app under one campaign id.",
-    inputShape: "RunnerSyncPayload",
-    outputShape: "{ accepted: boolean, synced_at: string }"
-  }
-];
-
-// src/lib/db.ts
-var cachedClient = null;
-async function getSqlClient(env = process.env) {
-  if (cachedClient) {
-    return cachedClient;
-  }
-  if (env.POSTGRES_URL) {
-    const { neon } = await Promise.resolve().then(() => (init_serverless(), serverless_exports));
-    const sql = neon(env.POSTGRES_URL);
-    cachedClient = async (text, params = []) => {
-      const result = await sql.query(text, params);
-      if (Array.isArray(result)) {
-        return result;
-      }
-      return result.rows ?? [];
-    };
-    return cachedClient;
-  }
-  if (env.LAUNCHAUDIT_LOCAL_DB) {
-    const { PGlite } = await Promise.resolve().then(() => (init_dist(), dist_exports));
-    const pg = new PGlite(env.LAUNCHAUDIT_LOCAL_DB);
-    const ready = pg.waitReady;
-    if (ready) await ready;
-    cachedClient = async (text, params = []) => {
-      const result = await pg.query(text, params);
-      return result.rows ?? [];
-    };
-    return cachedClient;
-  }
+// src/lib/instant-grade.ts
+import dns from "node:dns/promises";
+import net from "node:net";
+var CHALLENGE_SIGNS = [/cf-browser-verification/i, /_cf_chl_opt/i, /cf-chl/i, /Attention Required!\s*\|\s*Cloudflare/i, /Just a moment\.\.\./i, /Access Denied/i, /Request unsuccessful\. Incapsula/i, /_Incapsula_Resource/i, /Reference #\d+\.[0-9a-f]+\.[0-9a-f]+\.[0-9a-f]+/i, /akamai/i, /Pardon Our Interruption/i, /PerimeterX/i, /px-captcha/i, /distil_r_captcha/i, /DataDome/i, /Please verify you are a human/i, /enable JavaScript and cookies to continue/i];
+function blockedReason(status, html) {
+  if (status >= 400) return `The site answered our scanner with HTTP ${status}, so what we saw was an error page, not your site.`;
+  if (status >= 300) return `The site kept redirecting (HTTP ${status}) and never served a page to our scanner.`;
+  const body2 = html.trim();
+  if (body2.length < 500) return `The site returned only ${body2.length} bytes to our scanner, which is not a real page. It may be blocking automated traffic.`;
+  for (const re2 of CHALLENGE_SIGNS) if (re2.test(body2.slice(0, 2e4))) return "The site put a bot-protection challenge (Cloudflare, Akamai or similar) in front of our scanner instead of the page.";
   return null;
 }
-
-// server/api-src/runner-auth.ts
-import crypto2 from "node:crypto";
-function headerValue(headers, name2) {
-  const raw = headers[name2] ?? headers[name2.toLowerCase()];
-  if (Array.isArray(raw)) return raw[0];
-  return raw;
-}
-function presentedSecret(headers) {
-  const bearer = headerValue(headers, "authorization");
-  if (bearer && /^Bearer\s+/i.test(bearer)) {
-    return bearer.replace(/^Bearer\s+/i, "").trim();
+var PENALTY = { critical: 22, high: 13, medium: 7, low: 3 };
+var INSTANT_GRADE_NOTE = "This is the free 10-second surface scan (no code, no install). The deep audit \u2014 broken access control (IDOR), admin/RBAC, write-authz, and your actual code \u2014 runs free inside your own agent; your code never leaves your machine.";
+function privateIp(ip) {
+  if (net.isIPv4(ip)) {
+    const [a3, b5] = ip.split(".").map(Number);
+    return a3 === 10 || a3 === 127 || a3 === 0 || a3 === 169 && b5 === 254 || a3 === 172 && b5 >= 16 && b5 <= 31 || a3 === 192 && b5 === 168 || a3 === 100 && b5 >= 64 && b5 <= 127;
   }
-  const direct = headerValue(headers, "x-runner-secret");
-  if (direct) return direct.trim();
-  return void 0;
+  const x5 = ip.toLowerCase();
+  return x5 === "::1" || x5.startsWith("fc") || x5.startsWith("fd") || x5.startsWith("fe80") || x5.startsWith("::ffff:127.") || x5.startsWith("::ffff:10.") || x5.startsWith("::ffff:192.168.");
 }
-function timingSafeEqual(a3, b5) {
-  const aBuf = Buffer.from(a3, "utf8");
-  const bBuf = Buffer.from(b5, "utf8");
-  const aHash = crypto2.createHash("sha256").update(aBuf).digest();
-  const bHash = crypto2.createHash("sha256").update(bBuf).digest();
-  return crypto2.timingSafeEqual(aHash, bHash);
+function hostLooksPrivate(host) {
+  const h3 = host.toLowerCase();
+  const bad = ["localhost", "metadata.google.internal", "instance-data"];
+  if (bad.includes(h3) || h3.endsWith(".internal") || h3.endsWith(".local") || h3.endsWith(".localhost")) return "private host";
+  if (net.isIP(host) && privateIp(host)) return "private ip";
+  return null;
 }
-function authorizeRunnerWrite(headers) {
-  const configured = (process.env.RUNNER_SYNC_SECRET ?? "").trim();
-  const isProduction = process.env.VERCEL_ENV === "production";
-  const presented = presentedSecret(headers ?? {});
-  if (!configured) {
-    if (isProduction) {
-      return {
-        ok: false,
-        status: 503,
-        error: "Runner write endpoint is not configured (RUNNER_SYNC_SECRET unset). Writes are rejected."
-      };
+async function assertPublic(host) {
+  const staticProblem = hostLooksPrivate(host);
+  if (staticProblem) throw new Error(staticProblem);
+  if (net.isIP(host)) return;
+  const addrs = await dns.lookup(host, { all: true });
+  if (!addrs.length || addrs.some((a3) => privateIp(a3.address))) throw new Error("resolves to private ip");
+}
+function parseTargetUrl(input) {
+  let raw = typeof input === "string" ? input.trim() : "";
+  if (!raw) return { ok: false, error: "Provide a url." };
+  if (raw.length > 2048) return { ok: false, error: "That URL is too long." };
+  if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
+  let u2;
+  try {
+    u2 = new URL(raw);
+  } catch {
+    return { ok: false, error: `Not a valid URL: ${raw}` };
+  }
+  if (u2.protocol !== "http:" && u2.protocol !== "https:") return { ok: false, error: "Only http/https URLs." };
+  if (u2.username || u2.password) return { ok: false, error: "Credentials in the URL aren't allowed." };
+  if (!u2.hostname || !u2.hostname.includes(".") && !net.isIP(u2.hostname)) return { ok: false, error: "That doesn't look like a public hostname." };
+  if (hostLooksPrivate(u2.hostname)) return { ok: false, error: "That host isn't a public address we can scan." };
+  return { ok: true, url: u2 };
+}
+async function grab(url, opts = {}, ms2 = 8e3) {
+  const ctrl = new AbortController();
+  const t2 = setTimeout(() => ctrl.abort(), ms2);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": "8020LaunchAudit-Grader/1.0", ...opts.headers || {} } });
+  } finally {
+    clearTimeout(t2);
+  }
+}
+async function runInstantGrade(target) {
+  let u2 = target;
+  try {
+    await assertPublic(u2.hostname);
+  } catch {
+    return { ok: false, status: 400, error: "That host isn't a public address we can scan." };
+  }
+  const findings = [];
+  const passed = [];
+  let html = "", main = null;
+  try {
+    main = await grab(u2.toString());
+    if (main.status >= 300 && main.status < 400 && main.headers.get("location")) {
+      const loc = new URL(main.headers.get("location"), u2);
+      try {
+        await assertPublic(loc.hostname);
+        main = await grab(loc.toString());
+        u2 = loc;
+      } catch {
+      }
     }
-    return { ok: true };
+    html = (await main.text()).slice(0, 2e5);
+  } catch {
+    return { ok: false, status: 502, error: `Couldn't reach ${u2.origin}. Make sure it's live and public.` };
   }
-  if (!presented) {
-    return {
-      ok: false,
-      status: 401,
-      error: "Missing runner credential. Send the shared secret as 'authorization: Bearer <secret>' or 'x-runner-secret: <secret>'."
-    };
+  const blocked = blockedReason(main.status, html);
+  if (blocked) {
+    return { ok: false, status: 409, blocked: true, http_status: main.status, error: `${blocked} We do not score what we cannot see: allow the user agent 8020LaunchAudit-Grader/1.0 (or your CDN's verified-bot list) and run it again, or ask for a refund.` };
   }
-  if (!timingSafeEqual(presented, configured)) {
-    return { ok: false, status: 401, error: "Invalid runner credential." };
+  const H3 = (n4) => main.headers.get(n4);
+  if (u2.protocol !== "https:") findings.push({ category: "TLS", severity: "high", title: "No HTTPS", detail: "The site is served over plain http \u2014 credentials and cookies travel in cleartext." });
+  else if (!H3("strict-transport-security")) findings.push({ category: "TLS", severity: "medium", title: "Missing HSTS", detail: "No Strict-Transport-Security header \u2014 browsers can be downgraded to http before the redirect." });
+  else passed.push("HSTS present");
+  const hdr = [
+    ["content-security-policy", "Content-Security-Policy", "high"],
+    ["x-frame-options", "X-Frame-Options (clickjacking)", "medium"],
+    ["x-content-type-options", "X-Content-Type-Options (MIME sniffing)", "low"],
+    ["referrer-policy", "Referrer-Policy", "low"]
+  ];
+  for (const [k3, label, sev] of hdr) {
+    if (!H3(k3)) findings.push({ category: "Security headers", severity: sev, title: `Missing ${label}`, detail: `The ${label} response header is not set.` });
+    else passed.push(`${label} set`);
   }
-  return { ok: true };
+  if (H3("x-powered-by") || /express|php|next\.js/i.test(H3("server") || "")) findings.push({ category: "Security headers", severity: "low", title: "Stack banner leaked", detail: `Server reveals its stack (${H3("x-powered-by") || H3("server")}) \u2014 free recon for attackers.` });
+  const sc = H3("set-cookie") || "";
+  if (sc) {
+    const miss = ["HttpOnly", "Secure", "SameSite"].filter((f5) => !new RegExp(f5, "i").test(sc));
+    if (miss.length) findings.push({ category: "Cookies", severity: "high", title: `Session cookie missing ${miss.join(", ")}`, detail: "A login cookie without these flags can be stolen via XSS, leaked over http, or used in CSRF." });
+    else passed.push("Cookie flags hardened");
+  }
+  try {
+    const c4 = await grab(u2.toString(), { headers: { origin: "https://evil.example" } }, 6e3);
+    const acao = c4.headers.get("access-control-allow-origin");
+    if (acao === "https://evil.example" || acao === "*" && (c4.headers.get("access-control-allow-credentials") || "").toLowerCase() === "true")
+      findings.push({ category: "CORS", severity: "high", title: "CORS reflects any origin", detail: "The server echoes an arbitrary Origin (a hostile site could read your logged-in users' data)." });
+    else passed.push("CORS does not reflect hostile origin");
+  } catch {
+  }
+  for (const path of ["/.env", "/.git/config", "/.git/HEAD", "/.env.local"]) {
+    try {
+      const r = await grab(new URL(path, u2.origin).toString(), {}, 5e3);
+      if (r.status === 200) {
+        const ct3 = (r.headers.get("content-type") || "").toLowerCase();
+        const body2 = (await r.text()).slice(0, 4e3);
+        const looksReal = !ct3.includes("text/html") && !body2.trimStart().startsWith("<") && (/^\s*[A-Z0-9_]+\s*=/m.test(body2) || /\[core\]/.test(body2) || /^ref:\s/m.test(body2) || /-----BEGIN/.test(body2));
+        if (looksReal) {
+          findings.push({ category: "Secrets", severity: "critical", title: `Exposed ${path}`, detail: `${path} is publicly downloadable \u2014 it can leak credentials, keys, or your full git history.` });
+          break;
+        }
+      }
+    } catch {
+    }
+  }
+  const seo = [
+    [/<title[^>]*>\s*\S/i, "a real <title>", "medium"],
+    [/<meta[^>]+name=["']description["'][^>]+content=["']\s*\S/i, "a meta description", "low"],
+    [/<meta[^>]+name=["']viewport["']/i, "a mobile viewport tag", "medium"],
+    [/<meta[^>]+property=["']og:title["']/i, "an Open Graph title (link previews)", "low"]
+  ];
+  for (const [re2, label, sev] of seo) {
+    if (re2.test(html)) passed.push(label + " present");
+    else findings.push({ category: "SEO", severity: sev, title: `Missing ${label}`, detail: `The page is missing ${label}.` });
+  }
+  const penalty = findings.reduce((s5, f5) => s5 + PENALTY[f5.severity], 0);
+  const score = Math.max(0, Math.min(100, 100 - penalty));
+  const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  findings.sort((a3, b5) => order[a3.severity] - order[b5.severity]);
+  return {
+    ok: true,
+    url: u2.origin,
+    score,
+    band,
+    passed: passed.length,
+    summary: findings.length ? `Surface scan found ${findings.length} issue${findings.length === 1 ? "" : "s"} on ${u2.host}.` : `No surface-level issues found on ${u2.host} \u2014 nice. The deep checks still need your repo.`,
+    findings,
+    note: INSTANT_GRADE_NOTE
+  };
 }
 
-// server/api-src/campaign.ts
-var campaignPayload = {
-  campaign,
-  stages,
-  test_cards: testCards,
-  findings,
-  repair_tasks: repairTasks,
-  runner_tools: runnerTools,
-  competitive_scorecard: competitiveScorecard,
-  flagship_features: flagshipFeatures,
-  traffic_insights: trafficInsights,
-  heal_events: healEvents,
-  model_provider_slots: modelProviderSlots,
-  model_routes: modelRoutes,
-  model_task_contracts: modelTaskContracts,
-  storage_readiness: storageReadiness,
-  database_tables: databaseTables,
-  blob_artifacts: blobArtifacts,
-  storage_schema_sql: storageSchemaSql
-};
-var SEEDED_PERSISTENCE = {
-  mode: "seeded",
-  detail: "POSTGRES_URL is not configured; serving build-time seeded campaign data."
-};
-async function handler(request, response) {
-  if (request.method && request.method !== "GET") {
-    response.status(405).json({ error: "Method Not Allowed", allow: "GET" });
+// src/lib/deep-grade.ts
+import dns2 from "node:dns/promises";
+import tls from "node:tls";
+var PAGE_BUDGET = 8;
+var PAGE_TIMEOUT = 7e3;
+var PSI_TIMEOUT = 28e3;
+var PENALTY2 = { critical: 22, high: 13, medium: 7, low: 3 };
+var DEEP_GRADE_NOTE = "Single Run: a site-wide, URL-only audit (up to 8 pages) covering security headers, cookies, CORS, exposed files, accessibility basics, broken links, mixed content, SEO/launch blockers, error-page leaks, TLS, email DNS and Core Web Vitals. The hosted deep audit adds a real browser: broken access control, admin/RBAC, write-authz and authenticated flows.";
+var UA = "8020LaunchAudit-Grader/1.0 (+https://fusiondataco.com)";
+async function grab2(url, opts = {}, ms2 = PAGE_TIMEOUT) {
+  const ctrl = new AbortController();
+  const t2 = setTimeout(() => ctrl.abort(), ms2);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": UA, ...opts.headers || {} } });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t2);
+  }
+}
+function attr(tag, name2) {
+  const m6 = tag.match(new RegExp(`\\s${name2}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
+  return m6 ? m6[2] ?? m6[3] ?? m6[4] ?? "" : null;
+}
+function internalLinks(html, base, max = 60) {
+  const out2 = /* @__PURE__ */ new Set();
+  for (const m6 of html.matchAll(/<a\b[^>]*>/gi)) {
+    const href = attr(m6[0], "href");
+    if (!href || /^(mailto:|tel:|javascript:|#)/i.test(href)) continue;
+    let u2;
+    try {
+      u2 = new URL(href, base);
+    } catch {
+      continue;
+    }
+    if (u2.origin !== base.origin) continue;
+    if (/\.(png|jpe?g|gif|svg|webp|pdf|zip|mp4|css|js|ico|woff2?)$/i.test(u2.pathname)) continue;
+    u2.hash = "";
+    out2.add(u2.toString());
+    if (out2.size >= max) break;
+  }
+  return [...out2];
+}
+function certExpiryDays(host) {
+  return new Promise((resolve2) => {
+    const done = (v5) => {
+      try {
+        s5.destroy();
+      } catch {
+      }
+      resolve2(v5);
+    };
+    const s5 = tls.connect({ host, port: 443, servername: host, timeout: 5e3 }, () => {
+      const cert = s5.getPeerCertificate();
+      if (!cert || !cert.valid_to) return done(null);
+      done(Math.floor((new Date(cert.valid_to).getTime() - Date.now()) / 864e5));
+    });
+    s5.on("error", () => done(null));
+    s5.on("timeout", () => done(null));
+  });
+}
+async function txt(name2) {
+  try {
+    return (await dns2.resolveTxt(name2)).map((r) => r.join(""));
+  } catch {
+    return [];
+  }
+}
+async function pageSpeed(url) {
+  const key = process.env.PAGESPEED_API_KEY;
+  const q2 = new URLSearchParams({ url, strategy: "mobile" });
+  for (const c4 of ["performance", "accessibility", "best-practices", "seo"]) q2.append("category", c4);
+  if (key) q2.set("key", key);
+  const r = await grab2(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${q2}`, { headers: { accept: "application/json" } }, PSI_TIMEOUT);
+  if (!r || !r.ok) return null;
+  try {
+    const j4 = await r.json();
+    const cats = j4.lighthouseResult?.categories ?? {};
+    const pct = (k3) => typeof cats[k3]?.score === "number" ? Math.round(cats[k3].score * 100) : null;
+    const field = j4.loadingExperience?.metrics ?? {};
+    const lab = j4.lighthouseResult?.audits ?? {};
+    const hasField = Boolean(field.LARGEST_CONTENTFUL_PAINT_MS?.percentile);
+    return {
+      performance: pct("performance"),
+      accessibility: pct("accessibility"),
+      best_practices: pct("best-practices"),
+      seo: pct("seo"),
+      lcp_ms: hasField ? field.LARGEST_CONTENTFUL_PAINT_MS.percentile : lab["largest-contentful-paint"]?.numericValue != null ? Math.round(lab["largest-contentful-paint"].numericValue) : null,
+      cls: hasField && field.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile != null ? field.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile / 100 : lab["cumulative-layout-shift"]?.numericValue ?? null,
+      inp_ms: hasField ? field.INTERACTION_TO_NEXT_PAINT?.percentile ?? null : null,
+      source: hasField ? "field" : cats.performance ? "lab" : "none"
+    };
+  } catch {
+    return null;
+  }
+}
+async function runDeepGrade(target) {
+  const surface = await runInstantGrade(target);
+  if (!surface.ok) return surface;
+  const origin = new URL(surface.url);
+  const findings = [...surface.findings];
+  let passed = surface.passed;
+  let checks = 12;
+  const F4 = (category, severity, title, detail) => findings.push({ category, severity, title, detail });
+  const dedupe = new Set(findings.map((f5) => f5.title));
+  const Fonce = (category, severity, title, detail) => {
+    if (!dedupe.has(title)) {
+      dedupe.add(title);
+      F4(category, severity, title, detail);
+    }
+  };
+  const home = await grab2(origin.toString());
+  const homeHtml = home ? (await home.text()).slice(0, 3e5) : "";
+  const links = internalLinks(homeHtml, origin, 60);
+  const targets = [origin.toString(), ...links.filter((l2) => l2 !== origin.toString())].slice(0, PAGE_BUDGET);
+  const pages = [];
+  await Promise.all(targets.map(async (u2) => {
+    const r = u2 === origin.toString() && home ? home : await grab2(u2);
+    if (!r) {
+      pages.push({ url: u2, status: 0, html: "", headers: null });
+      return;
+    }
+    const html = u2 === origin.toString() ? homeHtml : (await r.text()).slice(0, 3e5);
+    pages.push({ url: u2, status: r.status, html, headers: r.headers });
+  }));
+  checks++;
+  const broken = pages.filter((p6) => p6.status === 0 || p6.status >= 400 || p6.status === 404);
+  const extra = links.filter((l2) => !targets.includes(l2)).slice(0, 20);
+  const extraBroken = [];
+  await Promise.all(extra.map(async (l2) => {
+    const r = await grab2(l2, { method: "HEAD" }, 5e3);
+    if (!r || r.status >= 400) extraBroken.push(l2);
+  }));
+  const brokenAll = [...broken.map((b5) => b5.url), ...extraBroken];
+  if (brokenAll.length) F4("Links", brokenAll.length > 3 ? "high" : "medium", `${brokenAll.length} broken internal link${brokenAll.length === 1 ? "" : "s"}`, `Linked from your own pages but returning an error: ${brokenAll.slice(0, 5).map((u2) => new URL(u2).pathname).join(", ")}${brokenAll.length > 5 ? ", \u2026" : ""}.`);
+  else passed++;
+  const okPages = pages.filter((p6) => p6.status > 0 && p6.status < 400 && p6.html);
+  if (okPages.length === 0) {
+    return { ok: false, status: 409, blocked: true, http_status: home?.status ?? 0, error: `We could not load a single page on ${origin.host} from our scanner (home page answered HTTP ${home?.status ?? "nothing"}). We do not score what we cannot see: allow the user agent 8020LaunchAudit-Grader/1.0 and run it again, or ask for a refund.` };
+  }
+  let noAlt = 0, noH1 = [], noLang = false, emptyBtn = 0, mixed = [], httpForms = [], noCanon = [], noTitle = [], noViewport = [];
+  let headerGaps = 0;
+  for (const p6 of okPages) {
+    const h3 = p6.html;
+    for (const m6 of h3.matchAll(/<img\b[^>]*>/gi)) {
+      if (attr(m6[0], "alt") === null && !/\srole\s*=\s*["']?presentation/i.test(m6[0])) noAlt++;
+    }
+    if (!/<h1[\s>]/i.test(h3)) noH1.push(p6.url);
+    if (p6.url === origin.toString() && !/<html[^>]*\slang\s*=/i.test(h3)) noLang = true;
+    for (const m6 of h3.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)) {
+      const inner = m6[1].replace(/<[^>]+>/g, "").trim();
+      if (!inner && !/aria-label/i.test(m6[0])) emptyBtn++;
+    }
+    if (origin.protocol === "https:") for (const m6 of h3.matchAll(/<(?:img|script|link|iframe|video|audio|source)\b[^>]*\s(?:src|href)\s*=\s*["']http:\/\/[^"']+/gi)) {
+      mixed.push(p6.url);
+      break;
+    }
+    for (const m6 of h3.matchAll(/<form\b[^>]*>/gi)) {
+      const a3 = attr(m6[0], "action");
+      if (a3 && /^http:\/\//i.test(a3)) {
+        httpForms.push(p6.url);
+        break;
+      }
+    }
+    if (!/<link[^>]+rel=["']canonical["']/i.test(h3)) noCanon.push(p6.url);
+    if (!/<title[^>]*>\s*\S/i.test(h3)) noTitle.push(p6.url);
+    if (!/<meta[^>]+name=["']viewport["']/i.test(h3)) noViewport.push(p6.url);
+    if (p6.headers && p6.url !== origin.toString()) {
+      for (const k3 of ["content-security-policy", "x-frame-options", "x-content-type-options"]) if (!p6.headers.get(k3)) headerGaps++;
+    }
+  }
+  checks += 8;
+  if (noAlt) F4("Accessibility", noAlt > 5 ? "high" : "medium", `${noAlt} image${noAlt === 1 ? "" : "s"} without alt text`, `Screen readers announce these as 'image' with no meaning; also an easy SEO loss. Add alt="" for decorative images and real descriptions for the rest.`);
+  else passed++;
+  if (noH1.length) F4("Accessibility", "medium", `${noH1.length} page${noH1.length === 1 ? "" : "s"} without an <h1>`, `Every page needs one heading that says what it is (${noH1.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")}).`);
+  else passed++;
+  if (noLang) F4("Accessibility", "medium", "No lang attribute on <html>", 'Screen readers guess the language; browsers translate the wrong thing. Add <html lang="en">.');
+  else passed++;
+  if (emptyBtn) F4("Accessibility", "medium", `${emptyBtn} button${emptyBtn === 1 ? "" : "s"} with no accessible name`, "Icon-only buttons need aria-label so keyboard and screen-reader users know what they do.");
+  else passed++;
+  if (mixed.length) F4("TLS", "high", "Mixed content on an https page", `Assets loaded over plain http on ${mixed.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")} \u2014 browsers block or warn, and the padlock disappears.`);
+  else passed++;
+  if (httpForms.length) F4("TLS", "critical", "Form posts over plain http", `A form on ${new URL(httpForms[0]).pathname} submits to an http:// URL \u2014 anything typed into it travels in cleartext.`);
+  else passed++;
+  if (noCanon.length === okPages.length && okPages.length) F4("SEO", "low", "No canonical URLs", 'Without <link rel="canonical"> search engines may index duplicate versions (www / trailing slash / query strings) and split your ranking.');
+  else passed++;
+  if (noTitle.length > 1) Fonce("SEO", "medium", `${noTitle.length} pages without a <title>`, "Each page needs its own title; browser tabs, bookmarks and search results all show it.");
+  if (noViewport.length > 1) Fonce("SEO", "medium", `${noViewport.length} pages missing the mobile viewport tag`, "Those pages render zoomed-out on phones.");
+  if (headerGaps > 0 && okPages.length > 1) F4("Security headers", "low", "Security headers not applied site-wide", `${headerGaps} header gap${headerGaps === 1 ? "" : "s"} on secondary pages \u2014 set CSP / X-Frame-Options / X-Content-Type-Options at the platform level so every route gets them.`);
+  else if (okPages.length > 1) passed++;
+  checks += 5;
+  const robots = await grab2(new URL("/robots.txt", origin).toString(), {}, 5e3);
+  const robotsTxt = robots && robots.status === 200 ? (await robots.text()).slice(0, 2e4) : "";
+  if (/^\s*user-agent:\s*\*\s*$[\s\S]*?^\s*disallow:\s*\/\s*$/im.test(robotsTxt)) F4("Launch", "critical", "robots.txt blocks the whole site", "User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch.");
+  else passed++;
+  if (/<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(homeHtml) || /noindex/i.test(home?.headers.get("x-robots-tag") || "")) F4("Launch", "critical", "Home page is noindex", "A noindex tag or X-Robots-Tag header on the home page removes the site from search results.");
+  else passed++;
+  const sitemapHinted = /sitemap:/i.test(robotsTxt);
+  const sm = await grab2(new URL("/sitemap.xml", origin).toString(), { method: "HEAD" }, 5e3);
+  if (!(sm && sm.status === 200) && !sitemapHinted) F4("SEO", "low", "No sitemap.xml", "A sitemap gets new pages discovered days faster. Most frameworks generate one in one line.");
+  else passed++;
+  const fav = /<link[^>]+rel=["'][^"']*icon[^"']*["']/i.test(homeHtml) || (await grab2(new URL("/favicon.ico", origin).toString(), { method: "HEAD" }, 4e3))?.status === 200;
+  if (!fav) F4("Launch", "low", "No favicon", "The tab shows a blank page icon; it reads as unfinished.");
+  else passed++;
+  if (!/<meta[^>]+property=["']og:image["']/i.test(homeHtml)) F4("SEO", "low", "No Open Graph image", "Links shared on LinkedIn, Slack, iMessage or X show no preview image without og:image.");
+  else passed++;
+  checks += 2;
+  const nf = await grab2(new URL(`/__launch-audit-${Date.now().toString(36)}`, origin).toString(), {}, 6e3);
+  if (nf) {
+    const body2 = (await nf.text()).slice(0, 5e4);
+    if (nf.status === 200 && !/not found|404/i.test(body2)) F4("Errors", "medium", "Soft 404", "Unknown URLs return 200 instead of 404 \u2014 search engines index junk pages and monitoring never sees the breakage.");
+    else passed++;
+    if (/(Traceback \(most recent call last\)|at Object\.<anonymous>|node_modules\/|Unhandled Runtime Error|Application error: a (client|server)-side exception|Whoops, looks like something went wrong|SQLSTATE\[|ORA-\d{5}|Warning: mysql_)/i.test(body2)) F4("Errors", "high", "Error page leaks internals", "The error page shows a stack trace or framework debug output \u2014 paths, versions and sometimes queries, for free.");
+    else passed++;
+  }
+  checks++;
+  const exposed = [];
+  const probes = [
+    ["/.DS_Store", /^\0\0\0\x01Bud1/],
+    ["/phpinfo.php", /phpinfo\(\)|PHP Version/i],
+    ["/config.json", /"(password|secret|api[_-]?key|token)"\s*:/i],
+    ["/.env.production", /^\s*[A-Z0-9_]+\s*=/m],
+    ["/backup.zip", /^PK\x03\x04/],
+    ["/db.sql", /(CREATE TABLE|INSERT INTO)/i],
+    ["/wp-config.php.bak", /DB_PASSWORD/],
+    ["/.git/index", /^DIRC/],
+    ["/server-status", /Apache Server Status/i],
+    ["/admin/config.yml", /(password|secret):/i]
+  ];
+  await Promise.all(probes.map(async ([path, re2]) => {
+    const r = await grab2(new URL(path, origin).toString(), {}, 5e3);
+    if (!r || r.status !== 200) return;
+    const body2 = (await r.text()).slice(0, 4e3);
+    if (re2.test(body2)) exposed.push(path);
+  }));
+  const maps = /* @__PURE__ */ new Set();
+  for (const m6 of homeHtml.matchAll(/<script\b[^>]*\ssrc\s*=\s*["']([^"']+\.js)(\?[^"']*)?["']/gi)) {
+    try {
+      const u2 = new URL(m6[1], origin);
+      if (u2.origin === origin.origin) maps.add(u2.toString() + ".map");
+    } catch {
+    }
+  }
+  let mapHit = "";
+  await Promise.all([...maps].slice(0, 6).map(async (u2) => {
+    const r = await grab2(u2, { method: "HEAD" }, 4e3);
+    if (r && r.status === 200 && /json|octet/i.test(r.headers.get("content-type") || "")) mapHit ||= new URL(u2).pathname;
+  }));
+  if (exposed.length) F4("Secrets", "critical", `Exposed ${exposed.join(", ")}`, "Publicly downloadable files that leak configuration, backups or server internals. Remove them or block them at the edge.");
+  else passed++;
+  if (mapHit) F4("Secrets", "low", "Source maps are public", `${mapHit} ships your original source to anyone who asks. Disable productionBrowserSourceMaps / devtool in production builds.`);
+  if (origin.protocol === "https:") {
+    checks += 2;
+    const days = await certExpiryDays(origin.hostname);
+    if (days !== null && days < 14) F4("TLS", days < 3 ? "critical" : "high", `TLS certificate expires in ${days} day${days === 1 ? "" : "s"}`, "When it lapses every visitor gets a full-page browser warning. Check that auto-renewal is actually running.");
+    else if (days !== null) passed++;
+    const plain = await grab2(`http://${origin.host}/`, {}, 6e3);
+    if (plain && !(plain.status >= 300 && plain.status < 400 && /^https:/i.test(plain.headers.get("location") || ""))) F4("TLS", "medium", "http:// does not redirect to https://", "Typing the bare domain lands on the insecure version (or a dead page). Add a permanent redirect at the edge.");
+    else if (plain) passed++;
+  }
+  checks += 2;
+  const apex = origin.hostname.split(".").slice(-2).join(".");
+  const spf = (await txt(apex)).some((t2) => /^v=spf1/i.test(t2));
+  const dmarc = (await txt(`_dmarc.${apex}`)).some((t2) => /^v=DMARC1/i.test(t2));
+  if (!spf) F4("Email", "medium", `No SPF record on ${apex}`, "Sign-up confirmations, receipts and password resets from this domain are far more likely to land in spam. Add a v=spf1 TXT record.");
+  else passed++;
+  if (!dmarc) F4("Email", "medium", `No DMARC record on ${apex}`, "Gmail and Yahoo now require DMARC for bulk senders, and it stops anyone spoofing your domain. Add _dmarc TXT: v=DMARC1; p=quarantine.");
+  else passed++;
+  checks += 2;
+  const t0 = Date.now();
+  const timed = await grab2(origin.toString(), { headers: { "cache-control": "no-cache" } }, 1e4);
+  const ttfb = Date.now() - t0;
+  const assets = /* @__PURE__ */ new Set();
+  for (const m6 of homeHtml.matchAll(/<(?:script|img|link)\b[^>]*\s(?:src|href)\s*=\s*["']([^"']+)["']/gi)) {
+    try {
+      const u2 = new URL(m6[1], origin);
+      if (/\.(js|mjs|css|png|jpe?g|gif|webp|avif|svg|woff2?)(\?|$)/i.test(u2.pathname + u2.search) || /\/_next\/static\//.test(u2.pathname)) assets.add(u2.toString());
+    } catch {
+    }
+  }
+  let bytes = homeHtml.length;
+  const big = [];
+  await Promise.all([...assets].slice(0, 25).map(async (u2) => {
+    const r = await grab2(u2, { method: "HEAD" }, 4e3);
+    const n4 = Number(r?.headers.get("content-length") || 0);
+    if (n4 > 0) {
+      bytes += n4;
+      if (n4 > 500 * 1024) big.push({ path: new URL(u2).pathname.split("/").pop() || u2, kb: Math.round(n4 / 1024) });
+    }
+  }));
+  if (timed && ttfb > 1800) F4("Performance", "medium", `Slow server response (${(ttfb / 1e3).toFixed(1)}s to first byte)`, "Time-to-first-byte over ~0.8s drags every other metric; check cold starts, uncached database calls, or a region far from your users.");
+  else if (timed) passed++;
+  const mb = bytes / (1024 * 1024);
+  if (mb > 3 || big.length) F4("Performance", mb > 5 ? "high" : "medium", `Heavy home page (${mb.toFixed(1)} MB across ${assets.size + 1} assets)`, `${big.length ? "Largest: " + big.sort((a3, b5) => b5.kb - a3.kb).slice(0, 3).map((b5) => `${b5.path} (${b5.kb} KB)`).join(", ") + ". " : ""}Mobile visitors on 4G wait roughly ${Math.max(1, Math.round(mb * 2))}s+ before the page is usable. Compress images (AVIF/WebP), lazy-load below the fold, split the JS bundle.`);
+  else passed++;
+  const lh = await pageSpeed(origin.toString());
+  if (lh) {
+    checks += 4;
+    if (lh.performance !== null && lh.performance < 50) F4("Performance", "high", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"}${lh.inp_ms != null ? `, INP ${lh.inp_ms}ms` : ""} (${lh.source} data). Below 50 is the range where users bounce before the page paints.`);
+    else if (lh.performance !== null && lh.performance < 80) F4("Performance", "medium", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"} (${lh.source} data). Google's 'good' bar is LCP under 2.5s and CLS under 0.1.`);
+    else if (lh.performance !== null) passed++;
+    if (lh.accessibility !== null && lh.accessibility < 90) F4("Accessibility", lh.accessibility < 70 ? "high" : "medium", `Lighthouse accessibility ${lh.accessibility}/100`, "Contrast, labels, focus order and ARIA problems Lighthouse can prove. Under 90 is where ADA/WCAG complaints start.");
+    else if (lh.accessibility !== null) passed++;
+    if (lh.best_practices !== null && lh.best_practices < 80) F4("Best practices", "low", `Lighthouse best-practices ${lh.best_practices}/100`, "Console errors, deprecated APIs, missing image aspect ratios or insecure requests.");
+    else if (lh.best_practices !== null) passed++;
+    if (lh.seo !== null && lh.seo < 90) F4("SEO", "low", `Lighthouse SEO ${lh.seo}/100`, "Crawlability, tap-target size, meta tags and structured data.");
+    else if (lh.seo !== null) passed++;
+  }
+  const twins = [
+    [/^Missing a mobile viewport tag$/, /pages missing the mobile viewport tag$/],
+    [/^Missing a real <title>$/, /pages without a <title>$/],
+    [/^Missing (Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy)/, /^Security headers not applied site-wide$/]
+  ];
+  const deduped = findings.filter((f5) => {
+    for (const [single, siteWide] of twins) {
+      if (single.test(f5.title) && findings.some((g5) => siteWide.test(g5.title))) {
+        if (/^Security headers not applied site-wide$/.test(f5.title)) return false;
+        if (!/^Missing (Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy)/.test(f5.title)) return false;
+      }
+    }
+    return true;
+  });
+  const CATEGORY_CAP = 30;
+  const byCategory = /* @__PURE__ */ new Map();
+  let penalty = 0;
+  for (const f5 of deduped) {
+    const c4 = byCategory.get(f5.category) || 0;
+    const add = Math.min(PENALTY2[f5.severity], Math.max(0, CATEGORY_CAP - c4));
+    byCategory.set(f5.category, c4 + add);
+    penalty += add;
+  }
+  findings.length = 0;
+  findings.push(...deduped);
+  const score = Math.max(0, Math.min(100, 100 - penalty));
+  const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  findings.sort((a3, b5) => order[a3.severity] - order[b5.severity]);
+  const scanned = okPages.length;
+  return {
+    ...surface,
+    kind: "deep",
+    score,
+    band,
+    passed,
+    findings,
+    pages_scanned: scanned,
+    pages: okPages.map((p6) => p6.url),
+    lighthouse: lh,
+    checks_run: checks,
+    summary: findings.length ? `Audited ${scanned} page${scanned === 1 ? "" : "s"} on ${origin.host}: ${findings.length} issue${findings.length === 1 ? "" : "s"} (${findings.filter((f5) => f5.severity === "critical" || f5.severity === "high").length} critical/high).` : `Audited ${scanned} page${scanned === 1 ? "" : "s"} on ${origin.host}: nothing to fix at the URL level. The browser-based deep audit is the next step.`,
+    note: DEEP_GRADE_NOTE
+  };
+}
+
+// src/lib/stripe.ts
+function encodeForm(obj, prefix = "", out2 = []) {
+  for (const [k3, v5] of Object.entries(obj)) {
+    if (v5 === void 0 || v5 === null) continue;
+    const key = prefix ? `${prefix}[${k3}]` : k3;
+    if (Array.isArray(v5)) v5.forEach((item, i3) => typeof item === "object" && item ? encodeForm(item, `${key}[${i3}]`, out2) : out2.push(`${encodeURIComponent(`${key}[${i3}]`)}=${encodeURIComponent(String(item))}`));
+    else if (typeof v5 === "object") encodeForm(v5, key, out2);
+    else out2.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v5))}`);
+  }
+  return out2.join("&");
+}
+async function stripeRequest(secretKey, path, body2, opts = {}) {
+  const r = await fetch(`https://api.stripe.com${path}`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${secretKey}`,
+      "content-type": "application/x-www-form-urlencoded",
+      ...opts.idempotencyKey ? { "idempotency-key": opts.idempotencyKey } : {}
+    },
+    body: encodeForm(body2)
+  });
+  const json = await r.json();
+  if (!r.ok) throw new Error(json.error?.message || `Stripe ${path} failed (${r.status})`);
+  return json;
+}
+async function stripeGet(secretKey, path) {
+  const r = await fetch(`https://api.stripe.com${path}`, { headers: { authorization: `Bearer ${secretKey}` } });
+  const json = await r.json();
+  if (!r.ok) throw new Error(json.error?.message || `Stripe ${path} failed (${r.status})`);
+  return json;
+}
+
+// src/lib/paid-audits.ts
+async function ensurePaidAuditsTable(sql) {
+  for (const stmt of paidAuditsSchemaSql.split(";").map((s5) => s5.trim()).filter(Boolean)) await sql(stmt);
+}
+async function getPaidAuditBySession(sql, stripeSessionId) {
+  const rows = await sql(`select * from paid_audits where stripe_session_id = $1 limit 1`, [stripeSessionId]);
+  return rows[0] ?? null;
+}
+async function gradePaidAudit(sql, row) {
+  if (row.status !== "queued") return row;
+  const parsed = parseTargetUrl(row.target_url);
+  const result = parsed.ok ? await runDeepGrade(parsed.url) : { ok: false, status: 400, error: parsed.error };
+  if (result.ok) {
+    if (row.tier === "single") {
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1`, [row.id, JSON.stringify(result)]);
+    } else {
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
+    }
+  } else if ("blocked" in result && result.blocked) {
+    const refund = await refundBlockedOrder(row);
+    await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund })]);
+  } else {
+    await sql(`update paid_audits set grade_json = $2::jsonb where id = $1`, [row.id, JSON.stringify({ error: result.error })]);
+  }
+  return await getPaidAuditBySession(sql, row.stripe_session_id) ?? row;
+}
+async function refundBlockedOrder(row) {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) return { skipped: "STRIPE_SECRET_KEY unset" };
+  if (process.env.AUTO_REFUND_BLOCKED === "0") return { skipped: "AUTO_REFUND_BLOCKED=0" };
+  try {
+    const session = await stripeGet(secret, `/v1/checkout/sessions/${encodeURIComponent(row.stripe_session_id)}`);
+    if (!session.payment_intent) return { error: "session has no payment_intent" };
+    const r = await stripeRequest(
+      secret,
+      "/v1/refunds",
+      { payment_intent: session.payment_intent, reason: "requested_by_customer", metadata: { launchaudit_order: row.id, cause: "blocked" } },
+      { idempotencyKey: `launchaudit-refund-${row.stripe_session_id}` }
+    );
+    return { id: r.id };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// server/api-src/grade-order.ts
+async function handler(req, res) {
+  const secret = process.env.RUNNER_SYNC_SECRET;
+  const auth = req.headers["authorization"];
+  const given = (Array.isArray(auth) ? auth[0] : auth) || "";
+  if (!secret || given !== `Bearer ${secret}`) {
+    res.status(401).json({ error: "Unauthorized." });
     return;
   }
   const sql = await getSqlClient();
-  const rawId = request.query?.id;
-  const campaignId = typeof rawId === "string" && rawId.trim() ? rawId.trim() : void 0;
   if (!sql) {
-    response.status(200).json({ ...campaignPayload, persistence: SEEDED_PERSISTENCE });
+    res.status(503).json({ error: "Database not configured." });
     return;
   }
-  if (process.env.VERCEL_ENV === "production" && !authorizeRunnerWrite(request.headers).ok) {
-    response.status(200).json({
-      ...campaignPayload,
-      locked: true,
-      persistence: { mode: "seeded", detail: "Live campaigns need the operator key. Showing the built-in sample." }
-    });
-    return;
+  await ensurePaidAuditsTable(sql);
+  let sid = req.query?.session_id;
+  if (Array.isArray(sid)) sid = sid[0];
+  if (!sid && req.url) sid = new URL(req.url, "http://x").searchParams.get("session_id") ?? void 0;
+  const rows = sid ? [await getPaidAuditBySession(sql, sid)].filter((r) => !!r) : await sql(`select * from paid_audits where status = 'queued' order by created_at asc limit 5`);
+  const out2 = [];
+  for (const row of rows) {
+    const g5 = await gradePaidAudit(sql, row);
+    out2.push({ id: g5.id, status: g5.status });
   }
-  try {
-    await ensureCampaignReady(sql);
-    const bundle = await loadCampaignBundle(sql, campaignId);
-    if (!bundle) {
-      response.status(campaignId ? 404 : 200).json({
-        ...campaignPayload,
-        persistence: { mode: "seeded", detail: campaignId ? `Campaign ${campaignId} not found.` : "Postgres reachable but campaign row missing; serving seeded data." }
-      });
-      return;
-    }
-    response.status(200).json({
-      ...campaignPayload,
-      campaign: bundle.campaign,
-      test_cards: bundle.testCards,
-      findings: bundle.findings,
-      repair_tasks: bundle.repairTasks,
-      persistence: bundle.persistence,
-      run_stats: bundle.runStats
-    });
-  } catch (error) {
-    response.status(200).json({
-      ...campaignPayload,
-      persistence: {
-        mode: "seeded",
-        detail: `Postgres unavailable (${error instanceof Error ? error.message : "unknown error"}); serving seeded fallback.`
-      }
-    });
-  }
+  res.status(200).json({ ok: true, graded: out2 });
 }
 export {
   handler as default

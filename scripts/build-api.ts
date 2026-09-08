@@ -12,6 +12,7 @@ const entries: Array<[string, string]> = [
   ["server/api-src/checkout.ts", "api/checkout.js"],
   ["server/api-src/stripe-webhook.ts", "api/stripe-webhook.js"],
   ["server/api-src/order-status.ts", "api/order-status.js"],
+  ["server/api-src/grade-order.ts", "api/grade-order.js"],
   ["server/api-src/runner/sync.ts", "api/runner/sync.js"],
   ["server/api-src/storage/register-artifact.ts", "api/storage/register-artifact.js"],
 ];

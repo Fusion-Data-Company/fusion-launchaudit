@@ -10,12 +10,15 @@
 
   function renderGrade(g){
     var items=(g.findings||[]).map(function(f){return '<li class="gf"><span class="gf-sev" style="color:'+sevColor[f.severity]+'">'+esc(f.severity)+'</span><span class="gf-txt"><b>'+esc(f.title)+'</b><span>'+esc(f.detail)+'</span></span></li>';}).join('');
-    grade.innerHTML='<div class="grade-card"><div class="grade-score band-'+esc(g.band)+'"><span class="gs-num">'+g.score+'</span><span class="gs-den">/ 100</span><span class="gs-cap">surface grade</span></div>'
+    var pages=g.pages_scanned||1;
+    grade.innerHTML='<div class="grade-card"><div class="grade-score band-'+esc(g.band)+'"><span class="gs-num">'+g.score+'</span><span class="gs-den">/ 100</span><span class="gs-cap">readiness</span></div>'
       +'<div class="grade-body"><p class="grade-sum">'+esc(g.summary)+'</p>'
-      +(items?'<ul class="grade-list">'+items+'</ul>':'<p class="grade-clean">No surface issues found — nice.</p>')
+      +(items?'<ul class="grade-list">'+items+'</ul>':'<p class="grade-clean">No URL-level issues found. Nice.</p>')
       +(g.lighthouse?'<p class="muted" style="margin-top:12px"><b>Lighthouse (mobile):</b> performance '+lhv(g.lighthouse.performance)+' · accessibility '+lhv(g.lighthouse.accessibility)+' · best practices '+lhv(g.lighthouse.best_practices)+' · SEO '+lhv(g.lighthouse.seo)+(g.lighthouse.lcp_ms!=null?' · LCP '+(Math.round(g.lighthouse.lcp_ms/100)/10)+'s':'')+(g.lighthouse.cls!=null?' · CLS '+Number(g.lighthouse.cls).toFixed(2):'')+'</p>':'')
-      +'<p class="muted" style="margin-top:14px">'+(g.kind==='deep'?'Site-wide URL-only audit: '+(g.pages_scanned||1)+' page'+((g.pages_scanned||1)===1?'':'s')+' scanned, '+(g.checks_run||0)+' check groups, '+(g.passed||0)+' passed. No browser, no login, no code — the hosted deep audit adds broken access control, admin/RBAC, write-authz and authenticated flows.':'This is the instant, URL-only surface scan (' + (g.passed||0) + ' checks passed). It is a subset of the full audit — the deep checks (broken access control, admin/RBAC, write-authz, a11y, performance) are what the emailed report covers.')+'</p></div></div>';
+      +'<p class="muted" style="margin-top:14px">'+(g.kind==='deep'?'Site-wide URL-only audit: '+pages+' page'+(pages===1?'':'s')+' scanned, '+(g.checks_run||0)+' check groups run, '+(g.passed||0)+' passed. No browser, no login, no code. Broken access control, admin/RBAC, write-authz and authenticated flows need the deep audit, which is free in your own agent.':'URL-only surface scan: '+(g.passed||0)+' checks passed. Broken access control, admin/RBAC, write-authz and authenticated flows need the deep audit, which is free in your own agent.')+'</p></div></div>';
   }
+
+  function tierName(t){return t==='pro'?'Pro':t==='single'?'Single Run':'Deep Audit';}
 
   var tries=0, delay=3000;
   async function poll(){
@@ -26,27 +29,38 @@
       if(!d||!d.ok){ grade.innerHTML='<div class="loading err">'+esc((d&&d.error)||'Could not load your order.')+'</div>'; return; }
       if(d.status==='pending'){
         if(tries<40){ setTimeout(poll, delay); return; }
-        grade.innerHTML='<div class="loading">Your payment went through, but confirmation is still syncing. Your grade and report will arrive by email — no action needed. You can also reload this page later.</div>';
+        grade.innerHTML='<div class="loading">Your payment went through, but the order has not synced yet. Keep this link and reload it in a few minutes. If it is still empty after an hour, use the contact form with your Stripe receipt number.</div>';
         return;
       }
-      meta.textContent='Order for '+d.target_url+' · '+(d.tier==='pro'?'Pro':d.tier==='single'?'Single Run':'Standard')+' tier';
-      if(d.tier==='single'){var pr=document.getElementById('promise');if(pr)pr.textContent='Single Run: your site audit below is the deliverable. Upgrade to a deep audit any time from the order page.';if(stReport)stReport.hidden=true;}
-      if(d.grade){ stGraded.className='done'; renderGrade(d.grade); }
-      else if(d.grade_error){ stGraded.className='now'; grade.innerHTML='<div class="loading">The instant scan could not reach '+esc(d.target_url)+' ('+esc(d.grade_error)+'). We will grade it manually as part of your report.</div>'; }
-      else { stGraded.className='now'; grade.innerHTML='<div class="loading">Running your site audit (30–60 seconds)…</div>'; if(tries<40) setTimeout(poll, delay); }
+      meta.textContent='Order for '+d.target_url+' · '+tierName(d.tier)+' · order link: '+window.location.href;
+      if(d.status==='blocked'){
+        stGraded.className='now'; if(stReport)stReport.hidden=true;
+        grade.innerHTML='<div class="loading err">We could not audit '+esc(d.target_url)+'. '+esc(d.blocked||d.grade_error||'The site did not answer as a normal page.')+'<br><br>That is a refund, not a report. '+(d.refunded?'Your payment has been refunded in full; allow up to 5 business days for it to show on your card.':'Per the <a href="/refunds" style="color:inherit">refund policy</a> this run is refunded in full. If it has not shown on your card within 5 business days, reply to your Stripe receipt or use the contact form with this order link.')+'</div>';
+        report.hidden=false;
+        report.innerHTML='<p class="muted" style="margin:0">Common causes: a bot wall or challenge page, a login wall on the home page, or the site being down. Once the public pages answer normally, order again and it will run.</p>';
+        return;
+      }
+      if(d.status==='refunded'||d.status==='disputed'){
+        stGraded.className=''; if(stReport)stReport.hidden=true;
+        grade.innerHTML='<div class="loading">This order was '+esc(d.status)+'. The report is no longer available on this link.</div>';
+        return;
+      }
+      if(d.grade){ stGraded.className='done'; if(stReport)stReport.className='done'; renderGrade(d.grade); }
+      else if(d.grade_error){ stGraded.className='now'; grade.innerHTML='<div class="loading err">The scan could not finish for '+esc(d.target_url)+' ('+esc(d.grade_error)+'). Reload in a few minutes; if it still fails, use the contact form with this order link and it is refunded.</div>'; }
+      else { stGraded.className='now'; grade.innerHTML='<div class="loading">Running your site audit (30 to 60 seconds)...</div>'; if(tries<40) setTimeout(poll, delay); }
       if(d.tier==='single'){
         report.hidden=false;
-        report.innerHTML=d.grade?'<p class="grade-sum" style="margin:0 0 6px">Single Run complete.</p><p class="muted" style="margin:0">This grade is your deliverable. Want the deep audit in a real browser (authz, admin/RBAC, a11y, perf) with an evidence report? <a href="/#order">Order a Hosted Deep Audit</a>.</p>':'<p class="muted" style="margin:0">Your grade will appear above as soon as the scan finishes.</p>';
+        report.innerHTML=d.grade?'<p class="grade-sum" style="margin:0 0 6px">Single Run complete.</p><p class="muted" style="margin:0">This page is your deliverable and the link keeps working. Want the deep audit in a real browser (authz, admin/RBAC, a11y, perf) with an evidence report? It is free in <a href="/#connect">your own agent</a>, or <a href="/#contact">ask for a quote</a> and we do it by hand.</p>':'<p class="muted" style="margin:0">Your grade will appear above as soon as the scan finishes.</p>';
       } else if(d.status==='delivered' && d.report_url){
-        stReport.className='done';
+        if(stReport){stReport.hidden=false;stReport.className='done';}
         report.hidden=false;
-        report.innerHTML='<p class="grade-sum">Your full evidence report is ready.</p><a class="btn" href="'+esc(d.report_url)+'" target="_blank" rel="noopener">Open report →</a>';
+        report.innerHTML='<p class="grade-sum">Your full evidence report is ready.</p><a class="btn" href="'+esc(d.report_url)+'" target="_blank" rel="noopener">Open report</a>';
       } else {
-        stReport.className=d.grade?'now':'';
+        if(stReport){stReport.hidden=false;stReport.className=d.grade?'now':'';}
         report.hidden=false;
-        report.innerHTML='<p class="grade-sum" style="margin:0 0 6px">Deep audit: queued for our team.</p><p class="muted" style="margin:0">Your full evidence report will be emailed within 2 business days. Nothing else to do — if you ordered Pro and want authenticated checks, reply to your receipt email with a test login.</p>';
+        report.innerHTML='<p class="grade-sum" style="margin:0 0 6px">Deep audit: done by hand.</p><p class="muted" style="margin:0">We will contact you at the order email to confirm scope and, for Pro, a test login. Your URL audit above is available now. Questions: rob@fusiondataco.com.</p>';
       }
-    }catch(err){ if(tries<40) setTimeout(poll, delay); else grade.innerHTML='<div class="loading err">Could not load your order — reload to try again.</div>'; }
+    }catch(err){ if(tries<40) setTimeout(poll, delay); else grade.innerHTML='<div class="loading err">Could not load your order. Reload to try again.</div>'; }
   }
   poll();
 })();

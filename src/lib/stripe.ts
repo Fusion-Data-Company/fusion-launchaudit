@@ -40,6 +40,14 @@ export async function stripeRequest<T = Record<string, unknown>>(
   return json;
 }
 
+/** GET a Stripe object (used to resolve a refunded charge back to its Checkout Session). */
+export async function stripeGet<T = Record<string, unknown>>(secretKey: string, path: string): Promise<T> {
+  const r = await fetch(`https://api.stripe.com${path}`, { headers: { authorization: `Bearer ${secretKey}` } });
+  const json = (await r.json()) as T & { error?: { message?: string } };
+  if (!r.ok) throw new Error(json.error?.message || `Stripe ${path} failed (${r.status})`);
+  return json;
+}
+
 /**
  * Verify a Stripe webhook signature. Returns true when any v1 signature matches
  * and the timestamp is within `toleranceSec` of now (replay protection).

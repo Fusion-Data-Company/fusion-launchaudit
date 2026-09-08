@@ -339,6 +339,18 @@
   .tier-price small{font-size:13px;font-weight:500;color:var(--ink-mut);letter-spacing:0;}
   .tier ul{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--ink-mut);}
   .tier li::before{content:"✓";color:#7ee0a8;margin-right:8px;font-weight:700;}
+  .tiers-2{grid-template-columns:1.15fr 1fr;max-width:920px;}
+  @media(max-width:960px){.tiers-2{grid-template-columns:1fr;max-width:520px;}}
+  .tier-ask{cursor:default;display:flex;flex-direction:column;}
+  .tier-ask:hover{border-color:var(--line);}
+  .tier-ask .tier-badge{color:var(--ink-mut);border-color:var(--line-strong);}
+  .tier-ask ul{flex:1;}
+  .tier-ask li::before{content:"·";}
+  .tier-cta{margin-top:18px;align-self:flex-start;}
+  .consent{display:flex;gap:10px;align-items:flex-start;max-width:720px;margin:0 auto 16px;font-size:13.5px;color:var(--ink-mut);line-height:1.5;cursor:pointer;}
+  .consent input{margin-top:3px;flex:none;width:16px;height:16px;accent-color:var(--accent);}
+  .consent a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;}
+  .consent-inline{margin-top:12px;justify-content:center;}
   .tier-badge{position:absolute;top:14px;right:14px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:3px 9px;}
   .order-form{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
   .order-form .cf-row input{width:100%;flex:1;min-width:200px;padding:13px 15px;border-radius:12px;border:1px solid var(--line-strong);background:rgba(0,0,0,.32);color:var(--ink);font-family:var(--font);font-size:15px;}
@@ -395,7 +407,7 @@
 <section class="hero" id="top-hero">
   <div class="hero-inner wrap">
     <div class="hero-copy">
-      <span class="eyebrow"><span class="dot" aria-hidden="true"></span>From Fusion Data Company · Open source (MIT), audit it yourself · Hosted audits from $79</span>
+      <span class="eyebrow"><span class="dot" aria-hidden="true"></span>From Fusion Data Company · Open source (MIT), audit it yourself · Hosted Single Run $79</span>
       <h1 class="hero-title">Your AI built the easy 80%. <span class="grad">We finish the 20% that ships broken.</span></h1>
       <p class="subhead">Your builder nails the happy path, then swears it’s done. The other 20% — broken access control, unguarded admin APIs, 500s on bad input, secrets in the bundle — is where every AI build quietly fails. <strong>80/20 Launch Audit</strong> is the senior developer that breaks into your app, proves what’s broken with evidence, and refuses to call anything done on a hunch. It runs inside <strong>your own</strong> Claude Code, Cursor, or Codex — your code never leaves your machine.</p>
       <div class="hero-cta">
@@ -426,6 +438,7 @@
       <input id="grade-url" type="url" inputmode="url" autocomplete="url" placeholder="https://your-app.com" aria-label="Your app URL" required />
       <button class="btn btn-primary" type="submit" id="grade-btn">Grade my app →</button>
     </form>
+    <label class="consent consent-inline" for="grade-authorized"><input type="checkbox" id="grade-authorized" /><span>I own this site or I am authorised to test it. The scan requests public URLs only; see the <a href="/terms">terms</a>.</span></label>
     <div id="grade-result" class="grade-result" hidden></div>
   </div>
 </section>
@@ -435,58 +448,47 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="sec-kicker">Don't want to run it yourself?</div>
-      <h2 class="sec-title">Order a hosted audit</h2>
-      <p class="sec-sub">The tool stays free and MIT — run the full deep audit in your own agent any time. If you'd rather not, we run it for you, hosted, and hand you a client-ready evidence report. You get the site-wide URL audit the moment you pay; the full Playwright deep audit (broken access control, admin/RBAC, write-authz, a11y, perf, SEO) is run by us and emailed within 2 business days.</p>
+      <h2 class="sec-title">Order a hosted Single Run</h2>
+      <p class="sec-sub">The tool stays free and MIT: run the full deep audit in your own agent any time. If you would rather not, we run the site-wide URL audit for you, hosted, and the report is on your screen inside a minute. No install, no code upload, no human in the loop. The report lives at a private link tied to your order, so keep the link.</p>
     </div>
     <form id="order-form" class="order-form" novalidate>
-      <div class="tiers" role="radiogroup" aria-label="Audit tier">
-        <label class="tier" for="tier-single">
-          <input type="radio" name="tier" id="tier-single" value="single" />
+      <div class="tiers tiers-2">
+        <label class="tier selected" for="tier-single">
+          <input type="radio" name="tier" id="tier-single" value="single" checked />
+          <span class="tier-badge">Automated</span>
           <p class="tier-name">Single Run</p>
           <div class="tier-price">$79 <small>one-time</small></div>
           <ul>
-            <li>Site-wide URL audit: up to 8 pages, 40+ checks</li>
+            <li>Site-wide URL audit: up to 8 pages, about 35 check groups</li>
             <li>Security headers, cookies, CORS, exposed files, source maps, TLS expiry</li>
             <li>Accessibility basics, broken links, mixed content, error-page leaks</li>
-            <li>Launch blockers (noindex, robots, sitemap, OG), SPF/DMARC, Core Web Vitals</li>
-            <li>0–100 score on screen within a minute, no human in the loop</li>
+            <li>Launch blockers (noindex, robots, sitemap, OG), SPF and DMARC, page weight and server response time</li>
+            <li>0-100 score with a plain-English "why this costs you" line per finding</li>
+            <li>If we cannot reach your site (bot wall, login wall, down), the page says so and the run is refunded</li>
           </ul>
         </label>
-        <label class="tier selected" for="tier-standard">
-          <input type="radio" name="tier" id="tier-standard" value="standard" checked />
-          <span class="tier-badge">Most chosen</span>
-          <p class="tier-name">Hosted Deep Audit</p>
-          <div class="tier-price">$149 <small>one-time</small></div>
+        <div class="tier tier-ask">
+          <span class="tier-badge">By hand</span>
+          <p class="tier-name">Deep Audit and Pro</p>
+          <div class="tier-price">Quoted <small>per site</small></div>
           <ul>
-            <li>Site-wide URL audit on payment (everything in Single Run)</li>
-            <li>Full deep audit of one live app URL</li>
-            <li>Client-ready evidence report (PDF + JSON)</li>
-            <li>0–100 readiness score with proof per check</li>
-            <li>Emailed within 2 business days</li>
+            <li>Full Playwright deep audit of one live app in a real browser</li>
+            <li>Broken access control, admin/RBAC, write-authz, authenticated flows with a test login you provide</li>
+            <li>Evidence report with proof per check, a prioritised fix plan, and one re-audit after you ship</li>
+            <li>Done by a person, not a script, so it is scoped and priced per site</li>
           </ul>
-        </label>
-        <label class="tier" for="tier-pro">
-          <input type="radio" name="tier" id="tier-pro" value="pro" />
-          <span class="tier-badge">Pro</span>
-          <p class="tier-name">Hosted Deep Audit — Pro</p>
-          <div class="tier-price">$499 <small>one-time</small></div>
-          <ul>
-            <li>Everything in Standard</li>
-            <li>Authenticated checks (you provide a test login)</li>
-            <li>Prioritized fix plan with paste-ready patches</li>
-            <li>One re-audit after you ship the fixes</li>
-            <li>30-minute walkthrough call</li>
-          </ul>
-        </label>
+          <a class="btn btn-ghost tier-cta" href="#contact">Ask for a quote</a>
+        </div>
       </div>
       <div class="cf-row">
         <input id="order-url" type="url" inputmode="url" autocomplete="url" placeholder="https://your-app.com" aria-label="App URL to audit" required />
-        <input id="order-email" type="email" autocomplete="email" placeholder="you@email.com (report goes here)" aria-label="Your email" required />
+        <input id="order-email" type="email" autocomplete="email" placeholder="you@email.com (order contact)" aria-label="Your email" required />
       </div>
-      <button class="btn btn-primary" type="submit" id="order-btn">Continue to payment →</button>
+      <label class="consent" for="order-authorized"><input type="checkbox" id="order-authorized" /><span>I own this site or I am authorised to test it. I have read the <a href="/terms">terms</a> and the <a href="/refunds">refund policy</a>.</span></label>
+      <button class="btn btn-primary" type="submit" id="order-btn">Continue to payment</button>
       <div id="order-result" class="cf-result" hidden></div>
     </form>
-    <p class="order-fine">Secure checkout by Stripe. We only ever touch the public URL you give us (plus a test login for Pro, if you choose to share one). Prefer to keep it in-house? The same audit is free in your own agent — <a href="#connect">connect it above</a>.</p>
+    <p class="order-fine">Secure checkout by Stripe, card or Link. We only ever touch the public URL you give us. Prefer to keep it in-house? The same audit is free in your own agent: <a href="#connect">connect it above</a>.</p>
   </div>
 </section>
 
@@ -836,6 +838,13 @@
             MIT License
           </a>
         </div>
+        <div class="foot-col">
+          <h5>Legal</h5>
+          <a href="/terms">Terms of service</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/refunds">Refund policy</a>
+          <a href="mailto:rob@fusiondataco.com">rob@fusiondataco.com</a>
+        </div>
       </div>
     </div>
     <div class="foot-bottom">
@@ -843,7 +852,7 @@
         <span class="mk" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18a8 8 0 1 1 14 0"/></svg></span>
         Built by Fusion Data Company
       </span>
-      <span>MIT licensed · Open source · Code never leaves your machine</span>
+      <span>Fusion Data Company · 7908 Katella Way, Citrus Heights, CA 95621 · (916) 507-4160</span>
     </div>
   </div>
 </footer>

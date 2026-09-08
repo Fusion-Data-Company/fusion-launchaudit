@@ -83,6 +83,7 @@
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     var url=(document.getElementById('grade-url').value||'').trim(); if(!url) return;
+    var ok=document.getElementById('grade-authorized'); if(ok && !ok.checked){ out.hidden=false; out.innerHTML='<div class="grade-err">Tick the box to confirm you own this site or are authorised to test it.</div>'; return; }
     var prev=btn.textContent; btn.disabled=true; btn.textContent='Scanning…';
     out.hidden=false; out.innerHTML='<div class="grade-loading">Running the surface scan… (10s)</div>';
     try{
@@ -131,11 +132,13 @@
     e.preventDefault();
     var url=(document.getElementById('order-url').value||'').trim();
     var email=(document.getElementById('order-email').value||'').trim();
-    var tierEl=f.querySelector('input[name=tier]:checked'); var tier=tierEl?tierEl.value:'standard';
-    if(!url||!email){ out.hidden=false; out.className='cf-result err'; out.textContent='Add the app URL and the email the report should go to.'; return; }
+    var tierEl=f.querySelector('input[name=tier]:checked'); var tier=tierEl?tierEl.value:'single';
+    var authorized=!!(document.getElementById('order-authorized')||{}).checked;
+    if(!url||!email){ out.hidden=false; out.className='cf-result err'; out.textContent='Add the app URL and a contact email for the order.'; return; }
+    if(!authorized){ out.hidden=false; out.className='cf-result err'; out.textContent='Tick the box to confirm you own this site or are authorised to test it.'; return; }
     var prev=btn.textContent; btn.disabled=true; btn.textContent='Starting checkout…';
     try{
-      var r=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:url,email:email,tier:tier})});
+      var r=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:url,email:email,tier:tier,authorized:authorized})});
       var d=await r.json();
       if(d && d.ok && d.url){ window.location.href=d.url; return; }
       out.hidden=false; out.className='cf-result err'; out.textContent=(d&&d.error)||'Could not start checkout — try again.';

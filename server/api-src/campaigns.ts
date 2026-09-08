@@ -29,6 +29,15 @@ export default async function handler(request: VercelRequest, response: VercelRe
     await ensureCampaignReady(sql);
 
     if (request.method === "GET") {
+      // The campaign list is operator data (target URLs, scores, run history) that shares a
+      // database with paid orders. In production it is readable only with the operator key.
+      if (process.env.VERCEL_ENV === "production") {
+        const auth = authorizeRunnerWrite(request.headers);
+        if (!auth.ok) {
+          response.status(auth.status).json({ error: auth.error });
+          return;
+        }
+      }
       response.status(200).json({ campaigns: await listCampaigns(sql), persistence: { mode: "postgres" } });
       return;
     }

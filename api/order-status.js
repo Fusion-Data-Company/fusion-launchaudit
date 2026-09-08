@@ -14295,6 +14295,554 @@ alter table test_cards add column if not exists exec jsonb not null default '[]'
 
 ${paidAuditsSchemaSql}`;
 
+// src/lib/instant-grade.ts
+import dns from "node:dns/promises";
+import net from "node:net";
+var CHALLENGE_SIGNS = [/cf-browser-verification/i, /_cf_chl_opt/i, /cf-chl/i, /Attention Required!\s*\|\s*Cloudflare/i, /Just a moment\.\.\./i, /Access Denied/i, /Request unsuccessful\. Incapsula/i, /_Incapsula_Resource/i, /Reference #\d+\.[0-9a-f]+\.[0-9a-f]+\.[0-9a-f]+/i, /akamai/i, /Pardon Our Interruption/i, /PerimeterX/i, /px-captcha/i, /distil_r_captcha/i, /DataDome/i, /Please verify you are a human/i, /enable JavaScript and cookies to continue/i];
+function blockedReason(status, html) {
+  if (status >= 400) return `The site answered our scanner with HTTP ${status}, so what we saw was an error page, not your site.`;
+  if (status >= 300) return `The site kept redirecting (HTTP ${status}) and never served a page to our scanner.`;
+  const body2 = html.trim();
+  if (body2.length < 500) return `The site returned only ${body2.length} bytes to our scanner, which is not a real page. It may be blocking automated traffic.`;
+  for (const re2 of CHALLENGE_SIGNS) if (re2.test(body2.slice(0, 2e4))) return "The site put a bot-protection challenge (Cloudflare, Akamai or similar) in front of our scanner instead of the page.";
+  return null;
+}
+var PENALTY = { critical: 22, high: 13, medium: 7, low: 3 };
+var INSTANT_GRADE_NOTE = "This is the free 10-second surface scan (no code, no install). The deep audit \u2014 broken access control (IDOR), admin/RBAC, write-authz, and your actual code \u2014 runs free inside your own agent; your code never leaves your machine.";
+function privateIp(ip) {
+  if (net.isIPv4(ip)) {
+    const [a3, b5] = ip.split(".").map(Number);
+    return a3 === 10 || a3 === 127 || a3 === 0 || a3 === 169 && b5 === 254 || a3 === 172 && b5 >= 16 && b5 <= 31 || a3 === 192 && b5 === 168 || a3 === 100 && b5 >= 64 && b5 <= 127;
+  }
+  const x5 = ip.toLowerCase();
+  return x5 === "::1" || x5.startsWith("fc") || x5.startsWith("fd") || x5.startsWith("fe80") || x5.startsWith("::ffff:127.") || x5.startsWith("::ffff:10.") || x5.startsWith("::ffff:192.168.");
+}
+function hostLooksPrivate(host) {
+  const h3 = host.toLowerCase();
+  const bad = ["localhost", "metadata.google.internal", "instance-data"];
+  if (bad.includes(h3) || h3.endsWith(".internal") || h3.endsWith(".local") || h3.endsWith(".localhost")) return "private host";
+  if (net.isIP(host) && privateIp(host)) return "private ip";
+  return null;
+}
+async function assertPublic(host) {
+  const staticProblem = hostLooksPrivate(host);
+  if (staticProblem) throw new Error(staticProblem);
+  if (net.isIP(host)) return;
+  const addrs = await dns.lookup(host, { all: true });
+  if (!addrs.length || addrs.some((a3) => privateIp(a3.address))) throw new Error("resolves to private ip");
+}
+function parseTargetUrl(input) {
+  let raw = typeof input === "string" ? input.trim() : "";
+  if (!raw) return { ok: false, error: "Provide a url." };
+  if (raw.length > 2048) return { ok: false, error: "That URL is too long." };
+  if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
+  let u2;
+  try {
+    u2 = new URL(raw);
+  } catch {
+    return { ok: false, error: `Not a valid URL: ${raw}` };
+  }
+  if (u2.protocol !== "http:" && u2.protocol !== "https:") return { ok: false, error: "Only http/https URLs." };
+  if (u2.username || u2.password) return { ok: false, error: "Credentials in the URL aren't allowed." };
+  if (!u2.hostname || !u2.hostname.includes(".") && !net.isIP(u2.hostname)) return { ok: false, error: "That doesn't look like a public hostname." };
+  if (hostLooksPrivate(u2.hostname)) return { ok: false, error: "That host isn't a public address we can scan." };
+  return { ok: true, url: u2 };
+}
+async function grab(url, opts = {}, ms2 = 8e3) {
+  const ctrl = new AbortController();
+  const t2 = setTimeout(() => ctrl.abort(), ms2);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": "8020LaunchAudit-Grader/1.0", ...opts.headers || {} } });
+  } finally {
+    clearTimeout(t2);
+  }
+}
+async function runInstantGrade(target) {
+  let u2 = target;
+  try {
+    await assertPublic(u2.hostname);
+  } catch {
+    return { ok: false, status: 400, error: "That host isn't a public address we can scan." };
+  }
+  const findings = [];
+  const passed = [];
+  let html = "", main = null;
+  try {
+    main = await grab(u2.toString());
+    if (main.status >= 300 && main.status < 400 && main.headers.get("location")) {
+      const loc = new URL(main.headers.get("location"), u2);
+      try {
+        await assertPublic(loc.hostname);
+        main = await grab(loc.toString());
+        u2 = loc;
+      } catch {
+      }
+    }
+    html = (await main.text()).slice(0, 2e5);
+  } catch {
+    return { ok: false, status: 502, error: `Couldn't reach ${u2.origin}. Make sure it's live and public.` };
+  }
+  const blocked = blockedReason(main.status, html);
+  if (blocked) {
+    return { ok: false, status: 409, blocked: true, http_status: main.status, error: `${blocked} We do not score what we cannot see: allow the user agent 8020LaunchAudit-Grader/1.0 (or your CDN's verified-bot list) and run it again, or ask for a refund.` };
+  }
+  const H3 = (n4) => main.headers.get(n4);
+  if (u2.protocol !== "https:") findings.push({ category: "TLS", severity: "high", title: "No HTTPS", detail: "The site is served over plain http \u2014 credentials and cookies travel in cleartext." });
+  else if (!H3("strict-transport-security")) findings.push({ category: "TLS", severity: "medium", title: "Missing HSTS", detail: "No Strict-Transport-Security header \u2014 browsers can be downgraded to http before the redirect." });
+  else passed.push("HSTS present");
+  const hdr = [
+    ["content-security-policy", "Content-Security-Policy", "high"],
+    ["x-frame-options", "X-Frame-Options (clickjacking)", "medium"],
+    ["x-content-type-options", "X-Content-Type-Options (MIME sniffing)", "low"],
+    ["referrer-policy", "Referrer-Policy", "low"]
+  ];
+  for (const [k3, label, sev] of hdr) {
+    if (!H3(k3)) findings.push({ category: "Security headers", severity: sev, title: `Missing ${label}`, detail: `The ${label} response header is not set.` });
+    else passed.push(`${label} set`);
+  }
+  if (H3("x-powered-by") || /express|php|next\.js/i.test(H3("server") || "")) findings.push({ category: "Security headers", severity: "low", title: "Stack banner leaked", detail: `Server reveals its stack (${H3("x-powered-by") || H3("server")}) \u2014 free recon for attackers.` });
+  const sc = H3("set-cookie") || "";
+  if (sc) {
+    const miss = ["HttpOnly", "Secure", "SameSite"].filter((f5) => !new RegExp(f5, "i").test(sc));
+    if (miss.length) findings.push({ category: "Cookies", severity: "high", title: `Session cookie missing ${miss.join(", ")}`, detail: "A login cookie without these flags can be stolen via XSS, leaked over http, or used in CSRF." });
+    else passed.push("Cookie flags hardened");
+  }
+  try {
+    const c4 = await grab(u2.toString(), { headers: { origin: "https://evil.example" } }, 6e3);
+    const acao = c4.headers.get("access-control-allow-origin");
+    if (acao === "https://evil.example" || acao === "*" && (c4.headers.get("access-control-allow-credentials") || "").toLowerCase() === "true")
+      findings.push({ category: "CORS", severity: "high", title: "CORS reflects any origin", detail: "The server echoes an arbitrary Origin (a hostile site could read your logged-in users' data)." });
+    else passed.push("CORS does not reflect hostile origin");
+  } catch {
+  }
+  for (const path of ["/.env", "/.git/config", "/.git/HEAD", "/.env.local"]) {
+    try {
+      const r = await grab(new URL(path, u2.origin).toString(), {}, 5e3);
+      if (r.status === 200) {
+        const ct3 = (r.headers.get("content-type") || "").toLowerCase();
+        const body2 = (await r.text()).slice(0, 4e3);
+        const looksReal = !ct3.includes("text/html") && !body2.trimStart().startsWith("<") && (/^\s*[A-Z0-9_]+\s*=/m.test(body2) || /\[core\]/.test(body2) || /^ref:\s/m.test(body2) || /-----BEGIN/.test(body2));
+        if (looksReal) {
+          findings.push({ category: "Secrets", severity: "critical", title: `Exposed ${path}`, detail: `${path} is publicly downloadable \u2014 it can leak credentials, keys, or your full git history.` });
+          break;
+        }
+      }
+    } catch {
+    }
+  }
+  const seo = [
+    [/<title[^>]*>\s*\S/i, "a real <title>", "medium"],
+    [/<meta[^>]+name=["']description["'][^>]+content=["']\s*\S/i, "a meta description", "low"],
+    [/<meta[^>]+name=["']viewport["']/i, "a mobile viewport tag", "medium"],
+    [/<meta[^>]+property=["']og:title["']/i, "an Open Graph title (link previews)", "low"]
+  ];
+  for (const [re2, label, sev] of seo) {
+    if (re2.test(html)) passed.push(label + " present");
+    else findings.push({ category: "SEO", severity: sev, title: `Missing ${label}`, detail: `The page is missing ${label}.` });
+  }
+  const penalty = findings.reduce((s5, f5) => s5 + PENALTY[f5.severity], 0);
+  const score = Math.max(0, Math.min(100, 100 - penalty));
+  const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  findings.sort((a3, b5) => order[a3.severity] - order[b5.severity]);
+  return {
+    ok: true,
+    url: u2.origin,
+    score,
+    band,
+    passed: passed.length,
+    summary: findings.length ? `Surface scan found ${findings.length} issue${findings.length === 1 ? "" : "s"} on ${u2.host}.` : `No surface-level issues found on ${u2.host} \u2014 nice. The deep checks still need your repo.`,
+    findings,
+    note: INSTANT_GRADE_NOTE
+  };
+}
+
+// src/lib/deep-grade.ts
+import dns2 from "node:dns/promises";
+import tls from "node:tls";
+var PAGE_BUDGET = 8;
+var PAGE_TIMEOUT = 7e3;
+var PSI_TIMEOUT = 28e3;
+var PENALTY2 = { critical: 22, high: 13, medium: 7, low: 3 };
+var DEEP_GRADE_NOTE = "Single Run: a site-wide, URL-only audit (up to 8 pages) covering security headers, cookies, CORS, exposed files, accessibility basics, broken links, mixed content, SEO/launch blockers, error-page leaks, TLS, email DNS and Core Web Vitals. The hosted deep audit adds a real browser: broken access control, admin/RBAC, write-authz and authenticated flows.";
+var UA = "8020LaunchAudit-Grader/1.0 (+https://fusiondataco.com)";
+async function grab2(url, opts = {}, ms2 = PAGE_TIMEOUT) {
+  const ctrl = new AbortController();
+  const t2 = setTimeout(() => ctrl.abort(), ms2);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": UA, ...opts.headers || {} } });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t2);
+  }
+}
+function attr(tag, name2) {
+  const m6 = tag.match(new RegExp(`\\s${name2}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
+  return m6 ? m6[2] ?? m6[3] ?? m6[4] ?? "" : null;
+}
+function internalLinks(html, base, max = 60) {
+  const out2 = /* @__PURE__ */ new Set();
+  for (const m6 of html.matchAll(/<a\b[^>]*>/gi)) {
+    const href = attr(m6[0], "href");
+    if (!href || /^(mailto:|tel:|javascript:|#)/i.test(href)) continue;
+    let u2;
+    try {
+      u2 = new URL(href, base);
+    } catch {
+      continue;
+    }
+    if (u2.origin !== base.origin) continue;
+    if (/\.(png|jpe?g|gif|svg|webp|pdf|zip|mp4|css|js|ico|woff2?)$/i.test(u2.pathname)) continue;
+    u2.hash = "";
+    out2.add(u2.toString());
+    if (out2.size >= max) break;
+  }
+  return [...out2];
+}
+function certExpiryDays(host) {
+  return new Promise((resolve2) => {
+    const done = (v5) => {
+      try {
+        s5.destroy();
+      } catch {
+      }
+      resolve2(v5);
+    };
+    const s5 = tls.connect({ host, port: 443, servername: host, timeout: 5e3 }, () => {
+      const cert = s5.getPeerCertificate();
+      if (!cert || !cert.valid_to) return done(null);
+      done(Math.floor((new Date(cert.valid_to).getTime() - Date.now()) / 864e5));
+    });
+    s5.on("error", () => done(null));
+    s5.on("timeout", () => done(null));
+  });
+}
+async function txt(name2) {
+  try {
+    return (await dns2.resolveTxt(name2)).map((r) => r.join(""));
+  } catch {
+    return [];
+  }
+}
+async function pageSpeed(url) {
+  const key = process.env.PAGESPEED_API_KEY;
+  const q2 = new URLSearchParams({ url, strategy: "mobile" });
+  for (const c4 of ["performance", "accessibility", "best-practices", "seo"]) q2.append("category", c4);
+  if (key) q2.set("key", key);
+  const r = await grab2(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${q2}`, { headers: { accept: "application/json" } }, PSI_TIMEOUT);
+  if (!r || !r.ok) return null;
+  try {
+    const j4 = await r.json();
+    const cats = j4.lighthouseResult?.categories ?? {};
+    const pct = (k3) => typeof cats[k3]?.score === "number" ? Math.round(cats[k3].score * 100) : null;
+    const field = j4.loadingExperience?.metrics ?? {};
+    const lab = j4.lighthouseResult?.audits ?? {};
+    const hasField = Boolean(field.LARGEST_CONTENTFUL_PAINT_MS?.percentile);
+    return {
+      performance: pct("performance"),
+      accessibility: pct("accessibility"),
+      best_practices: pct("best-practices"),
+      seo: pct("seo"),
+      lcp_ms: hasField ? field.LARGEST_CONTENTFUL_PAINT_MS.percentile : lab["largest-contentful-paint"]?.numericValue != null ? Math.round(lab["largest-contentful-paint"].numericValue) : null,
+      cls: hasField && field.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile != null ? field.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile / 100 : lab["cumulative-layout-shift"]?.numericValue ?? null,
+      inp_ms: hasField ? field.INTERACTION_TO_NEXT_PAINT?.percentile ?? null : null,
+      source: hasField ? "field" : cats.performance ? "lab" : "none"
+    };
+  } catch {
+    return null;
+  }
+}
+async function runDeepGrade(target) {
+  const surface = await runInstantGrade(target);
+  if (!surface.ok) return surface;
+  const origin = new URL(surface.url);
+  const findings = [...surface.findings];
+  let passed = surface.passed;
+  let checks = 12;
+  const F4 = (category, severity, title, detail) => findings.push({ category, severity, title, detail });
+  const dedupe = new Set(findings.map((f5) => f5.title));
+  const Fonce = (category, severity, title, detail) => {
+    if (!dedupe.has(title)) {
+      dedupe.add(title);
+      F4(category, severity, title, detail);
+    }
+  };
+  const home = await grab2(origin.toString());
+  const homeHtml = home ? (await home.text()).slice(0, 3e5) : "";
+  const links = internalLinks(homeHtml, origin, 60);
+  const targets = [origin.toString(), ...links.filter((l2) => l2 !== origin.toString())].slice(0, PAGE_BUDGET);
+  const pages = [];
+  await Promise.all(targets.map(async (u2) => {
+    const r = u2 === origin.toString() && home ? home : await grab2(u2);
+    if (!r) {
+      pages.push({ url: u2, status: 0, html: "", headers: null });
+      return;
+    }
+    const html = u2 === origin.toString() ? homeHtml : (await r.text()).slice(0, 3e5);
+    pages.push({ url: u2, status: r.status, html, headers: r.headers });
+  }));
+  checks++;
+  const broken = pages.filter((p6) => p6.status === 0 || p6.status >= 400 || p6.status === 404);
+  const extra = links.filter((l2) => !targets.includes(l2)).slice(0, 20);
+  const extraBroken = [];
+  await Promise.all(extra.map(async (l2) => {
+    const r = await grab2(l2, { method: "HEAD" }, 5e3);
+    if (!r || r.status >= 400) extraBroken.push(l2);
+  }));
+  const brokenAll = [...broken.map((b5) => b5.url), ...extraBroken];
+  if (brokenAll.length) F4("Links", brokenAll.length > 3 ? "high" : "medium", `${brokenAll.length} broken internal link${brokenAll.length === 1 ? "" : "s"}`, `Linked from your own pages but returning an error: ${brokenAll.slice(0, 5).map((u2) => new URL(u2).pathname).join(", ")}${brokenAll.length > 5 ? ", \u2026" : ""}.`);
+  else passed++;
+  const okPages = pages.filter((p6) => p6.status > 0 && p6.status < 400 && p6.html);
+  if (okPages.length === 0) {
+    return { ok: false, status: 409, blocked: true, http_status: home?.status ?? 0, error: `We could not load a single page on ${origin.host} from our scanner (home page answered HTTP ${home?.status ?? "nothing"}). We do not score what we cannot see: allow the user agent 8020LaunchAudit-Grader/1.0 and run it again, or ask for a refund.` };
+  }
+  let noAlt = 0, noH1 = [], noLang = false, emptyBtn = 0, mixed = [], httpForms = [], noCanon = [], noTitle = [], noViewport = [];
+  let headerGaps = 0;
+  for (const p6 of okPages) {
+    const h3 = p6.html;
+    for (const m6 of h3.matchAll(/<img\b[^>]*>/gi)) {
+      if (attr(m6[0], "alt") === null && !/\srole\s*=\s*["']?presentation/i.test(m6[0])) noAlt++;
+    }
+    if (!/<h1[\s>]/i.test(h3)) noH1.push(p6.url);
+    if (p6.url === origin.toString() && !/<html[^>]*\slang\s*=/i.test(h3)) noLang = true;
+    for (const m6 of h3.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)) {
+      const inner = m6[1].replace(/<[^>]+>/g, "").trim();
+      if (!inner && !/aria-label/i.test(m6[0])) emptyBtn++;
+    }
+    if (origin.protocol === "https:") for (const m6 of h3.matchAll(/<(?:img|script|link|iframe|video|audio|source)\b[^>]*\s(?:src|href)\s*=\s*["']http:\/\/[^"']+/gi)) {
+      mixed.push(p6.url);
+      break;
+    }
+    for (const m6 of h3.matchAll(/<form\b[^>]*>/gi)) {
+      const a3 = attr(m6[0], "action");
+      if (a3 && /^http:\/\//i.test(a3)) {
+        httpForms.push(p6.url);
+        break;
+      }
+    }
+    if (!/<link[^>]+rel=["']canonical["']/i.test(h3)) noCanon.push(p6.url);
+    if (!/<title[^>]*>\s*\S/i.test(h3)) noTitle.push(p6.url);
+    if (!/<meta[^>]+name=["']viewport["']/i.test(h3)) noViewport.push(p6.url);
+    if (p6.headers && p6.url !== origin.toString()) {
+      for (const k3 of ["content-security-policy", "x-frame-options", "x-content-type-options"]) if (!p6.headers.get(k3)) headerGaps++;
+    }
+  }
+  checks += 8;
+  if (noAlt) F4("Accessibility", noAlt > 5 ? "high" : "medium", `${noAlt} image${noAlt === 1 ? "" : "s"} without alt text`, `Screen readers announce these as 'image' with no meaning; also an easy SEO loss. Add alt="" for decorative images and real descriptions for the rest.`);
+  else passed++;
+  if (noH1.length) F4("Accessibility", "medium", `${noH1.length} page${noH1.length === 1 ? "" : "s"} without an <h1>`, `Every page needs one heading that says what it is (${noH1.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")}).`);
+  else passed++;
+  if (noLang) F4("Accessibility", "medium", "No lang attribute on <html>", 'Screen readers guess the language; browsers translate the wrong thing. Add <html lang="en">.');
+  else passed++;
+  if (emptyBtn) F4("Accessibility", "medium", `${emptyBtn} button${emptyBtn === 1 ? "" : "s"} with no accessible name`, "Icon-only buttons need aria-label so keyboard and screen-reader users know what they do.");
+  else passed++;
+  if (mixed.length) F4("TLS", "high", "Mixed content on an https page", `Assets loaded over plain http on ${mixed.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")} \u2014 browsers block or warn, and the padlock disappears.`);
+  else passed++;
+  if (httpForms.length) F4("TLS", "critical", "Form posts over plain http", `A form on ${new URL(httpForms[0]).pathname} submits to an http:// URL \u2014 anything typed into it travels in cleartext.`);
+  else passed++;
+  if (noCanon.length === okPages.length && okPages.length) F4("SEO", "low", "No canonical URLs", 'Without <link rel="canonical"> search engines may index duplicate versions (www / trailing slash / query strings) and split your ranking.');
+  else passed++;
+  if (noTitle.length > 1) Fonce("SEO", "medium", `${noTitle.length} pages without a <title>`, "Each page needs its own title; browser tabs, bookmarks and search results all show it.");
+  if (noViewport.length > 1) Fonce("SEO", "medium", `${noViewport.length} pages missing the mobile viewport tag`, "Those pages render zoomed-out on phones.");
+  if (headerGaps > 0 && okPages.length > 1) F4("Security headers", "low", "Security headers not applied site-wide", `${headerGaps} header gap${headerGaps === 1 ? "" : "s"} on secondary pages \u2014 set CSP / X-Frame-Options / X-Content-Type-Options at the platform level so every route gets them.`);
+  else if (okPages.length > 1) passed++;
+  checks += 5;
+  const robots = await grab2(new URL("/robots.txt", origin).toString(), {}, 5e3);
+  const robotsTxt = robots && robots.status === 200 ? (await robots.text()).slice(0, 2e4) : "";
+  if (/^\s*user-agent:\s*\*\s*$[\s\S]*?^\s*disallow:\s*\/\s*$/im.test(robotsTxt)) F4("Launch", "critical", "robots.txt blocks the whole site", "User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch.");
+  else passed++;
+  if (/<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(homeHtml) || /noindex/i.test(home?.headers.get("x-robots-tag") || "")) F4("Launch", "critical", "Home page is noindex", "A noindex tag or X-Robots-Tag header on the home page removes the site from search results.");
+  else passed++;
+  const sitemapHinted = /sitemap:/i.test(robotsTxt);
+  const sm = await grab2(new URL("/sitemap.xml", origin).toString(), { method: "HEAD" }, 5e3);
+  if (!(sm && sm.status === 200) && !sitemapHinted) F4("SEO", "low", "No sitemap.xml", "A sitemap gets new pages discovered days faster. Most frameworks generate one in one line.");
+  else passed++;
+  const fav = /<link[^>]+rel=["'][^"']*icon[^"']*["']/i.test(homeHtml) || (await grab2(new URL("/favicon.ico", origin).toString(), { method: "HEAD" }, 4e3))?.status === 200;
+  if (!fav) F4("Launch", "low", "No favicon", "The tab shows a blank page icon; it reads as unfinished.");
+  else passed++;
+  if (!/<meta[^>]+property=["']og:image["']/i.test(homeHtml)) F4("SEO", "low", "No Open Graph image", "Links shared on LinkedIn, Slack, iMessage or X show no preview image without og:image.");
+  else passed++;
+  checks += 2;
+  const nf = await grab2(new URL(`/__launch-audit-${Date.now().toString(36)}`, origin).toString(), {}, 6e3);
+  if (nf) {
+    const body2 = (await nf.text()).slice(0, 5e4);
+    if (nf.status === 200 && !/not found|404/i.test(body2)) F4("Errors", "medium", "Soft 404", "Unknown URLs return 200 instead of 404 \u2014 search engines index junk pages and monitoring never sees the breakage.");
+    else passed++;
+    if (/(Traceback \(most recent call last\)|at Object\.<anonymous>|node_modules\/|Unhandled Runtime Error|Application error: a (client|server)-side exception|Whoops, looks like something went wrong|SQLSTATE\[|ORA-\d{5}|Warning: mysql_)/i.test(body2)) F4("Errors", "high", "Error page leaks internals", "The error page shows a stack trace or framework debug output \u2014 paths, versions and sometimes queries, for free.");
+    else passed++;
+  }
+  checks++;
+  const exposed = [];
+  const probes = [
+    ["/.DS_Store", /^\0\0\0\x01Bud1/],
+    ["/phpinfo.php", /phpinfo\(\)|PHP Version/i],
+    ["/config.json", /"(password|secret|api[_-]?key|token)"\s*:/i],
+    ["/.env.production", /^\s*[A-Z0-9_]+\s*=/m],
+    ["/backup.zip", /^PK\x03\x04/],
+    ["/db.sql", /(CREATE TABLE|INSERT INTO)/i],
+    ["/wp-config.php.bak", /DB_PASSWORD/],
+    ["/.git/index", /^DIRC/],
+    ["/server-status", /Apache Server Status/i],
+    ["/admin/config.yml", /(password|secret):/i]
+  ];
+  await Promise.all(probes.map(async ([path, re2]) => {
+    const r = await grab2(new URL(path, origin).toString(), {}, 5e3);
+    if (!r || r.status !== 200) return;
+    const body2 = (await r.text()).slice(0, 4e3);
+    if (re2.test(body2)) exposed.push(path);
+  }));
+  const maps = /* @__PURE__ */ new Set();
+  for (const m6 of homeHtml.matchAll(/<script\b[^>]*\ssrc\s*=\s*["']([^"']+\.js)(\?[^"']*)?["']/gi)) {
+    try {
+      const u2 = new URL(m6[1], origin);
+      if (u2.origin === origin.origin) maps.add(u2.toString() + ".map");
+    } catch {
+    }
+  }
+  let mapHit = "";
+  await Promise.all([...maps].slice(0, 6).map(async (u2) => {
+    const r = await grab2(u2, { method: "HEAD" }, 4e3);
+    if (r && r.status === 200 && /json|octet/i.test(r.headers.get("content-type") || "")) mapHit ||= new URL(u2).pathname;
+  }));
+  if (exposed.length) F4("Secrets", "critical", `Exposed ${exposed.join(", ")}`, "Publicly downloadable files that leak configuration, backups or server internals. Remove them or block them at the edge.");
+  else passed++;
+  if (mapHit) F4("Secrets", "low", "Source maps are public", `${mapHit} ships your original source to anyone who asks. Disable productionBrowserSourceMaps / devtool in production builds.`);
+  if (origin.protocol === "https:") {
+    checks += 2;
+    const days = await certExpiryDays(origin.hostname);
+    if (days !== null && days < 14) F4("TLS", days < 3 ? "critical" : "high", `TLS certificate expires in ${days} day${days === 1 ? "" : "s"}`, "When it lapses every visitor gets a full-page browser warning. Check that auto-renewal is actually running.");
+    else if (days !== null) passed++;
+    const plain = await grab2(`http://${origin.host}/`, {}, 6e3);
+    if (plain && !(plain.status >= 300 && plain.status < 400 && /^https:/i.test(plain.headers.get("location") || ""))) F4("TLS", "medium", "http:// does not redirect to https://", "Typing the bare domain lands on the insecure version (or a dead page). Add a permanent redirect at the edge.");
+    else if (plain) passed++;
+  }
+  checks += 2;
+  const apex = origin.hostname.split(".").slice(-2).join(".");
+  const spf = (await txt(apex)).some((t2) => /^v=spf1/i.test(t2));
+  const dmarc = (await txt(`_dmarc.${apex}`)).some((t2) => /^v=DMARC1/i.test(t2));
+  if (!spf) F4("Email", "medium", `No SPF record on ${apex}`, "Sign-up confirmations, receipts and password resets from this domain are far more likely to land in spam. Add a v=spf1 TXT record.");
+  else passed++;
+  if (!dmarc) F4("Email", "medium", `No DMARC record on ${apex}`, "Gmail and Yahoo now require DMARC for bulk senders, and it stops anyone spoofing your domain. Add _dmarc TXT: v=DMARC1; p=quarantine.");
+  else passed++;
+  checks += 2;
+  const t0 = Date.now();
+  const timed = await grab2(origin.toString(), { headers: { "cache-control": "no-cache" } }, 1e4);
+  const ttfb = Date.now() - t0;
+  const assets = /* @__PURE__ */ new Set();
+  for (const m6 of homeHtml.matchAll(/<(?:script|img|link)\b[^>]*\s(?:src|href)\s*=\s*["']([^"']+)["']/gi)) {
+    try {
+      const u2 = new URL(m6[1], origin);
+      if (/\.(js|mjs|css|png|jpe?g|gif|webp|avif|svg|woff2?)(\?|$)/i.test(u2.pathname + u2.search) || /\/_next\/static\//.test(u2.pathname)) assets.add(u2.toString());
+    } catch {
+    }
+  }
+  let bytes = homeHtml.length;
+  const big = [];
+  await Promise.all([...assets].slice(0, 25).map(async (u2) => {
+    const r = await grab2(u2, { method: "HEAD" }, 4e3);
+    const n4 = Number(r?.headers.get("content-length") || 0);
+    if (n4 > 0) {
+      bytes += n4;
+      if (n4 > 500 * 1024) big.push({ path: new URL(u2).pathname.split("/").pop() || u2, kb: Math.round(n4 / 1024) });
+    }
+  }));
+  if (timed && ttfb > 1800) F4("Performance", "medium", `Slow server response (${(ttfb / 1e3).toFixed(1)}s to first byte)`, "Time-to-first-byte over ~0.8s drags every other metric; check cold starts, uncached database calls, or a region far from your users.");
+  else if (timed) passed++;
+  const mb = bytes / (1024 * 1024);
+  if (mb > 3 || big.length) F4("Performance", mb > 5 ? "high" : "medium", `Heavy home page (${mb.toFixed(1)} MB across ${assets.size + 1} assets)`, `${big.length ? "Largest: " + big.sort((a3, b5) => b5.kb - a3.kb).slice(0, 3).map((b5) => `${b5.path} (${b5.kb} KB)`).join(", ") + ". " : ""}Mobile visitors on 4G wait roughly ${Math.max(1, Math.round(mb * 2))}s+ before the page is usable. Compress images (AVIF/WebP), lazy-load below the fold, split the JS bundle.`);
+  else passed++;
+  const lh = await pageSpeed(origin.toString());
+  if (lh) {
+    checks += 4;
+    if (lh.performance !== null && lh.performance < 50) F4("Performance", "high", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"}${lh.inp_ms != null ? `, INP ${lh.inp_ms}ms` : ""} (${lh.source} data). Below 50 is the range where users bounce before the page paints.`);
+    else if (lh.performance !== null && lh.performance < 80) F4("Performance", "medium", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"} (${lh.source} data). Google's 'good' bar is LCP under 2.5s and CLS under 0.1.`);
+    else if (lh.performance !== null) passed++;
+    if (lh.accessibility !== null && lh.accessibility < 90) F4("Accessibility", lh.accessibility < 70 ? "high" : "medium", `Lighthouse accessibility ${lh.accessibility}/100`, "Contrast, labels, focus order and ARIA problems Lighthouse can prove. Under 90 is where ADA/WCAG complaints start.");
+    else if (lh.accessibility !== null) passed++;
+    if (lh.best_practices !== null && lh.best_practices < 80) F4("Best practices", "low", `Lighthouse best-practices ${lh.best_practices}/100`, "Console errors, deprecated APIs, missing image aspect ratios or insecure requests.");
+    else if (lh.best_practices !== null) passed++;
+    if (lh.seo !== null && lh.seo < 90) F4("SEO", "low", `Lighthouse SEO ${lh.seo}/100`, "Crawlability, tap-target size, meta tags and structured data.");
+    else if (lh.seo !== null) passed++;
+  }
+  const twins = [
+    [/^Missing a mobile viewport tag$/, /pages missing the mobile viewport tag$/],
+    [/^Missing a real <title>$/, /pages without a <title>$/],
+    [/^Missing (Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy)/, /^Security headers not applied site-wide$/]
+  ];
+  const deduped = findings.filter((f5) => {
+    for (const [single, siteWide] of twins) {
+      if (single.test(f5.title) && findings.some((g5) => siteWide.test(g5.title))) {
+        if (/^Security headers not applied site-wide$/.test(f5.title)) return false;
+        if (!/^Missing (Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy)/.test(f5.title)) return false;
+      }
+    }
+    return true;
+  });
+  const CATEGORY_CAP = 30;
+  const byCategory = /* @__PURE__ */ new Map();
+  let penalty = 0;
+  for (const f5 of deduped) {
+    const c4 = byCategory.get(f5.category) || 0;
+    const add = Math.min(PENALTY2[f5.severity], Math.max(0, CATEGORY_CAP - c4));
+    byCategory.set(f5.category, c4 + add);
+    penalty += add;
+  }
+  findings.length = 0;
+  findings.push(...deduped);
+  const score = Math.max(0, Math.min(100, 100 - penalty));
+  const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  findings.sort((a3, b5) => order[a3.severity] - order[b5.severity]);
+  const scanned = okPages.length;
+  return {
+    ...surface,
+    kind: "deep",
+    score,
+    band,
+    passed,
+    findings,
+    pages_scanned: scanned,
+    pages: okPages.map((p6) => p6.url),
+    lighthouse: lh,
+    checks_run: checks,
+    summary: findings.length ? `Audited ${scanned} page${scanned === 1 ? "" : "s"} on ${origin.host}: ${findings.length} issue${findings.length === 1 ? "" : "s"} (${findings.filter((f5) => f5.severity === "critical" || f5.severity === "high").length} critical/high).` : `Audited ${scanned} page${scanned === 1 ? "" : "s"} on ${origin.host}: nothing to fix at the URL level. The browser-based deep audit is the next step.`,
+    note: DEEP_GRADE_NOTE
+  };
+}
+
+// src/lib/stripe.ts
+function encodeForm(obj, prefix = "", out2 = []) {
+  for (const [k3, v5] of Object.entries(obj)) {
+    if (v5 === void 0 || v5 === null) continue;
+    const key = prefix ? `${prefix}[${k3}]` : k3;
+    if (Array.isArray(v5)) v5.forEach((item, i3) => typeof item === "object" && item ? encodeForm(item, `${key}[${i3}]`, out2) : out2.push(`${encodeURIComponent(`${key}[${i3}]`)}=${encodeURIComponent(String(item))}`));
+    else if (typeof v5 === "object") encodeForm(v5, key, out2);
+    else out2.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v5))}`);
+  }
+  return out2.join("&");
+}
+async function stripeRequest(secretKey, path, body2, opts = {}) {
+  const r = await fetch(`https://api.stripe.com${path}`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${secretKey}`,
+      "content-type": "application/x-www-form-urlencoded",
+      ...opts.idempotencyKey ? { "idempotency-key": opts.idempotencyKey } : {}
+    },
+    body: encodeForm(body2)
+  });
+  const json = await r.json();
+  if (!r.ok) throw new Error(json.error?.message || `Stripe ${path} failed (${r.status})`);
+  return json;
+}
+async function stripeGet(secretKey, path) {
+  const r = await fetch(`https://api.stripe.com${path}`, { headers: { authorization: `Bearer ${secretKey}` } });
+  const json = await r.json();
+  if (!r.ok) throw new Error(json.error?.message || `Stripe ${path} failed (${r.status})`);
+  return json;
+}
+
 // src/lib/paid-audits.ts
 async function ensurePaidAuditsTable(sql) {
   for (const stmt of paidAuditsSchemaSql.split(";").map((s5) => s5.trim()).filter(Boolean)) await sql(stmt);
@@ -14303,16 +14851,69 @@ async function getPaidAuditBySession(sql, stripeSessionId) {
   const rows = await sql(`select * from paid_audits where stripe_session_id = $1 limit 1`, [stripeSessionId]);
   return rows[0] ?? null;
 }
+async function gradePaidAudit(sql, row) {
+  if (row.status !== "queued") return row;
+  const parsed = parseTargetUrl(row.target_url);
+  const result = parsed.ok ? await runDeepGrade(parsed.url) : { ok: false, status: 400, error: parsed.error };
+  if (result.ok) {
+    if (row.tier === "single") {
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1`, [row.id, JSON.stringify(result)]);
+    } else {
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
+    }
+  } else if ("blocked" in result && result.blocked) {
+    const refund = await refundBlockedOrder(row);
+    await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund })]);
+  } else {
+    await sql(`update paid_audits set grade_json = $2::jsonb where id = $1`, [row.id, JSON.stringify({ error: result.error })]);
+  }
+  return await getPaidAuditBySession(sql, row.stripe_session_id) ?? row;
+}
+async function refundBlockedOrder(row) {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) return { skipped: "STRIPE_SECRET_KEY unset" };
+  if (process.env.AUTO_REFUND_BLOCKED === "0") return { skipped: "AUTO_REFUND_BLOCKED=0" };
+  try {
+    const session = await stripeGet(secret, `/v1/checkout/sessions/${encodeURIComponent(row.stripe_session_id)}`);
+    if (!session.payment_intent) return { error: "session has no payment_intent" };
+    const r = await stripeRequest(
+      secret,
+      "/v1/refunds",
+      { payment_intent: session.payment_intent, reason: "requested_by_customer", metadata: { launchaudit_order: row.id, cause: "blocked" } },
+      { idempotencyKey: `launchaudit-refund-${row.stripe_session_id}` }
+    );
+    return { id: r.id };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
 function publicOrderStatus(row) {
-  const g5 = row.grade_json && "ok" in row.grade_json && row.grade_json.ok ? row.grade_json : null;
+  const closed = row.status === "refunded" || row.status === "disputed";
+  const g5 = !closed && row.grade_json && "ok" in row.grade_json && row.grade_json.ok ? row.grade_json : null;
+  const gj = row.grade_json;
+  const blocked = gj && gj.blocked ? gj.error ?? null : null;
+  const refunded = !!(gj && gj.refund && gj.refund.id);
   return {
     status: row.status,
+    blocked,
+    refunded,
     tier: row.tier,
     target_url: row.target_url,
     created_at: row.created_at,
     completed_at: row.completed_at,
-    report_url: row.report_url,
-    grade: g5 ? { url: g5.url, score: g5.score, band: g5.band, passed: g5.passed, summary: g5.summary, findings: g5.findings } : null,
+    report_url: closed ? null : row.report_url,
+    grade: g5 ? {
+      url: g5.url,
+      score: g5.score,
+      band: g5.band,
+      passed: g5.passed,
+      summary: g5.summary,
+      findings: g5.findings,
+      kind: "kind" in g5 ? g5.kind : "surface",
+      pages_scanned: "pages_scanned" in g5 ? g5.pages_scanned : 1,
+      checks_run: "checks_run" in g5 ? g5.checks_run : null,
+      lighthouse: "lighthouse" in g5 ? g5.lighthouse : null
+    } : null,
     grade_error: row.grade_json && "error" in row.grade_json ? row.grade_json.error : null
   };
 }
@@ -14338,11 +14939,12 @@ async function handler(req, res) {
   }
   try {
     await ensurePaidAuditsTable(sql);
-    const row = await getPaidAuditBySession(sql, sid);
+    let row = await getPaidAuditBySession(sql, sid);
     if (!row) {
       res.status(200).json({ ok: true, status: "pending", grade: null, report_url: null });
       return;
     }
+    if (row.status === "queued") row = await gradePaidAudit(sql, row);
     res.status(200).json({ ok: true, ...publicOrderStatus(row) });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Could not load order." });

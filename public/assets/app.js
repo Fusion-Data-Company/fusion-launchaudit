@@ -656,10 +656,29 @@ function emptyStateInline(title, body) {
 /* ============================================================================
    DATA LOAD
    ============================================================================ */
+function operatorHeaders() {
+  const key = localStorage.getItem("launch-audit-operator-key") || "";
+  return key ? { "x-runner-secret": key } : {};
+}
+
 async function loadCampaign(campaignId = selectedCampaignId()) {
-  const response = await fetch(`/api/campaign${campaignId ? `?id=${encodeURIComponent(campaignId)}` : ""}`);
+  const qs = campaignId ? `?id=${encodeURIComponent(campaignId)}` : "";
+  let response = await fetch(`/api/campaign${qs}`, { headers: operatorHeaders() });
   if (!response.ok && response.status !== 404) throw new Error(`Campaign API failed: ${response.status}`);
-  const data = await response.json();
+  let data = await response.json();
+  // A deployed dashboard serves live campaigns only to the operator. Ask for the key once
+  // per browser session; a visitor who declines keeps the clearly labelled sample data.
+  if (data.locked && !localStorage.getItem("launch-audit-operator-key") && !sessionStorage.getItem("launch-audit-key-declined")) {
+    const key = window.prompt("Operator key to load live campaigns (RUNNER_SYNC_SECRET). Cancel to view the sample.", "");
+    if (key && key.trim()) {
+      localStorage.setItem("launch-audit-operator-key", key.trim());
+      response = await fetch(`/api/campaign${qs}`, { headers: operatorHeaders() });
+      if (response.ok) data = await response.json();
+      if (data.locked) localStorage.removeItem("launch-audit-operator-key");
+    } else {
+      sessionStorage.setItem("launch-audit-key-declined", "1");
+    }
+  }
 
   currentCampaign = data.campaign;
   currentData = data;
@@ -781,7 +800,7 @@ async function initCampaignSwitcher(data) {
   const switcher = document.getElementById("campaign-switcher");
   if (data.persistence?.mode !== "postgres") { switcher.hidden = true; return; }
   try {
-    const response = await fetch("/api/campaigns");
+    const response = await fetch("/api/campaigns", { headers: operatorHeaders() });
     if (!response.ok) return;
     const { campaigns } = await response.json();
     if (!campaigns || campaigns.length === 0) return;

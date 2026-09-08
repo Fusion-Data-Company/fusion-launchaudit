@@ -14170,6 +14170,12 @@ async function getSqlClient(env = process.env) {
 
 // src/lib/stripe.ts
 import { createHmac, timingSafeEqual } from "node:crypto";
+async function stripeGet(secretKey, path) {
+  const r = await fetch(`https://api.stripe.com${path}`, { headers: { authorization: `Bearer ${secretKey}` } });
+  const json = await r.json();
+  if (!r.ok) throw new Error(json.error?.message || `Stripe ${path} failed (${r.status})`);
+  return json;
+}
 function verifyStripeSignature(rawBody, header, secret, toleranceSec = 300, now = Date.now()) {
   if (!header || !secret) return false;
   const parts2 = /* @__PURE__ */ Object.create(null);
@@ -14319,155 +14325,6 @@ alter table test_cards add column if not exists exec jsonb not null default '[]'
 
 ${paidAuditsSchemaSql}`;
 
-// src/lib/instant-grade.ts
-import dns from "node:dns/promises";
-import net from "node:net";
-var PENALTY = { critical: 22, high: 13, medium: 7, low: 3 };
-var INSTANT_GRADE_NOTE = "This is the free 10-second surface scan (no code, no install). The deep audit \u2014 broken access control (IDOR), admin/RBAC, write-authz, and your actual code \u2014 runs free inside your own agent; your code never leaves your machine.";
-function privateIp(ip) {
-  if (net.isIPv4(ip)) {
-    const [a3, b5] = ip.split(".").map(Number);
-    return a3 === 10 || a3 === 127 || a3 === 0 || a3 === 169 && b5 === 254 || a3 === 172 && b5 >= 16 && b5 <= 31 || a3 === 192 && b5 === 168 || a3 === 100 && b5 >= 64 && b5 <= 127;
-  }
-  const x5 = ip.toLowerCase();
-  return x5 === "::1" || x5.startsWith("fc") || x5.startsWith("fd") || x5.startsWith("fe80") || x5.startsWith("::ffff:127.") || x5.startsWith("::ffff:10.") || x5.startsWith("::ffff:192.168.");
-}
-function hostLooksPrivate(host) {
-  const h3 = host.toLowerCase();
-  const bad = ["localhost", "metadata.google.internal", "instance-data"];
-  if (bad.includes(h3) || h3.endsWith(".internal") || h3.endsWith(".local") || h3.endsWith(".localhost")) return "private host";
-  if (net.isIP(host) && privateIp(host)) return "private ip";
-  return null;
-}
-async function assertPublic(host) {
-  const staticProblem = hostLooksPrivate(host);
-  if (staticProblem) throw new Error(staticProblem);
-  if (net.isIP(host)) return;
-  const addrs = await dns.lookup(host, { all: true });
-  if (!addrs.length || addrs.some((a3) => privateIp(a3.address))) throw new Error("resolves to private ip");
-}
-function parseTargetUrl(input) {
-  let raw = typeof input === "string" ? input.trim() : "";
-  if (!raw) return { ok: false, error: "Provide a url." };
-  if (raw.length > 2048) return { ok: false, error: "That URL is too long." };
-  if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
-  let u2;
-  try {
-    u2 = new URL(raw);
-  } catch {
-    return { ok: false, error: `Not a valid URL: ${raw}` };
-  }
-  if (u2.protocol !== "http:" && u2.protocol !== "https:") return { ok: false, error: "Only http/https URLs." };
-  if (u2.username || u2.password) return { ok: false, error: "Credentials in the URL aren't allowed." };
-  if (!u2.hostname || !u2.hostname.includes(".") && !net.isIP(u2.hostname)) return { ok: false, error: "That doesn't look like a public hostname." };
-  if (hostLooksPrivate(u2.hostname)) return { ok: false, error: "That host isn't a public address we can scan." };
-  return { ok: true, url: u2 };
-}
-async function grab(url, opts = {}, ms2 = 8e3) {
-  const ctrl = new AbortController();
-  const t2 = setTimeout(() => ctrl.abort(), ms2);
-  try {
-    return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": "8020LaunchAudit-Grader/1.0", ...opts.headers || {} } });
-  } finally {
-    clearTimeout(t2);
-  }
-}
-async function runInstantGrade(target) {
-  let u2 = target;
-  try {
-    await assertPublic(u2.hostname);
-  } catch {
-    return { ok: false, status: 400, error: "That host isn't a public address we can scan." };
-  }
-  const findings = [];
-  const passed = [];
-  let html = "", main = null;
-  try {
-    main = await grab(u2.toString());
-    if (main.status >= 300 && main.status < 400 && main.headers.get("location")) {
-      const loc = new URL(main.headers.get("location"), u2);
-      try {
-        await assertPublic(loc.hostname);
-        main = await grab(loc.toString());
-        u2 = loc;
-      } catch {
-      }
-    }
-    html = (await main.text()).slice(0, 2e5);
-  } catch {
-    return { ok: false, status: 502, error: `Couldn't reach ${u2.origin}. Make sure it's live and public.` };
-  }
-  const H3 = (n4) => main.headers.get(n4);
-  if (u2.protocol !== "https:") findings.push({ category: "TLS", severity: "high", title: "No HTTPS", detail: "The site is served over plain http \u2014 credentials and cookies travel in cleartext." });
-  else if (!H3("strict-transport-security")) findings.push({ category: "TLS", severity: "medium", title: "Missing HSTS", detail: "No Strict-Transport-Security header \u2014 browsers can be downgraded to http before the redirect." });
-  else passed.push("HSTS present");
-  const hdr = [
-    ["content-security-policy", "Content-Security-Policy", "high"],
-    ["x-frame-options", "X-Frame-Options (clickjacking)", "medium"],
-    ["x-content-type-options", "X-Content-Type-Options (MIME sniffing)", "low"],
-    ["referrer-policy", "Referrer-Policy", "low"]
-  ];
-  for (const [k3, label, sev] of hdr) {
-    if (!H3(k3)) findings.push({ category: "Security headers", severity: sev, title: `Missing ${label}`, detail: `The ${label} response header is not set.` });
-    else passed.push(`${label} set`);
-  }
-  if (H3("x-powered-by") || /express|php|next\.js/i.test(H3("server") || "")) findings.push({ category: "Security headers", severity: "low", title: "Stack banner leaked", detail: `Server reveals its stack (${H3("x-powered-by") || H3("server")}) \u2014 free recon for attackers.` });
-  const sc = H3("set-cookie") || "";
-  if (sc) {
-    const miss = ["HttpOnly", "Secure", "SameSite"].filter((f5) => !new RegExp(f5, "i").test(sc));
-    if (miss.length) findings.push({ category: "Cookies", severity: "high", title: `Session cookie missing ${miss.join(", ")}`, detail: "A login cookie without these flags can be stolen via XSS, leaked over http, or used in CSRF." });
-    else passed.push("Cookie flags hardened");
-  }
-  try {
-    const c4 = await grab(u2.toString(), { headers: { origin: "https://evil.example" } }, 6e3);
-    const acao = c4.headers.get("access-control-allow-origin");
-    if (acao === "https://evil.example" || acao === "*" && (c4.headers.get("access-control-allow-credentials") || "").toLowerCase() === "true")
-      findings.push({ category: "CORS", severity: "high", title: "CORS reflects any origin", detail: "The server echoes an arbitrary Origin (a hostile site could read your logged-in users' data)." });
-    else passed.push("CORS does not reflect hostile origin");
-  } catch {
-  }
-  for (const path of ["/.env", "/.git/config", "/.git/HEAD", "/.env.local"]) {
-    try {
-      const r = await grab(new URL(path, u2.origin).toString(), {}, 5e3);
-      if (r.status === 200) {
-        const ct3 = (r.headers.get("content-type") || "").toLowerCase();
-        const body2 = (await r.text()).slice(0, 4e3);
-        const looksReal = !ct3.includes("text/html") && !body2.trimStart().startsWith("<") && (/^\s*[A-Z0-9_]+\s*=/m.test(body2) || /\[core\]/.test(body2) || /^ref:\s/m.test(body2) || /-----BEGIN/.test(body2));
-        if (looksReal) {
-          findings.push({ category: "Secrets", severity: "critical", title: `Exposed ${path}`, detail: `${path} is publicly downloadable \u2014 it can leak credentials, keys, or your full git history.` });
-          break;
-        }
-      }
-    } catch {
-    }
-  }
-  const seo = [
-    [/<title[^>]*>\s*\S/i, "a real <title>", "medium"],
-    [/<meta[^>]+name=["']description["'][^>]+content=["']\s*\S/i, "a meta description", "low"],
-    [/<meta[^>]+name=["']viewport["']/i, "a mobile viewport tag", "medium"],
-    [/<meta[^>]+property=["']og:title["']/i, "an Open Graph title (link previews)", "low"]
-  ];
-  for (const [re2, label, sev] of seo) {
-    if (re2.test(html)) passed.push(label + " present");
-    else findings.push({ category: "SEO", severity: sev, title: `Missing ${label}`, detail: `The page is missing ${label}.` });
-  }
-  const penalty = findings.reduce((s5, f5) => s5 + PENALTY[f5.severity], 0);
-  const score = Math.max(0, Math.min(100, 100 - penalty));
-  const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
-  const order = { critical: 0, high: 1, medium: 2, low: 3 };
-  findings.sort((a3, b5) => order[a3.severity] - order[b5.severity]);
-  return {
-    ok: true,
-    url: u2.origin,
-    score,
-    band,
-    passed: passed.length,
-    summary: findings.length ? `Surface scan found ${findings.length} issue${findings.length === 1 ? "" : "s"} on ${u2.host}.` : `No surface-level issues found on ${u2.host} \u2014 nice. The deep checks still need your repo.`,
-    findings,
-    note: INSTANT_GRADE_NOTE
-  };
-}
-
 // src/lib/paid-audits.ts
 async function ensurePaidAuditsTable(sql) {
   for (const stmt of paidAuditsSchemaSql.split(";").map((s5) => s5.trim()).filter(Boolean)) await sql(stmt);
@@ -14489,21 +14346,6 @@ async function upsertPaidAudit(sql, order) {
 async function getPaidAuditBySession(sql, stripeSessionId) {
   const rows = await sql(`select * from paid_audits where stripe_session_id = $1 limit 1`, [stripeSessionId]);
   return rows[0] ?? null;
-}
-async function gradePaidAudit(sql, row) {
-  if (row.status !== "queued") return row;
-  const parsed = parseTargetUrl(row.target_url);
-  const result = parsed.ok ? await runInstantGrade(parsed.url) : { ok: false, status: 400, error: parsed.error };
-  if (result.ok) {
-    if (row.tier === "single") {
-      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1`, [row.id, JSON.stringify(result)]);
-    } else {
-      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
-    }
-  } else {
-    await sql(`update paid_audits set grade_json = $2::jsonb where id = $1`, [row.id, JSON.stringify({ error: result.error })]);
-  }
-  return await getPaidAuditBySession(sql, row.stripe_session_id) ?? row;
 }
 
 // src/lib/checkout-input.ts
@@ -14543,7 +14385,28 @@ async function handler(req, res) {
     res.status(400).json({ error: "Malformed JSON." });
     return;
   }
-  if (event.type !== "checkout.session.completed") {
+  if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") {
+    const lifecycle = {
+      "checkout.session.async_payment_failed": "payment_failed",
+      "charge.refunded": "refunded",
+      "charge.dispute.created": "disputed"
+    };
+    const next = lifecycle[event.type];
+    if (next) {
+      const obj = event.data?.object;
+      const sql0 = await getSqlClient();
+      let sessionId = obj?.id?.startsWith("cs_") ? obj.id : null;
+      const secretKey = process.env.STRIPE_SECRET_KEY;
+      if (!sessionId && obj?.payment_intent && secretKey) {
+        try {
+          const list = await stripeGet(secretKey, `/v1/checkout/sessions?payment_intent=${encodeURIComponent(obj.payment_intent)}&limit=1`);
+          sessionId = list.data?.[0]?.id ?? null;
+        } catch {
+          sessionId = null;
+        }
+      }
+      if (sql0 && sessionId) await sql0(`update paid_audits set status = $2 where stripe_session_id = $1 and status <> 'blocked'`, [sessionId, next]).catch(() => void 0);
+    }
     res.status(200).json({ received: true, ignored: event.type });
     return;
   }
@@ -14577,8 +14440,7 @@ async function handler(req, res) {
       tier,
       amountCents: session.amount_total ?? 0
     });
-    const graded = await gradePaidAudit(sql, row);
-    res.status(200).json({ received: true, id: graded.id, status: graded.status });
+    res.status(200).json({ received: true, id: row.id, status: row.status });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Could not record order." });
   }

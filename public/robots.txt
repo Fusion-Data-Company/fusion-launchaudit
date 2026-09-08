@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /order/
+Disallow: /api/
+Disallow: /app
+Sitemap: https://80-20.dev/sitemap.xml
