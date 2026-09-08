@@ -3667,41 +3667,41 @@ var init_serverless = __esm({
       p();
       Object.defineProperty(Ft2, "__esModule", { value: true });
       Ft2.serialize = void 0;
-      var pn2 = Qs(), F4 = new pn2.Writer(), yc = a((r) => {
-        F4.addInt16(3).addInt16(0);
-        for (let n4 of Object.keys(r)) F4.addCString(
+      var pn2 = Qs(), F5 = new pn2.Writer(), yc = a((r) => {
+        F5.addInt16(3).addInt16(0);
+        for (let n4 of Object.keys(r)) F5.addCString(
           n4
         ).addCString(r[n4]);
-        F4.addCString("client_encoding").addCString("UTF8");
-        let e = F4.addCString("").flush(), t2 = e.length + 4;
+        F5.addCString("client_encoding").addCString("UTF8");
+        let e = F5.addCString("").flush(), t2 = e.length + 4;
         return new pn2.Writer().addInt32(t2).add(e).flush();
       }, "startup"), mc = a(() => {
         let r = d.allocUnsafe(
           8
         );
         return r.writeInt32BE(8, 0), r.writeInt32BE(80877103, 4), r;
-      }, "requestSsl"), wc = a((r) => F4.addCString(r).flush(
+      }, "requestSsl"), wc = a((r) => F5.addCString(r).flush(
         112
       ), "password"), gc = a(function(r, e) {
-        return F4.addCString(r).addInt32(d.byteLength(e)).addString(e), F4.flush(112);
+        return F5.addCString(r).addInt32(d.byteLength(e)).addString(e), F5.flush(112);
       }, "sendSASLInitialResponseMessage"), bc = a(function(r) {
-        return F4.addString(r).flush(112);
-      }, "sendSCRAMClientFinalMessage"), vc = a((r) => F4.addCString(r).flush(81), "query"), Ns = [], xc = a((r) => {
+        return F5.addString(r).flush(112);
+      }, "sendSCRAMClientFinalMessage"), vc = a((r) => F5.addCString(r).flush(81), "query"), Ns = [], xc = a((r) => {
         let e = r.name || "";
         e.length > 63 && (console.error("Warning! Postgres only supports 63 characters for query names."), console.error("You supplied %s (%s)", e, e.length), console.error("This can cause conflicts and silent errors executing queries"));
-        let t2 = r.types || Ns, n4 = t2.length, i3 = F4.addCString(e).addCString(r.text).addInt16(n4);
+        let t2 = r.types || Ns, n4 = t2.length, i3 = F5.addCString(e).addCString(r.text).addInt16(n4);
         for (let s5 = 0; s5 < n4; s5++) i3.addInt32(t2[s5]);
-        return F4.flush(80);
+        return F5.flush(80);
       }, "parse"), qe2 = new pn2.Writer(), Sc = a(function(r, e) {
         for (let t2 = 0; t2 < r.length; t2++) {
           let n4 = e ? e(r[t2], t2) : r[t2];
-          n4 == null ? (F4.addInt16(0), qe2.addInt32(-1)) : n4 instanceof d ? (F4.addInt16(
+          n4 == null ? (F5.addInt16(0), qe2.addInt32(-1)) : n4 instanceof d ? (F5.addInt16(
             1
-          ), qe2.addInt32(n4.length), qe2.add(n4)) : (F4.addInt16(0), qe2.addInt32(d.byteLength(n4)), qe2.addString(n4));
+          ), qe2.addInt32(n4.length), qe2.add(n4)) : (F5.addInt16(0), qe2.addInt32(d.byteLength(n4)), qe2.addString(n4));
         }
       }, "writeValues"), Ec = a((r = {}) => {
         let e = r.portal || "", t2 = r.statement || "", n4 = r.binary || false, i3 = r.values || Ns, s5 = i3.length;
-        return F4.addCString(e).addCString(t2), F4.addInt16(s5), Sc(i3, r.valueMapper), F4.addInt16(s5), F4.add(qe2.flush()), F4.addInt16(n4 ? 1 : 0), F4.flush(66);
+        return F5.addCString(e).addCString(t2), F5.addInt16(s5), Sc(i3, r.valueMapper), F5.addInt16(s5), F5.add(qe2.flush()), F5.addInt16(n4 ? 1 : 0), F5.flush(66);
       }, "bind"), Ac = d.from([69, 0, 0, 0, 9, 0, 0, 0, 0, 0]), Cc = a((r) => {
         if (!r || !r.portal && !r.rows) return Ac;
         let e = r.portal || "", t2 = r.rows || 0, n4 = d.byteLength(e), i3 = 4 + n4 + 1 + 4, s5 = d.allocUnsafe(1 + i3);
@@ -3718,10 +3718,10 @@ var init_serverless = __esm({
       ), dn2 = a((r, e) => {
         let n4 = 4 + d.byteLength(e) + 1, i3 = d.allocUnsafe(1 + n4);
         return i3[0] = r, i3.writeInt32BE(n4, 1), i3.write(e, 5, "utf-8"), i3[n4] = 0, i3;
-      }, "cstringMessage"), Ic = F4.addCString("P").flush(68), Tc = F4.addCString("S").flush(68), Pc = a((r) => r.name ? dn2(68, `${r.type}${r.name || ""}`) : r.type === "P" ? Ic : Tc, "describe"), Rc = a((r) => {
+      }, "cstringMessage"), Ic = F5.addCString("P").flush(68), Tc = F5.addCString("S").flush(68), Pc = a((r) => r.name ? dn2(68, `${r.type}${r.name || ""}`) : r.type === "P" ? Ic : Tc, "describe"), Rc = a((r) => {
         let e = `${r.type}${r.name || ""}`;
         return dn2(67, e);
-      }, "close"), Bc = a((r) => F4.add(r).flush(100), "copyData"), Lc = a((r) => dn2(102, r), "copyFail"), Lt2 = a((r) => d.from([r, 0, 0, 0, 4]), "codeOnlyBuffer"), Fc = Lt2(72), kc = Lt2(83), Mc = Lt2(88), Uc = Lt2(99), Dc = {
+      }, "close"), Bc = a((r) => F5.add(r).flush(100), "copyData"), Lc = a((r) => dn2(102, r), "copyFail"), Lt2 = a((r) => d.from([r, 0, 0, 0, 4]), "codeOnlyBuffer"), Fc = Lt2(72), kc = Lt2(83), Mc = Lt2(88), Uc = Lt2(99), Dc = {
         startup: yc,
         password: wc,
         requestSsl: mc,
@@ -5538,8 +5538,8 @@ async function Wr({ pg: e, debug: r, args: t2, wasmModule: n4 }) {
     f5 += S5, Y(r, "initdberr", S5);
   }, instantiateWasm: (S5, v5) => {
     let h3 = new URL("./initdb.wasm", import.meta.url);
-    return m2.instantiateWasm(S5, h3, n4).then(({ instance: b5, module: F4 }) => {
-      v5(b5, F4);
+    return m2.instantiateWasm(S5, h3, n4).then(({ instance: b5, module: F5 }) => {
+      v5(b5, F5);
     }), {};
   }, preRun: [(S5) => {
     S5.ENV.PGDATA = B, S5.ENV.HOME = "/home/postgres", S5.ENV.USER = "postgres", S5.ENV.LOGNAME = "postgres", S5.ENV.ICU_DATA = jr;
@@ -5554,14 +5554,14 @@ async function Wr({ pg: e, debug: r, args: t2, wasmModule: n4 }) {
       {
         let v5 = e.Module.stringToUTF8OnStack(je), h3 = e.Module.stringToUTF8OnStack("r");
         e.Module._pgl_freopen(v5, h3, 0);
-        let b5 = e.Module.stringToUTF8OnStack(ze), F4 = e.Module.stringToUTF8OnStack("w");
-        e.Module._pgl_freopen(b5, F4, 1);
+        let b5 = e.Module.stringToUTF8OnStack(ze), F5 = e.Module.stringToUTF8OnStack("w");
+        e.Module._pgl_freopen(b5, F5, 1);
       }
       {
         let v5 = S5.stringToUTF8OnStack(ze), h3 = S5.stringToUTF8OnStack("r");
         c4 = S5._fopen(v5, h3);
-        let b5 = S5.stringToUTF8OnStack(je), F4 = S5.stringToUTF8OnStack("w");
-        p6 = S5._fopen(b5, F4);
+        let b5 = S5.stringToUTF8OnStack(je), F5 = S5.stringToUTF8OnStack("w");
+        p6 = S5._fopen(b5, F5);
       }
     };
   }, (S5) => {
@@ -6170,14 +6170,14 @@ var init_chunk_SAANIQDT = __esm({
           } else {
             s5(l2 !== "dylink.0");
             for (var E3 = 1, y5 = 2, A2 = 3, S5 = 4, v5 = 256, h3 = 3, b5 = 1; r < t2; ) {
-              var F4 = n4(), Xe4 = o5();
-              if (F4 === E3) f5.memorySize = o5(), f5.memoryAlign = o5(), f5.tableSize = o5(), f5.tableAlign = o5();
-              else if (F4 === y5) for (var m6 = o5(), _4 = 0; _4 < m6; ++_4) g5 = a3(), f5.neededDynlibs.push(g5);
-              else if (F4 === A2) for (var Z2 = o5(); Z2--; ) {
+              var F5 = n4(), Xe4 = o5();
+              if (F5 === E3) f5.memorySize = o5(), f5.memoryAlign = o5(), f5.tableSize = o5(), f5.tableAlign = o5();
+              else if (F5 === y5) for (var m6 = o5(), _4 = 0; _4 < m6; ++_4) g5 = a3(), f5.neededDynlibs.push(g5);
+              else if (F5 === A2) for (var Z2 = o5(); Z2--; ) {
                 var ee3 = a3(), re2 = o5();
                 re2 & v5 && f5.tlsExports.add(ee3);
               }
-              else if (F4 === S5) for (var Z2 = o5(); Z2--; ) {
+              else if (F5 === S5) for (var Z2 = o5(); Z2--; ) {
                 var Vr = a3(), ee3 = a3(), re2 = o5();
                 (re2 & h3) == b5 && f5.weakImports.add(ee3);
               }
@@ -7432,13 +7432,13 @@ var init_chunk_SAANIQDT = __esm({
               var S5 = (h3, b5) => {
                 if (h3 > b5) throw new Error("invalid range (" + h3 + ", " + b5 + ") or no bytes requested!");
                 if (b5 > _4 - 1) throw new Error("only " + _4 + " bytes available! programmer error!");
-                var F4 = new XMLHttpRequest();
-                if (F4.open("GET", t2, false), _4 !== A2 && F4.setRequestHeader("Range", "bytes=" + h3 + "-" + b5), F4.responseType = "arraybuffer", F4.overrideMimeType && F4.overrideMimeType("text/plain; charset=x-user-defined"), F4.send(null), !(F4.status >= 200 && F4.status < 300 || F4.status === 304)) throw new Error("Couldn't load " + t2 + ". Status: " + F4.status);
-                return F4.response !== void 0 ? new Uint8Array(F4.response || []) : intArrayFromString(F4.responseText || "", true);
+                var F5 = new XMLHttpRequest();
+                if (F5.open("GET", t2, false), _4 !== A2 && F5.setRequestHeader("Range", "bytes=" + h3 + "-" + b5), F5.responseType = "arraybuffer", F5.overrideMimeType && F5.overrideMimeType("text/plain; charset=x-user-defined"), F5.send(null), !(F5.status >= 200 && F5.status < 300 || F5.status === 304)) throw new Error("Couldn't load " + t2 + ". Status: " + F5.status);
+                return F5.response !== void 0 ? new Uint8Array(F5.response || []) : intArrayFromString(F5.responseText || "", true);
               }, v5 = this;
               v5.setDataGetter((h3) => {
-                var b5 = h3 * A2, F4 = (h3 + 1) * A2 - 1;
-                if (F4 = Math.min(F4, _4 - 1), typeof v5.chunks[h3] > "u" && (v5.chunks[h3] = S5(b5, F4)), typeof v5.chunks[h3] > "u") throw new Error("doXHR failed!");
+                var b5 = h3 * A2, F5 = (h3 + 1) * A2 - 1;
+                if (F5 = Math.min(F5, _4 - 1), typeof v5.chunks[h3] > "u" && (v5.chunks[h3] = S5(b5, F5)), typeof v5.chunks[h3] > "u") throw new Error("doXHR failed!");
                 return v5.chunks[h3];
               }), (y5 || !_4) && (A2 = _4 = 1, _4 = this.getter(0).length, A2 = _4, out("LazyFiles on gzip forces download of the whole file when length is accessed")), this._length = _4, this._chunkSize = A2, this.lengthKnown = true;
             }
@@ -9893,13 +9893,13 @@ var init_dist = __esm({
               Module.dataFileDownloads ?? (Module.dataFileDownloads = {}), fetch(p6).catch((h3) => Promise.reject(new Error(`Network Error: ${p6}`, { cause: h3 }))).then((h3) => {
                 if (!h3.ok) return Promise.reject(new Error(`${h3.status}: ${h3.url}`));
                 if (!h3.body && h3.arrayBuffer) return h3.arrayBuffer().then(w4);
-                let y5 = h3.body.getReader(), E3 = () => y5.read().then(oe2).catch((H3) => Promise.reject(new Error(`Unexpected error while handling : ${h3.url} ${H3}`, { cause: H3 }))), F4 = [], k3 = h3.headers, I3 = Number(k3.get("Content-Length") ?? x5), q2 = 0, oe2 = ({ done: H3, value: X2 }) => {
+                let y5 = h3.body.getReader(), E3 = () => y5.read().then(oe2).catch((H3) => Promise.reject(new Error(`Unexpected error while handling : ${h3.url} ${H3}`, { cause: H3 }))), F5 = [], k3 = h3.headers, I3 = Number(k3.get("Content-Length") ?? x5), q2 = 0, oe2 = ({ done: H3, value: X2 }) => {
                   if (H3) {
-                    let A2 = new Uint8Array(F4.map((R3) => R3.length).reduce((R3, lt2) => R3 + lt2, 0)), B3 = 0;
-                    for (let R3 of F4) A2.set(R3, B3), B3 += R3.length;
+                    let A2 = new Uint8Array(F5.map((R3) => R3.length).reduce((R3, lt2) => R3 + lt2, 0)), B3 = 0;
+                    for (let R3 of F5) A2.set(R3, B3), B3 += R3.length;
                     w4(A2.buffer);
                   } else {
-                    F4.push(X2), q2 += X2.length, Module.dataFileDownloads[p6] = { loaded: q2, total: I3 };
+                    F5.push(X2), q2 += X2.length, Module.dataFileDownloads[p6] = { loaded: q2, total: I3 };
                     let A2 = 0, B3 = 0;
                     for (let R3 of Object.values(Module.dataFileDownloads)) A2 += R3.loaded, B3 += R3.total;
                     return Module.setStatus?.(`Downloading data... (${A2}/${B3})`), E3();
@@ -9916,28 +9916,28 @@ var init_dist = __esm({
               f5 ? (f5(p6), f5 = null) : g5 = p6;
             }, c4);
             function m6(p6) {
-              function x5(E3, F4) {
-                if (!E3) throw F4 + new Error().stack;
+              function x5(E3, F5) {
+                if (!E3) throw F5 + new Error().stack;
               }
               p6.FS_createPath("/", "home", true, true), p6.FS_createPath("/home", "postgres", true, true), p6.FS_createPath("/", "pglite", true, true), p6.FS_createPath("/pglite", "bin", true, true), p6.FS_createPath("/pglite", "icu", true, true), p6.FS_createPath("/pglite/icu", "icudt76l", true, true), p6.FS_createPath("/pglite/icu/icudt76l", "coll", true, true), p6.FS_createPath("/pglite", "lib", true, true), p6.FS_createPath("/pglite/lib", "postgresql", true, true), p6.FS_createPath("/pglite/lib/postgresql", "pgxs", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs", "config", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs", "src", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs/src", "makefiles", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs/src", "test", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs/src/test", "isolation", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs/src/test", "regress", true, true), p6.FS_createPath("/pglite", "share", true, true), p6.FS_createPath("/pglite/share", "postgresql", true, true), p6.FS_createPath("/pglite/share/postgresql", "extension", true, true), p6.FS_createPath("/pglite/share/postgresql", "timezone", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Africa", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "America", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone/America", "Argentina", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone/America", "Indiana", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone/America", "Kentucky", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone/America", "North_Dakota", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Antarctica", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Arctic", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Asia", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Atlantic", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Australia", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Brazil", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Canada", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Chile", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Etc", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Europe", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Indian", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Mexico", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Pacific", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "US", true, true), p6.FS_createPath("/pglite/share/postgresql", "timezonesets", true, true), p6.FS_createPath("/pglite/share/postgresql", "tsearch_data", true, true);
-              function w4(E3, F4, k3) {
-                this.start = E3, this.end = F4, this.audio = k3;
+              function w4(E3, F5, k3) {
+                this.start = E3, this.end = F5, this.audio = k3;
               }
-              w4.prototype = { requests: {}, open: function(E3, F4) {
-                this.name = F4, this.requests[F4] = this, p6.addRunDependency(`fp ${this.name}`);
+              w4.prototype = { requests: {}, open: function(E3, F5) {
+                this.name = F5, this.requests[F5] = this, p6.addRunDependency(`fp ${this.name}`);
               }, send: function() {
               }, onload: function() {
                 var E3 = this.byteArray.subarray(this.start, this.end);
                 this.finish(E3);
               }, finish: function(E3) {
-                var F4 = this;
-                p6.FS_createDataFile(this.name, null, E3, true, true, true), p6.removeRunDependency(`fp ${F4.name}`), this.requests[this.name] = null;
+                var F5 = this;
+                p6.FS_createDataFile(this.name, null, E3, true, true, true), p6.removeRunDependency(`fp ${F5.name}`), this.requests[this.name] = null;
               } };
               for (var b5 = o5.files, h3 = 0; h3 < b5.length; ++h3) new w4(b5[h3].start, b5[h3].end, b5[h3].audio || 0).open("GET", b5[h3].filename);
               function y5(E3) {
                 x5(E3, "Loading data file failed."), x5(E3.constructor.name === ArrayBuffer.name, "bad input to processPackageData");
-                var F4 = new Uint8Array(E3);
-                w4.prototype.byteArray = F4;
+                var F5 = new Uint8Array(E3);
+                w4.prototype.byteArray = F5;
                 for (var k3 = o5.files, I3 = 0; I3 < k3.length; ++I3) w4.prototype.requests[k3[I3].filename].onload();
                 p6.removeRunDependency("datafile_pglite.data");
               }
@@ -10185,7 +10185,7 @@ var init_dist = __esm({
             }
           } else {
             s5(n4 !== "dylink.0");
-            for (var x5 = 1, w4 = 2, b5 = 3, h3 = 4, y5 = 256, E3 = 3, F4 = 1; t2 < r; ) {
+            for (var x5 = 1, w4 = 2, b5 = 3, h3 = 4, y5 = 256, E3 = 3, F5 = 1; t2 < r; ) {
               var k3 = a3(), I3 = o5();
               if (k3 === x5) f5.memorySize = o5(), f5.memoryAlign = o5(), f5.tableSize = o5(), f5.tableAlign = o5();
               else if (k3 === w4) for (var g5 = o5(), m6 = 0; m6 < g5; ++m6) p6 = _4(), f5.neededDynlibs.push(p6);
@@ -10195,7 +10195,7 @@ var init_dist = __esm({
               }
               else if (k3 === h3) for (var q2 = o5(); q2--; ) {
                 var X2 = _4(), oe2 = _4(), H3 = o5();
-                (H3 & E3) == F4 && f5.weakImports.add(oe2);
+                (H3 & E3) == F5 && f5.weakImports.add(oe2);
               }
               else t2 += I3;
             }
@@ -11783,16 +11783,16 @@ var init_dist = __esm({
               if (g5.open("HEAD", r, false), g5.send(null), !(g5.status >= 200 && g5.status < 300 || g5.status === 304)) throw new Error("Couldn't load " + r + ". Status: " + g5.status);
               var m6 = Number(g5.getResponseHeader("Content-length")), p6, x5 = (p6 = g5.getResponseHeader("Accept-Ranges")) && p6 === "bytes", w4 = (p6 = g5.getResponseHeader("Content-Encoding")) && p6 === "gzip", b5 = 1024 * 1024;
               x5 || (b5 = m6);
-              var h3 = (E3, F4) => {
-                if (E3 > F4) throw new Error("invalid range (" + E3 + ", " + F4 + ") or no bytes requested!");
-                if (F4 > m6 - 1) throw new Error("only " + m6 + " bytes available! programmer error!");
+              var h3 = (E3, F5) => {
+                if (E3 > F5) throw new Error("invalid range (" + E3 + ", " + F5 + ") or no bytes requested!");
+                if (F5 > m6 - 1) throw new Error("only " + m6 + " bytes available! programmer error!");
                 var k3 = new XMLHttpRequest();
-                if (k3.open("GET", r, false), m6 !== b5 && k3.setRequestHeader("Range", "bytes=" + E3 + "-" + F4), k3.responseType = "arraybuffer", k3.overrideMimeType && k3.overrideMimeType("text/plain; charset=x-user-defined"), k3.send(null), !(k3.status >= 200 && k3.status < 300 || k3.status === 304)) throw new Error("Couldn't load " + r + ". Status: " + k3.status);
+                if (k3.open("GET", r, false), m6 !== b5 && k3.setRequestHeader("Range", "bytes=" + E3 + "-" + F5), k3.responseType = "arraybuffer", k3.overrideMimeType && k3.overrideMimeType("text/plain; charset=x-user-defined"), k3.send(null), !(k3.status >= 200 && k3.status < 300 || k3.status === 304)) throw new Error("Couldn't load " + r + ". Status: " + k3.status);
                 return k3.response !== void 0 ? new Uint8Array(k3.response || []) : intArrayFromString(k3.responseText || "", true);
               }, y5 = this;
               y5.setDataGetter((E3) => {
-                var F4 = E3 * b5, k3 = (E3 + 1) * b5 - 1;
-                if (k3 = Math.min(k3, m6 - 1), typeof y5.chunks[E3] > "u" && (y5.chunks[E3] = h3(F4, k3)), typeof y5.chunks[E3] > "u") throw new Error("doXHR failed!");
+                var F5 = E3 * b5, k3 = (E3 + 1) * b5 - 1;
+                if (k3 = Math.min(k3, m6 - 1), typeof y5.chunks[E3] > "u" && (y5.chunks[E3] = h3(F5, k3)), typeof y5.chunks[E3] > "u") throw new Error("doXHR failed!");
                 return y5.chunks[E3];
               }), (w4 || !m6) && (b5 = m6 = 1, m6 = this.getter(0).length, b5 = m6, out("LazyFiles on gzip forces download of the whole file when length is accessed")), this._length = m6, this._chunkSize = b5, this.lengthKnown = true;
             }
@@ -11862,8 +11862,8 @@ var init_dist = __esm({
         } }, ___syscall__newselect = function(e, t2, r, a3, o5) {
           try {
             for (var _4 = 0, s5 = t2 ? HEAP32[t2 >> 2] : 0, n4 = t2 ? HEAP32[t2 + 4 >> 2] : 0, l2 = r ? HEAP32[r >> 2] : 0, d4 = r ? HEAP32[r + 4 >> 2] : 0, u2 = a3 ? HEAP32[a3 >> 2] : 0, c4 = a3 ? HEAP32[a3 + 4 >> 2] : 0, f5 = 0, g5 = 0, m6 = 0, p6 = 0, x5 = 0, w4 = 0, b5 = (t2 ? HEAP32[t2 >> 2] : 0) | (r ? HEAP32[r >> 2] : 0) | (a3 ? HEAP32[a3 >> 2] : 0), h3 = (t2 ? HEAP32[t2 + 4 >> 2] : 0) | (r ? HEAP32[r + 4 >> 2] : 0) | (a3 ? HEAP32[a3 + 4 >> 2] : 0), y5 = (X2, A2, B3, R3) => X2 < 32 ? A2 & R3 : B3 & R3, E3 = 0; E3 < e; E3++) {
-              var F4 = 1 << E3 % 32;
-              if (y5(E3, b5, h3, F4)) {
+              var F5 = 1 << E3 % 32;
+              if (y5(E3, b5, h3, F5)) {
                 var k3 = SYSCALLS.getStreamFromFD(E3), I3 = SYSCALLS.DEFAULT_POLLMASK;
                 if (k3.stream_ops.poll) {
                   var q2 = -1;
@@ -11873,7 +11873,7 @@ var init_dist = __esm({
                   }
                   I3 = k3.stream_ops.poll(k3, q2);
                 }
-                I3 & 1 && y5(E3, s5, n4, F4) && (E3 < 32 ? f5 = f5 | F4 : g5 = g5 | F4, _4++), I3 & 4 && y5(E3, l2, d4, F4) && (E3 < 32 ? m6 = m6 | F4 : p6 = p6 | F4, _4++), I3 & 2 && y5(E3, u2, c4, F4) && (E3 < 32 ? x5 = x5 | F4 : w4 = w4 | F4, _4++);
+                I3 & 1 && y5(E3, s5, n4, F5) && (E3 < 32 ? f5 = f5 | F5 : g5 = g5 | F5, _4++), I3 & 4 && y5(E3, l2, d4, F5) && (E3 < 32 ? m6 = m6 | F5 : p6 = p6 | F5, _4++), I3 & 2 && y5(E3, u2, c4, F5) && (E3 < 32 ? x5 = x5 | F5 : w4 = w4 | F5, _4++);
               }
             }
             return t2 && (HEAP32[t2 >> 2] = f5, HEAP32[t2 + 4 >> 2] = g5), r && (HEAP32[r >> 2] = m6, HEAP32[r + 4 >> 2] = p6), a3 && (HEAP32[a3 >> 2] = x5, HEAP32[a3 + 4 >> 2] = w4), _4;
@@ -13980,9 +13980,9 @@ ${n4}`), 0;
         let p6 = m6.FS.makedev(64, 0), x5 = { open: (w4) => {
         }, close: (w4) => {
         }, read: (w4, b5, h3, y5, E3) => {
-          let F4 = h(this, ie4);
-          if (!F4) throw new Error("No /dev/blob File or Blob provided to read from");
-          let k3 = new Uint8Array(F4);
+          let F5 = h(this, ie4);
+          if (!F5) throw new Error("No /dev/blob File or Blob provided to read from");
+          let k3 = new Uint8Array(F5);
           if (E3 >= k3.length) return 0;
           let I3 = Math.min(k3.length - E3, y5);
           for (let q2 = 0; q2 < I3; q2++) b5[h3 + q2] = k3[E3 + q2];
@@ -14184,6 +14184,41 @@ var paidAuditsSchemaSql = `create table if not exists paid_audits (
 );
 
 create index if not exists paid_audits_status_idx on paid_audits (status, created_at);`;
+var scansSchemaSql = `create table if not exists scans (
+  id text primary key,
+  url text not null,
+  origin text not null,
+  score integer not null,
+  band text not null,
+  passed integer not null default 0,
+  counts jsonb not null default '{}'::jsonb,
+  findings jsonb not null default '[]'::jsonb,
+  source text not null default 'free',
+  created_at timestamptz not null default now()
+);
+create index if not exists scans_origin_idx on scans (origin, created_at desc);
+
+create table if not exists scan_leads (
+  id text primary key,
+  email text not null,
+  scan_id text,
+  origin text,
+  created_at timestamptz not null default now()
+);
+create index if not exists scan_leads_email_idx on scan_leads (email, created_at);
+
+create table if not exists monitors (
+  id text primary key,
+  origin text not null unique,
+  email text,
+  frequency text not null default 'weekly',
+  agency_name text,
+  logo_url text,
+  active boolean not null default true,
+  last_scan_id text,
+  last_run_at timestamptz,
+  created_at timestamptz not null default now()
+);`;
 var storageSchemaSql = `create table if not exists projects (
   id text primary key,
   owner_id text not null,
@@ -14293,11 +14328,307 @@ alter table campaigns add column if not exists repo_path_hint text;
 
 alter table test_cards add column if not exists exec jsonb not null default '[]'::jsonb;
 
-${paidAuditsSchemaSql}`;
+${paidAuditsSchemaSql}
+
+${scansSchemaSql}`;
 
 // src/lib/instant-grade.ts
 import dns from "node:dns/promises";
 import net from "node:net";
+
+// src/lib/vibe-checks.ts
+var F4 = (category, severity, title, detail, fix) => ({ category, severity, title, detail, fix });
+var COMMON_TABLES = [
+  "users",
+  "profiles",
+  "customers",
+  "orders",
+  "messages",
+  "posts",
+  "todos",
+  "payments",
+  "subscriptions",
+  "accounts",
+  "leads",
+  "contacts"
+];
+var ADMIN_PATHS = ["/admin", "/dashboard", "/administrator", "/api/admin", "/api/admin/users"];
+var JWT_RE = /eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/;
+function extractSupabase(text) {
+  const urlM = text.match(/https:\/\/[a-z0-9-]+\.supabase\.co/i);
+  if (!urlM) return null;
+  const keyM = text.match(JWT_RE);
+  if (!keyM) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(keyM[0].split(".")[1], "base64").toString("utf8"));
+    if (payload.role !== "anon" && payload.role !== "service_role" && !/supabase/i.test(payload.iss ?? "")) return null;
+  } catch {
+  }
+  return { url: urlM[0].replace(/\/+$/, ""), anonKey: keyM[0] };
+}
+function extractFirebase(text) {
+  const db = text.match(/https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)?\.(?:firebaseio\.com|firebasedatabase\.app)/i);
+  const proj = text.match(/["']?projectId["']?\s*[:=]\s*["']([a-z0-9-]+)["']/i);
+  if (!db && !proj) return null;
+  return { databaseURL: db ? db[0].replace(/\/+$/, "") : null, projectId: proj ? proj[1] : null };
+}
+function findClientSecrets(text) {
+  const out2 = [];
+  const seen = /* @__PURE__ */ new Set();
+  const push = (kind, sev, m6) => {
+    const s5 = m6.slice(0, 10) + "\u2026";
+    const id = kind + s5;
+    if (!seen.has(id)) {
+      seen.add(id);
+      out2.push({ kind, sev, sample: s5 });
+    }
+  };
+  const rules = [
+    [/\bsk_live_[A-Za-z0-9]{16,}/g, "Stripe secret key (sk_live)", "critical"],
+    [/\bsk_test_[A-Za-z0-9]{16,}/g, "Stripe secret key (sk_test)", "critical"],
+    [/\brk_live_[A-Za-z0-9]{16,}/g, "Stripe restricted key (rk_live)", "critical"],
+    [/\bpk_test_[A-Za-z0-9]{16,}/g, "Stripe TEST publishable key in production", "medium"],
+    [/\bAKIA[0-9A-Z]{16}\b/g, "AWS access key id", "critical"],
+    [/\bsk-ant-[A-Za-z0-9_-]{20,}/g, "Anthropic API key", "critical"],
+    [/\bsk-proj-[A-Za-z0-9_-]{20,}/g, "OpenAI project key", "critical"],
+    [/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g, "Private key (PEM)", "critical"],
+    [/\bghp_[A-Za-z0-9]{36}\b/g, "GitHub personal access token", "critical"],
+    [/\bxox[baprs]-[A-Za-z0-9-]{10,}/g, "Slack token", "critical"]
+  ];
+  for (const [re2, kind, sev] of rules) {
+    const m6 = text.match(re2);
+    if (m6) for (const hit of m6.slice(0, 2)) push(kind, sev, hit);
+  }
+  return out2;
+}
+var PLACEHOLDER_RES = [
+  [/lorem ipsum/i, "lorem ipsum"],
+  [/\byour company\b/i, "your company"],
+  [/\byour business name\b/i, "your business name"],
+  [/\[insert[^\]]{0,40}\]/i, "[insert \u2026]"],
+  [/\breplace this\b/i, "replace this"],
+  [/company name here/i, "company name here"],
+  [/example@example\.com/i, "example@example.com"],
+  [/\b555-555-5555\b/, "555-555-5555"],
+  [/\bTODO:/, "TODO:"],
+  [/\byour headline here\b/i, "your headline here"],
+  [/\blorem\b/i, "lorem"]
+];
+function findPlaceholders(html) {
+  const visible = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ");
+  const hits = /* @__PURE__ */ new Set();
+  for (const [re2, label] of PLACEHOLDER_RES) if (re2.test(visible)) hits.add(label);
+  return [...hits];
+}
+function looksLikeShell(body2, homeHtml) {
+  const b5 = body2.trim();
+  if (b5.length < 1200) {
+    const mount = /<div[^>]+id=["'](root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(b5);
+    if (mount) return true;
+  }
+  if (homeHtml && Math.abs(b5.length - homeHtml.trim().length) < 40 && b5.slice(0, 400) === homeHtml.trim().slice(0, 400)) return true;
+  return false;
+}
+var AUTH_HINTS = [/\/login\b/i, /\/sign-?in\b/i, /\/api\/auth\b/i, /\/api\/login\b/i, /type=["']password["']/i];
+async function runVibeChecks(ctx) {
+  const { origin, html, jsTexts, grab: grab3 } = ctx;
+  const findings = [];
+  let passed = 0;
+  let checks = 0;
+  const corpus = [html, ...jsTexts].join("\n");
+  checks++;
+  const sb = extractSupabase(corpus);
+  if (sb) {
+    const readable = [];
+    await Promise.all(COMMON_TABLES.map(async (t2) => {
+      const r = await grab3(`${sb.url}/rest/v1/${t2}?select=*&limit=1`, { headers: { apikey: sb.anonKey, authorization: `Bearer ${sb.anonKey}` } }, 6e3);
+      if (!r || r.status !== 200) return;
+      try {
+        const rows = await r.json();
+        if (Array.isArray(rows) && rows.length > 0) readable.push(t2);
+      } catch {
+      }
+    }));
+    if (readable.length) {
+      findings.push(F4(
+        "Supabase / RLS",
+        "critical",
+        `Supabase tables readable with the public anon key: ${readable.join(", ")}`,
+        `Your Supabase URL and anon key ship in the client (that part is normal), but an unauthenticated request using that key returned rows from ${readable.length} table${readable.length === 1 ? "" : "s"} (${readable.join(", ")}). Row Level Security is off or too permissive \u2014 this is exactly the flaw that leaked 170 Lovable apps' user data.`,
+        `Enable Row Level Security on every public table in Supabase and add owner-scoped policies. For each of these tables (${readable.join(", ")}): run "alter table <t> enable row level security;" then add a policy like "create policy \\"own rows\\" on <t> for select using (auth.uid() = user_id);". Verify with an anon-key SELECT that it now returns zero rows. Do NOT rely on hiding the key in the client. Standard: Supabase RLS / CWE-284.`
+      ));
+    } else {
+      passed++;
+    }
+  } else {
+    passed++;
+  }
+  checks++;
+  const fb = extractFirebase(corpus);
+  let fbOpen = false;
+  if (fb?.databaseURL) {
+    const r = await grab3(`${fb.databaseURL}/.json?shallow=true`, {}, 6e3);
+    if (r && r.status === 200) {
+      const body2 = (await r.text()).slice(0, 2e3).trim();
+      if (body2 && body2 !== "null" && !/permission denied|"error"/i.test(body2)) {
+        fbOpen = true;
+        findings.push(F4(
+          "Firebase",
+          "critical",
+          "Firebase Realtime Database is world-readable",
+          `An unauthenticated request to ${fb.databaseURL}/.json returned data. Your database rules allow public reads \u2014 anyone can pull the whole tree.`,
+          `Lock down your Firebase Realtime Database rules. Replace any {".read": true} with auth-scoped rules, e.g. {"rules": {"$uid": {".read": "auth != null && auth.uid === $uid", ".write": "auth != null && auth.uid === $uid"}}}. Deploy with "firebase deploy --only database" and re-check that ${fb.databaseURL}/.json returns "Permission denied". Standard: Firebase Security Rules / CWE-284.`
+        ));
+      }
+    }
+  }
+  if (fb?.projectId && !fbOpen) {
+    const r = await grab3(`https://firestore.googleapis.com/v1/projects/${fb.projectId}/databases/(default)/documents/users?pageSize=1`, {}, 6e3);
+    if (r && r.status === 200) {
+      try {
+        const j4 = await r.json();
+        if (Array.isArray(j4.documents) && j4.documents.length > 0) {
+          fbOpen = true;
+          findings.push(F4(
+            "Firebase",
+            "critical",
+            "Firestore collection is world-readable",
+            `An unauthenticated Firestore read of the "users" collection in project ${fb.projectId} returned documents. Your Firestore rules allow public reads.`,
+            `Fix your Firestore security rules. Replace "allow read, write: if true;" with auth-scoped rules, e.g. "match /users/{uid} { allow read, write: if request.auth != null && request.auth.uid == uid; }". Deploy with "firebase deploy --only firestore:rules" and re-test an unauthenticated read returns PERMISSION_DENIED. Standard: Firebase Security Rules / CWE-284.`
+          ));
+        }
+      } catch {
+      }
+    }
+  }
+  if (!fbOpen) passed++;
+  checks++;
+  const secrets = findClientSecrets(corpus);
+  if (secrets.length) {
+    const crit = secrets.filter((s5) => s5.sev === "critical");
+    for (const s5 of crit.slice(0, 3)) {
+      findings.push(F4(
+        "Secrets",
+        "critical",
+        `${s5.kind} exposed in the client bundle`,
+        `A ${s5.kind} (${s5.sample}) is readable in your page or JS bundle. Anyone who opens dev tools has it. Assume it is already compromised.`,
+        `Remove the ${s5.kind} from all client-side code immediately and ROTATE it (assume it is leaked). Server-only secrets must live in a server env var (never NEXT_PUBLIC_/VITE_/PUBLIC_ prefixed) and be used only in server routes or edge functions. Rotate the key in the provider dashboard, redeploy, and re-scan. Standard: OWASP WSTG configuration / CWE-798.`
+      ));
+    }
+    const testKey = secrets.find((s5) => s5.sev === "medium");
+    if (testKey) {
+      findings.push(F4(
+        "Secrets",
+        "medium",
+        "Stripe is running in TEST mode in production",
+        "A pk_test_ publishable key is live on the production site \u2014 real customers cannot actually pay, and it signals the checkout was never switched to live.",
+        `Swap the Stripe TEST publishable key (pk_test_\u2026) for your LIVE key (pk_live_\u2026) in the production environment, and make sure the matching secret key is sk_live_ on the server. Keep test keys in your local/preview env only. Standard: Stripe go-live checklist.`
+      ));
+    }
+    if (!crit.length && !testKey) passed++;
+  } else {
+    passed++;
+  }
+  checks++;
+  const adminHits = [];
+  await Promise.all(ADMIN_PATHS.map(async (p6) => {
+    const r = await grab3(new URL(p6, origin).toString(), {}, 5e3);
+    if (!r) return;
+    const ct3 = (r.headers.get("content-type") || "").toLowerCase();
+    if (p6.startsWith("/api/")) {
+      if (r.status === 200 && /json/.test(ct3)) {
+        try {
+          const j4 = await r.json();
+          const hasData = Array.isArray(j4) ? j4.length > 0 : j4 && typeof j4 === "object" && Object.keys(j4).length > 0;
+          if (hasData) adminHits.push({ path: p6, sev: "critical", why: "returned JSON data to an unauthenticated caller" });
+        } catch {
+        }
+      }
+      return;
+    }
+    if (r.status === 200) {
+      const body2 = (await r.text()).slice(0, 4e4);
+      if (/type=["']password["']|sign in|log ?in|unauthor|forbidden/i.test(body2)) return;
+      if (looksLikeShell(body2, html)) {
+        adminHits.push({ path: p6, sev: "medium", why: "served a 200 client shell (HTTP can't prove the client gate; verify the API)" });
+        return;
+      }
+      if (/admin|dashboard|users|settings|manage/i.test(body2)) adminHits.push({ path: p6, sev: "high", why: "served real admin-looking content to an unauthenticated visitor" });
+    }
+  }));
+  if (adminHits.length) {
+    const worst = adminHits.some((h3) => h3.sev === "critical") ? "critical" : adminHits.some((h3) => h3.sev === "high") ? "high" : "medium";
+    findings.push(F4(
+      "Access control",
+      worst,
+      `Admin surface reachable without auth: ${adminHits.map((h3) => h3.path).join(", ")}`,
+      adminHits.map((h3) => `${h3.path} ${h3.why}`).join("; ") + ".",
+      `Add a SERVER-SIDE authorization check to these routes/APIs (${adminHits.map((h3) => h3.path).join(", ")}). In the route handler or shared middleware, reject anonymous or non-admin requests with 401/403 BEFORE returning anything \u2014 hiding the link in the UI is not a control. For Next.js, guard in middleware.ts and re-check the role inside each /api/admin handler. Verify an unauthenticated curl to each path returns 401/403. Standard: OWASP WSTG-ATHZ / CWE-306.`
+    ));
+  } else {
+    passed++;
+  }
+  checks++;
+  if (/\/@vite\/client|__vite__mapDeps|import\.meta\.env\.DEV/i.test(corpus) && /\/@vite\/client/i.test(html)) {
+    findings.push(F4(
+      "Debug leak",
+      "high",
+      "Vite dev server client is shipped in production",
+      "The page loads /@vite/client \u2014 you deployed the dev build, not a production build. It hot-reloads, exposes source, and is far slower.",
+      `Deploy the production build, not the dev server. Run "npm run build" and serve the dist/ output (e.g. "vite preview" or your host's static output), and make sure your deploy command is the build, not "vite"/"npm run dev". Standard: Vite production build.`
+    ));
+  } else if (/nextjs-portal|__nextjs_original-stack-frame|__next_dev/i.test(corpus)) {
+    findings.push(F4(
+      "Debug leak",
+      "medium",
+      "Next.js is running in development mode",
+      "Dev-only markers (the error overlay / stack-frame endpoint) are present \u2014 the site is served with `next dev`, which is slow and leaks source and stack traces.",
+      `Run Next.js in production: build with "next build" and start with "next start" (or deploy to a host that does this automatically). Never run "next dev" as your production server. Standard: Next.js deployment.`
+    ));
+  } else {
+    passed++;
+  }
+  checks++;
+  if (jsTexts.some((t2) => /\/\/[#@]\s*sourceMappingURL=/.test(t2))) {
+    findings.push(F4(
+      "Debug leak",
+      "low",
+      "Source maps are published in production",
+      "Your minified JS references a .map file, which ships your original, unminified source (and often comments and structure) to anyone.",
+      `Turn off source maps in production builds. Next.js: set "productionBrowserSourceMaps: false" in next.config.js (the default). Vite: set "build.sourcemap: false". Rebuild and confirm no //# sourceMappingURL= line remains in the shipped JS. Standard: production build hygiene.`
+    ));
+  } else {
+    passed++;
+  }
+  checks++;
+  if (AUTH_HINTS.some((re2) => re2.test(corpus))) {
+    findings.push(F4(
+      "Auth hardening",
+      "low",
+      "Verify rate limiting on the login endpoint",
+      "This app exposes a login / auth endpoint. We do not brute-force it, so we cannot confirm a limit exists \u2014 but AI builders almost never add one, and an unthrottled login invites credential-stuffing.",
+      `Add rate limiting to your login and password-reset endpoints (report-only finding \u2014 verify this yourself). Limit attempts per IP and per account (e.g. 5 per 15 minutes) and add exponential backoff or a captcha after repeated failures. On Vercel use @upstash/ratelimit; on Supabase Auth enable the built-in rate limits. Standard: OWASP WSTG-ATHN / API4:2023.`
+    ));
+  } else {
+    passed++;
+  }
+  checks++;
+  const placeholders = findPlaceholders(html);
+  if (placeholders.length) {
+    findings.push(F4(
+      "Content",
+      placeholders.length > 2 ? "medium" : "low",
+      `Placeholder copy still on the page: ${placeholders.slice(0, 4).join(", ")}`,
+      `The live page still shows scaffold text (${placeholders.join(", ")}). It reads as unfinished and can leak straight into search results and link previews.`,
+      `Replace the placeholder copy (${placeholders.join(", ")}) with real content. Search the codebase for each phrase and write the actual headline/body/contact details. Standard: launch content hygiene.`
+    ));
+  } else {
+    passed++;
+  }
+  return { findings, passed, checks };
+}
+
+// src/lib/instant-grade.ts
 var CHALLENGE_SIGNS = [/cf-browser-verification/i, /_cf_chl_opt/i, /cf-chl/i, /Attention Required!\s*\|\s*Cloudflare/i, /Just a moment\.\.\./i, /Access Denied/i, /Request unsuccessful\. Incapsula/i, /_Incapsula_Resource/i, /Reference #\d+\.[0-9a-f]+\.[0-9a-f]+\.[0-9a-f]+/i, /akamai/i, /Pardon Our Interruption/i, /PerimeterX/i, /px-captcha/i, /distil_r_captcha/i, /DataDome/i, /Please verify you are a human/i, /enable JavaScript and cookies to continue/i];
 function blockedReason(status, html) {
   if (status >= 400) return `The site answered our scanner with HTTP ${status}, so what we saw was an error page, not your site.`;
@@ -14356,6 +14687,46 @@ async function grab(url, opts = {}, ms2 = 8e3) {
   } finally {
     clearTimeout(t2);
   }
+}
+async function safeGrab(url, opts = {}, ms2 = 6e3) {
+  try {
+    return await grab(url, opts, ms2);
+  } catch {
+    return null;
+  }
+}
+async function fetchJsBundles(html, origin, max = 6, capBytes = 6e5) {
+  const srcs = /* @__PURE__ */ new Set();
+  for (const m6 of html.matchAll(/<script\b[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi)) {
+    try {
+      const u2 = new URL(m6[1], origin);
+      if (u2.origin === origin.origin && /\.(js|mjs)(\?|$)/i.test(u2.pathname + u2.search)) srcs.add(u2.toString());
+    } catch {
+    }
+  }
+  const list = [...srcs].slice(0, max);
+  const texts = await Promise.all(list.map(async (u2) => {
+    const r = await safeGrab(u2, {}, 6e3);
+    if (!r || r.status !== 200) return "";
+    try {
+      return (await r.text()).slice(0, capBytes);
+    } catch {
+      return "";
+    }
+  }));
+  return texts.filter(Boolean);
+}
+var SURFACE_FIX = {
+  TLS: "Serve the whole site over HTTPS, 301-redirect http->https at the edge, and send Strict-Transport-Security (max-age=63072000; includeSubDomains; preload). Standard: OWASP Secure Headers / Mozilla TLS.",
+  "Security headers": "Set the missing response headers at the platform level so every route gets them: Content-Security-Policy, X-Frame-Options: DENY (or CSP frame-ancestors), X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin. In Next.js use the headers() config or middleware; on Vercel use vercel.json headers. Remove X-Powered-By. Standard: OWASP Secure Headers.",
+  Cookies: "Set session cookies with HttpOnly, Secure, and SameSite=Lax (or Strict). Standard: CWE-1004 / CWE-614.",
+  CORS: "Never reflect an arbitrary Origin in Access-Control-Allow-Origin together with Access-Control-Allow-Credentials: true. Allowlist your exact known origins in the server CORS config. Standard: CWE-942.",
+  Secrets: "Remove the exposed file/secret from what the server serves publicly, block it at the edge (deny /.env, /.git/*), and rotate anything leaked. Standard: OWASP WSTG configuration / CWE-798.",
+  SEO: "Add a unique <title> (50-60 chars), a meta description, a canonical link, Open Graph tags, and a viewport meta; make sure the page is not accidentally noindex. Standard: Google Search Central."
+};
+function ensureFix(f5) {
+  if (f5.fix) return f5;
+  return { ...f5, fix: SURFACE_FIX[f5.category] ?? `Address "${f5.title}": ${f5.detail}` };
 }
 async function runInstantGrade(target) {
   let u2 = target;
@@ -14440,17 +14811,28 @@ async function runInstantGrade(target) {
     if (re2.test(html)) passed.push(label + " present");
     else findings.push({ category: "SEO", severity: sev, title: `Missing ${label}`, detail: `The page is missing ${label}.` });
   }
-  const penalty = findings.reduce((s5, f5) => s5 + PENALTY[f5.severity], 0);
+  let passedCount = passed.length;
+  try {
+    const jsTexts = await fetchJsBundles(html, u2, 6);
+    const vibe = await runVibeChecks({ origin: u2, html, jsTexts, grab: safeGrab });
+    findings.push(...vibe.findings);
+    passedCount += vibe.passed;
+  } catch {
+  }
+  const withFixes = findings.map(ensureFix);
+  const penalty = withFixes.reduce((s5, f5) => s5 + PENALTY[f5.severity], 0);
   const score = Math.max(0, Math.min(100, 100 - penalty));
   const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
   const order = { critical: 0, high: 1, medium: 2, low: 3 };
-  findings.sort((a3, b5) => order[a3.severity] - order[b5.severity]);
+  withFixes.sort((a3, b5) => order[a3.severity] - order[b5.severity]);
+  findings.length = 0;
+  findings.push(...withFixes);
   return {
     ok: true,
     url: u2.origin,
     score,
     band,
-    passed: passed.length,
+    passed: passedCount,
     summary: findings.length ? `Surface scan found ${findings.length} issue${findings.length === 1 ? "" : "s"} on ${u2.host}.` : `No surface-level issues found on ${u2.host} \u2014 nice. The deep checks still need your repo.`,
     findings,
     note: INSTANT_GRADE_NOTE
@@ -14560,12 +14942,12 @@ async function runDeepGrade(target) {
   const findings = [...surface.findings];
   let passed = surface.passed;
   let checks = 12;
-  const F4 = (category, severity, title, detail) => findings.push({ category, severity, title, detail });
+  const F5 = (category, severity, title, detail) => findings.push({ category, severity, title, detail });
   const dedupe = new Set(findings.map((f5) => f5.title));
   const Fonce = (category, severity, title, detail) => {
     if (!dedupe.has(title)) {
       dedupe.add(title);
-      F4(category, severity, title, detail);
+      F5(category, severity, title, detail);
     }
   };
   const home = await grab2(origin.toString());
@@ -14591,7 +14973,7 @@ async function runDeepGrade(target) {
     if (!r || r.status >= 400) extraBroken.push(l2);
   }));
   const brokenAll = [...broken.map((b5) => b5.url), ...extraBroken];
-  if (brokenAll.length) F4("Links", brokenAll.length > 3 ? "high" : "medium", `${brokenAll.length} broken internal link${brokenAll.length === 1 ? "" : "s"}`, `Linked from your own pages but returning an error: ${brokenAll.slice(0, 5).map((u2) => new URL(u2).pathname).join(", ")}${brokenAll.length > 5 ? ", \u2026" : ""}.`);
+  if (brokenAll.length) F5("Links", brokenAll.length > 3 ? "high" : "medium", `${brokenAll.length} broken internal link${brokenAll.length === 1 ? "" : "s"}`, `Linked from your own pages but returning an error: ${brokenAll.slice(0, 5).map((u2) => new URL(u2).pathname).join(", ")}${brokenAll.length > 5 ? ", \u2026" : ""}.`);
   else passed++;
   const okPages = pages.filter((p6) => p6.status > 0 && p6.status < 400 && p6.html);
   if (okPages.length === 0) {
@@ -14629,47 +15011,47 @@ async function runDeepGrade(target) {
     }
   }
   checks += 8;
-  if (noAlt) F4("Accessibility", noAlt > 5 ? "high" : "medium", `${noAlt} image${noAlt === 1 ? "" : "s"} without alt text`, `Screen readers announce these as 'image' with no meaning; also an easy SEO loss. Add alt="" for decorative images and real descriptions for the rest.`);
+  if (noAlt) F5("Accessibility", noAlt > 5 ? "high" : "medium", `${noAlt} image${noAlt === 1 ? "" : "s"} without alt text`, `Screen readers announce these as 'image' with no meaning; also an easy SEO loss. Add alt="" for decorative images and real descriptions for the rest.`);
   else passed++;
-  if (noH1.length) F4("Accessibility", "medium", `${noH1.length} page${noH1.length === 1 ? "" : "s"} without an <h1>`, `Every page needs one heading that says what it is (${noH1.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")}).`);
+  if (noH1.length) F5("Accessibility", "medium", `${noH1.length} page${noH1.length === 1 ? "" : "s"} without an <h1>`, `Every page needs one heading that says what it is (${noH1.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")}).`);
   else passed++;
-  if (noLang) F4("Accessibility", "medium", "No lang attribute on <html>", 'Screen readers guess the language; browsers translate the wrong thing. Add <html lang="en">.');
+  if (noLang) F5("Accessibility", "medium", "No lang attribute on <html>", 'Screen readers guess the language; browsers translate the wrong thing. Add <html lang="en">.');
   else passed++;
-  if (emptyBtn) F4("Accessibility", "medium", `${emptyBtn} button${emptyBtn === 1 ? "" : "s"} with no accessible name`, "Icon-only buttons need aria-label so keyboard and screen-reader users know what they do.");
+  if (emptyBtn) F5("Accessibility", "medium", `${emptyBtn} button${emptyBtn === 1 ? "" : "s"} with no accessible name`, "Icon-only buttons need aria-label so keyboard and screen-reader users know what they do.");
   else passed++;
-  if (mixed.length) F4("TLS", "high", "Mixed content on an https page", `Assets loaded over plain http on ${mixed.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")} \u2014 browsers block or warn, and the padlock disappears.`);
+  if (mixed.length) F5("TLS", "high", "Mixed content on an https page", `Assets loaded over plain http on ${mixed.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")} \u2014 browsers block or warn, and the padlock disappears.`);
   else passed++;
-  if (httpForms.length) F4("TLS", "critical", "Form posts over plain http", `A form on ${new URL(httpForms[0]).pathname} submits to an http:// URL \u2014 anything typed into it travels in cleartext.`);
+  if (httpForms.length) F5("TLS", "critical", "Form posts over plain http", `A form on ${new URL(httpForms[0]).pathname} submits to an http:// URL \u2014 anything typed into it travels in cleartext.`);
   else passed++;
-  if (noCanon.length === okPages.length && okPages.length) F4("SEO", "low", "No canonical URLs", 'Without <link rel="canonical"> search engines may index duplicate versions (www / trailing slash / query strings) and split your ranking.');
+  if (noCanon.length === okPages.length && okPages.length) F5("SEO", "low", "No canonical URLs", 'Without <link rel="canonical"> search engines may index duplicate versions (www / trailing slash / query strings) and split your ranking.');
   else passed++;
   if (noTitle.length > 1) Fonce("SEO", "medium", `${noTitle.length} pages without a <title>`, "Each page needs its own title; browser tabs, bookmarks and search results all show it.");
   if (noViewport.length > 1) Fonce("SEO", "medium", `${noViewport.length} pages missing the mobile viewport tag`, "Those pages render zoomed-out on phones.");
-  if (headerGaps > 0 && okPages.length > 1) F4("Security headers", "low", "Security headers not applied site-wide", `${headerGaps} header gap${headerGaps === 1 ? "" : "s"} on secondary pages \u2014 set CSP / X-Frame-Options / X-Content-Type-Options at the platform level so every route gets them.`);
+  if (headerGaps > 0 && okPages.length > 1) F5("Security headers", "low", "Security headers not applied site-wide", `${headerGaps} header gap${headerGaps === 1 ? "" : "s"} on secondary pages \u2014 set CSP / X-Frame-Options / X-Content-Type-Options at the platform level so every route gets them.`);
   else if (okPages.length > 1) passed++;
   checks += 5;
   const robots = await grab2(new URL("/robots.txt", origin).toString(), {}, 5e3);
   const robotsTxt = robots && robots.status === 200 ? (await robots.text()).slice(0, 2e4) : "";
-  if (/^\s*user-agent:\s*\*\s*$[\s\S]*?^\s*disallow:\s*\/\s*$/im.test(robotsTxt)) F4("Launch", "critical", "robots.txt blocks the whole site", "User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch.");
+  if (/^\s*user-agent:\s*\*\s*$[\s\S]*?^\s*disallow:\s*\/\s*$/im.test(robotsTxt)) F5("Launch", "critical", "robots.txt blocks the whole site", "User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch.");
   else passed++;
-  if (/<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(homeHtml) || /noindex/i.test(home?.headers.get("x-robots-tag") || "")) F4("Launch", "critical", "Home page is noindex", "A noindex tag or X-Robots-Tag header on the home page removes the site from search results.");
+  if (/<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(homeHtml) || /noindex/i.test(home?.headers.get("x-robots-tag") || "")) F5("Launch", "critical", "Home page is noindex", "A noindex tag or X-Robots-Tag header on the home page removes the site from search results.");
   else passed++;
   const sitemapHinted = /sitemap:/i.test(robotsTxt);
   const sm = await grab2(new URL("/sitemap.xml", origin).toString(), { method: "HEAD" }, 5e3);
-  if (!(sm && sm.status === 200) && !sitemapHinted) F4("SEO", "low", "No sitemap.xml", "A sitemap gets new pages discovered days faster. Most frameworks generate one in one line.");
+  if (!(sm && sm.status === 200) && !sitemapHinted) F5("SEO", "low", "No sitemap.xml", "A sitemap gets new pages discovered days faster. Most frameworks generate one in one line.");
   else passed++;
   const fav = /<link[^>]+rel=["'][^"']*icon[^"']*["']/i.test(homeHtml) || (await grab2(new URL("/favicon.ico", origin).toString(), { method: "HEAD" }, 4e3))?.status === 200;
-  if (!fav) F4("Launch", "low", "No favicon", "The tab shows a blank page icon; it reads as unfinished.");
+  if (!fav) F5("Launch", "low", "No favicon", "The tab shows a blank page icon; it reads as unfinished.");
   else passed++;
-  if (!/<meta[^>]+property=["']og:image["']/i.test(homeHtml)) F4("SEO", "low", "No Open Graph image", "Links shared on LinkedIn, Slack, iMessage or X show no preview image without og:image.");
+  if (!/<meta[^>]+property=["']og:image["']/i.test(homeHtml)) F5("SEO", "low", "No Open Graph image", "Links shared on LinkedIn, Slack, iMessage or X show no preview image without og:image.");
   else passed++;
   checks += 2;
   const nf = await grab2(new URL(`/__launch-audit-${Date.now().toString(36)}`, origin).toString(), {}, 6e3);
   if (nf) {
     const body2 = (await nf.text()).slice(0, 5e4);
-    if (nf.status === 200 && !/not found|404/i.test(body2)) F4("Errors", "medium", "Soft 404", "Unknown URLs return 200 instead of 404 \u2014 search engines index junk pages and monitoring never sees the breakage.");
+    if (nf.status === 200 && !/not found|404/i.test(body2)) F5("Errors", "medium", "Soft 404", "Unknown URLs return 200 instead of 404 \u2014 search engines index junk pages and monitoring never sees the breakage.");
     else passed++;
-    if (/(Traceback \(most recent call last\)|at Object\.<anonymous>|node_modules\/|Unhandled Runtime Error|Application error: a (client|server)-side exception|Whoops, looks like something went wrong|SQLSTATE\[|ORA-\d{5}|Warning: mysql_)/i.test(body2)) F4("Errors", "high", "Error page leaks internals", "The error page shows a stack trace or framework debug output \u2014 paths, versions and sometimes queries, for free.");
+    if (/(Traceback \(most recent call last\)|at Object\.<anonymous>|node_modules\/|Unhandled Runtime Error|Application error: a (client|server)-side exception|Whoops, looks like something went wrong|SQLSTATE\[|ORA-\d{5}|Warning: mysql_)/i.test(body2)) F5("Errors", "high", "Error page leaks internals", "The error page shows a stack trace or framework debug output \u2014 paths, versions and sometimes queries, for free.");
     else passed++;
   }
   checks++;
@@ -14705,25 +15087,25 @@ async function runDeepGrade(target) {
     const r = await grab2(u2, { method: "HEAD" }, 4e3);
     if (r && r.status === 200 && /json|octet/i.test(r.headers.get("content-type") || "")) mapHit ||= new URL(u2).pathname;
   }));
-  if (exposed.length) F4("Secrets", "critical", `Exposed ${exposed.join(", ")}`, "Publicly downloadable files that leak configuration, backups or server internals. Remove them or block them at the edge.");
+  if (exposed.length) F5("Secrets", "critical", `Exposed ${exposed.join(", ")}`, "Publicly downloadable files that leak configuration, backups or server internals. Remove them or block them at the edge.");
   else passed++;
-  if (mapHit) F4("Secrets", "low", "Source maps are public", `${mapHit} ships your original source to anyone who asks. Disable productionBrowserSourceMaps / devtool in production builds.`);
+  if (mapHit) F5("Secrets", "low", "Source maps are public", `${mapHit} ships your original source to anyone who asks. Disable productionBrowserSourceMaps / devtool in production builds.`);
   if (origin.protocol === "https:") {
     checks += 2;
     const days = await certExpiryDays(origin.hostname);
-    if (days !== null && days < 14) F4("TLS", days < 3 ? "critical" : "high", `TLS certificate expires in ${days} day${days === 1 ? "" : "s"}`, "When it lapses every visitor gets a full-page browser warning. Check that auto-renewal is actually running.");
+    if (days !== null && days < 14) F5("TLS", days < 3 ? "critical" : "high", `TLS certificate expires in ${days} day${days === 1 ? "" : "s"}`, "When it lapses every visitor gets a full-page browser warning. Check that auto-renewal is actually running.");
     else if (days !== null) passed++;
     const plain = await grab2(`http://${origin.host}/`, {}, 6e3);
-    if (plain && !(plain.status >= 300 && plain.status < 400 && /^https:/i.test(plain.headers.get("location") || ""))) F4("TLS", "medium", "http:// does not redirect to https://", "Typing the bare domain lands on the insecure version (or a dead page). Add a permanent redirect at the edge.");
+    if (plain && !(plain.status >= 300 && plain.status < 400 && /^https:/i.test(plain.headers.get("location") || ""))) F5("TLS", "medium", "http:// does not redirect to https://", "Typing the bare domain lands on the insecure version (or a dead page). Add a permanent redirect at the edge.");
     else if (plain) passed++;
   }
   checks += 2;
   const apex = origin.hostname.split(".").slice(-2).join(".");
   const spf = (await txt(apex)).some((t2) => /^v=spf1/i.test(t2));
   const dmarc = (await txt(`_dmarc.${apex}`)).some((t2) => /^v=DMARC1/i.test(t2));
-  if (!spf) F4("Email", "medium", `No SPF record on ${apex}`, "Sign-up confirmations, receipts and password resets from this domain are far more likely to land in spam. Add a v=spf1 TXT record.");
+  if (!spf) F5("Email", "medium", `No SPF record on ${apex}`, "Sign-up confirmations, receipts and password resets from this domain are far more likely to land in spam. Add a v=spf1 TXT record.");
   else passed++;
-  if (!dmarc) F4("Email", "medium", `No DMARC record on ${apex}`, "Gmail and Yahoo now require DMARC for bulk senders, and it stops anyone spoofing your domain. Add _dmarc TXT: v=DMARC1; p=quarantine.");
+  if (!dmarc) F5("Email", "medium", `No DMARC record on ${apex}`, "Gmail and Yahoo now require DMARC for bulk senders, and it stops anyone spoofing your domain. Add _dmarc TXT: v=DMARC1; p=quarantine.");
   else passed++;
   checks += 2;
   const t0 = Date.now();
@@ -14747,22 +15129,22 @@ async function runDeepGrade(target) {
       if (n4 > 500 * 1024) big.push({ path: new URL(u2).pathname.split("/").pop() || u2, kb: Math.round(n4 / 1024) });
     }
   }));
-  if (timed && ttfb > 1800) F4("Performance", "medium", `Slow server response (${(ttfb / 1e3).toFixed(1)}s to first byte)`, "Time-to-first-byte over ~0.8s drags every other metric; check cold starts, uncached database calls, or a region far from your users.");
+  if (timed && ttfb > 1800) F5("Performance", "medium", `Slow server response (${(ttfb / 1e3).toFixed(1)}s to first byte)`, "Time-to-first-byte over ~0.8s drags every other metric; check cold starts, uncached database calls, or a region far from your users.");
   else if (timed) passed++;
   const mb = bytes / (1024 * 1024);
-  if (mb > 3 || big.length) F4("Performance", mb > 5 ? "high" : "medium", `Heavy home page (${mb.toFixed(1)} MB across ${assets.size + 1} assets)`, `${big.length ? "Largest: " + big.sort((a3, b5) => b5.kb - a3.kb).slice(0, 3).map((b5) => `${b5.path} (${b5.kb} KB)`).join(", ") + ". " : ""}Mobile visitors on 4G wait roughly ${Math.max(1, Math.round(mb * 2))}s+ before the page is usable. Compress images (AVIF/WebP), lazy-load below the fold, split the JS bundle.`);
+  if (mb > 3 || big.length) F5("Performance", mb > 5 ? "high" : "medium", `Heavy home page (${mb.toFixed(1)} MB across ${assets.size + 1} assets)`, `${big.length ? "Largest: " + big.sort((a3, b5) => b5.kb - a3.kb).slice(0, 3).map((b5) => `${b5.path} (${b5.kb} KB)`).join(", ") + ". " : ""}Mobile visitors on 4G wait roughly ${Math.max(1, Math.round(mb * 2))}s+ before the page is usable. Compress images (AVIF/WebP), lazy-load below the fold, split the JS bundle.`);
   else passed++;
   const lh = await pageSpeed(origin.toString());
   if (lh) {
     checks += 4;
-    if (lh.performance !== null && lh.performance < 50) F4("Performance", "high", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"}${lh.inp_ms != null ? `, INP ${lh.inp_ms}ms` : ""} (${lh.source} data). Below 50 is the range where users bounce before the page paints.`);
-    else if (lh.performance !== null && lh.performance < 80) F4("Performance", "medium", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"} (${lh.source} data). Google's 'good' bar is LCP under 2.5s and CLS under 0.1.`);
+    if (lh.performance !== null && lh.performance < 50) F5("Performance", "high", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"}${lh.inp_ms != null ? `, INP ${lh.inp_ms}ms` : ""} (${lh.source} data). Below 50 is the range where users bounce before the page paints.`);
+    else if (lh.performance !== null && lh.performance < 80) F5("Performance", "medium", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"} (${lh.source} data). Google's 'good' bar is LCP under 2.5s and CLS under 0.1.`);
     else if (lh.performance !== null) passed++;
-    if (lh.accessibility !== null && lh.accessibility < 90) F4("Accessibility", lh.accessibility < 70 ? "high" : "medium", `Lighthouse accessibility ${lh.accessibility}/100`, "Contrast, labels, focus order and ARIA problems Lighthouse can prove. Under 90 is where ADA/WCAG complaints start.");
+    if (lh.accessibility !== null && lh.accessibility < 90) F5("Accessibility", lh.accessibility < 70 ? "high" : "medium", `Lighthouse accessibility ${lh.accessibility}/100`, "Contrast, labels, focus order and ARIA problems Lighthouse can prove. Under 90 is where ADA/WCAG complaints start.");
     else if (lh.accessibility !== null) passed++;
-    if (lh.best_practices !== null && lh.best_practices < 80) F4("Best practices", "low", `Lighthouse best-practices ${lh.best_practices}/100`, "Console errors, deprecated APIs, missing image aspect ratios or insecure requests.");
+    if (lh.best_practices !== null && lh.best_practices < 80) F5("Best practices", "low", `Lighthouse best-practices ${lh.best_practices}/100`, "Console errors, deprecated APIs, missing image aspect ratios or insecure requests.");
     else if (lh.best_practices !== null) passed++;
-    if (lh.seo !== null && lh.seo < 90) F4("SEO", "low", `Lighthouse SEO ${lh.seo}/100`, "Crawlability, tap-target size, meta tags and structured data.");
+    if (lh.seo !== null && lh.seo < 90) F5("SEO", "low", `Lighthouse SEO ${lh.seo}/100`, "Crawlability, tap-target size, meta tags and structured data.");
     else if (lh.seo !== null) passed++;
   }
   const twins = [
@@ -14789,7 +15171,7 @@ async function runDeepGrade(target) {
     penalty += add;
   }
   findings.length = 0;
-  findings.push(...deduped);
+  findings.push(...deduped.map(ensureFix));
   const score = Math.max(0, Math.min(100, 100 - penalty));
   const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
   const order = { critical: 0, high: 1, medium: 2, low: 3 };

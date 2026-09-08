@@ -3667,41 +3667,41 @@ var init_serverless = __esm({
       p();
       Object.defineProperty(Ft2, "__esModule", { value: true });
       Ft2.serialize = void 0;
-      var pn2 = Qs(), F4 = new pn2.Writer(), yc = a((r) => {
-        F4.addInt16(3).addInt16(0);
-        for (let n4 of Object.keys(r)) F4.addCString(
+      var pn2 = Qs(), F5 = new pn2.Writer(), yc = a((r) => {
+        F5.addInt16(3).addInt16(0);
+        for (let n4 of Object.keys(r)) F5.addCString(
           n4
         ).addCString(r[n4]);
-        F4.addCString("client_encoding").addCString("UTF8");
-        let e = F4.addCString("").flush(), t2 = e.length + 4;
+        F5.addCString("client_encoding").addCString("UTF8");
+        let e = F5.addCString("").flush(), t2 = e.length + 4;
         return new pn2.Writer().addInt32(t2).add(e).flush();
       }, "startup"), mc = a(() => {
         let r = d.allocUnsafe(
           8
         );
         return r.writeInt32BE(8, 0), r.writeInt32BE(80877103, 4), r;
-      }, "requestSsl"), wc = a((r) => F4.addCString(r).flush(
+      }, "requestSsl"), wc = a((r) => F5.addCString(r).flush(
         112
       ), "password"), gc = a(function(r, e) {
-        return F4.addCString(r).addInt32(d.byteLength(e)).addString(e), F4.flush(112);
+        return F5.addCString(r).addInt32(d.byteLength(e)).addString(e), F5.flush(112);
       }, "sendSASLInitialResponseMessage"), bc = a(function(r) {
-        return F4.addString(r).flush(112);
-      }, "sendSCRAMClientFinalMessage"), vc = a((r) => F4.addCString(r).flush(81), "query"), Ns = [], xc = a((r) => {
+        return F5.addString(r).flush(112);
+      }, "sendSCRAMClientFinalMessage"), vc = a((r) => F5.addCString(r).flush(81), "query"), Ns = [], xc = a((r) => {
         let e = r.name || "";
         e.length > 63 && (console.error("Warning! Postgres only supports 63 characters for query names."), console.error("You supplied %s (%s)", e, e.length), console.error("This can cause conflicts and silent errors executing queries"));
-        let t2 = r.types || Ns, n4 = t2.length, i3 = F4.addCString(e).addCString(r.text).addInt16(n4);
+        let t2 = r.types || Ns, n4 = t2.length, i3 = F5.addCString(e).addCString(r.text).addInt16(n4);
         for (let s5 = 0; s5 < n4; s5++) i3.addInt32(t2[s5]);
-        return F4.flush(80);
+        return F5.flush(80);
       }, "parse"), qe2 = new pn2.Writer(), Sc = a(function(r, e) {
         for (let t2 = 0; t2 < r.length; t2++) {
           let n4 = e ? e(r[t2], t2) : r[t2];
-          n4 == null ? (F4.addInt16(0), qe2.addInt32(-1)) : n4 instanceof d ? (F4.addInt16(
+          n4 == null ? (F5.addInt16(0), qe2.addInt32(-1)) : n4 instanceof d ? (F5.addInt16(
             1
-          ), qe2.addInt32(n4.length), qe2.add(n4)) : (F4.addInt16(0), qe2.addInt32(d.byteLength(n4)), qe2.addString(n4));
+          ), qe2.addInt32(n4.length), qe2.add(n4)) : (F5.addInt16(0), qe2.addInt32(d.byteLength(n4)), qe2.addString(n4));
         }
       }, "writeValues"), Ec = a((r = {}) => {
         let e = r.portal || "", t2 = r.statement || "", n4 = r.binary || false, i3 = r.values || Ns, s5 = i3.length;
-        return F4.addCString(e).addCString(t2), F4.addInt16(s5), Sc(i3, r.valueMapper), F4.addInt16(s5), F4.add(qe2.flush()), F4.addInt16(n4 ? 1 : 0), F4.flush(66);
+        return F5.addCString(e).addCString(t2), F5.addInt16(s5), Sc(i3, r.valueMapper), F5.addInt16(s5), F5.add(qe2.flush()), F5.addInt16(n4 ? 1 : 0), F5.flush(66);
       }, "bind"), Ac = d.from([69, 0, 0, 0, 9, 0, 0, 0, 0, 0]), Cc = a((r) => {
         if (!r || !r.portal && !r.rows) return Ac;
         let e = r.portal || "", t2 = r.rows || 0, n4 = d.byteLength(e), i3 = 4 + n4 + 1 + 4, s5 = d.allocUnsafe(1 + i3);
@@ -3718,10 +3718,10 @@ var init_serverless = __esm({
       ), dn2 = a((r, e) => {
         let n4 = 4 + d.byteLength(e) + 1, i3 = d.allocUnsafe(1 + n4);
         return i3[0] = r, i3.writeInt32BE(n4, 1), i3.write(e, 5, "utf-8"), i3[n4] = 0, i3;
-      }, "cstringMessage"), Ic = F4.addCString("P").flush(68), Tc = F4.addCString("S").flush(68), Pc = a((r) => r.name ? dn2(68, `${r.type}${r.name || ""}`) : r.type === "P" ? Ic : Tc, "describe"), Rc = a((r) => {
+      }, "cstringMessage"), Ic = F5.addCString("P").flush(68), Tc = F5.addCString("S").flush(68), Pc = a((r) => r.name ? dn2(68, `${r.type}${r.name || ""}`) : r.type === "P" ? Ic : Tc, "describe"), Rc = a((r) => {
         let e = `${r.type}${r.name || ""}`;
         return dn2(67, e);
-      }, "close"), Bc = a((r) => F4.add(r).flush(100), "copyData"), Lc = a((r) => dn2(102, r), "copyFail"), Lt2 = a((r) => d.from([r, 0, 0, 0, 4]), "codeOnlyBuffer"), Fc = Lt2(72), kc = Lt2(83), Mc = Lt2(88), Uc = Lt2(99), Dc = {
+      }, "close"), Bc = a((r) => F5.add(r).flush(100), "copyData"), Lc = a((r) => dn2(102, r), "copyFail"), Lt2 = a((r) => d.from([r, 0, 0, 0, 4]), "codeOnlyBuffer"), Fc = Lt2(72), kc = Lt2(83), Mc = Lt2(88), Uc = Lt2(99), Dc = {
         startup: yc,
         password: wc,
         requestSsl: mc,
@@ -5538,8 +5538,8 @@ async function Wr({ pg: e, debug: r, args: t2, wasmModule: n4 }) {
     f5 += S5, Y(r, "initdberr", S5);
   }, instantiateWasm: (S5, v5) => {
     let h3 = new URL("./initdb.wasm", import.meta.url);
-    return m2.instantiateWasm(S5, h3, n4).then(({ instance: b5, module: F4 }) => {
-      v5(b5, F4);
+    return m2.instantiateWasm(S5, h3, n4).then(({ instance: b5, module: F5 }) => {
+      v5(b5, F5);
     }), {};
   }, preRun: [(S5) => {
     S5.ENV.PGDATA = B, S5.ENV.HOME = "/home/postgres", S5.ENV.USER = "postgres", S5.ENV.LOGNAME = "postgres", S5.ENV.ICU_DATA = jr;
@@ -5554,14 +5554,14 @@ async function Wr({ pg: e, debug: r, args: t2, wasmModule: n4 }) {
       {
         let v5 = e.Module.stringToUTF8OnStack(je), h3 = e.Module.stringToUTF8OnStack("r");
         e.Module._pgl_freopen(v5, h3, 0);
-        let b5 = e.Module.stringToUTF8OnStack(ze), F4 = e.Module.stringToUTF8OnStack("w");
-        e.Module._pgl_freopen(b5, F4, 1);
+        let b5 = e.Module.stringToUTF8OnStack(ze), F5 = e.Module.stringToUTF8OnStack("w");
+        e.Module._pgl_freopen(b5, F5, 1);
       }
       {
         let v5 = S5.stringToUTF8OnStack(ze), h3 = S5.stringToUTF8OnStack("r");
         c4 = S5._fopen(v5, h3);
-        let b5 = S5.stringToUTF8OnStack(je), F4 = S5.stringToUTF8OnStack("w");
-        p6 = S5._fopen(b5, F4);
+        let b5 = S5.stringToUTF8OnStack(je), F5 = S5.stringToUTF8OnStack("w");
+        p6 = S5._fopen(b5, F5);
       }
     };
   }, (S5) => {
@@ -6170,14 +6170,14 @@ var init_chunk_SAANIQDT = __esm({
           } else {
             s5(l2 !== "dylink.0");
             for (var E3 = 1, y5 = 2, A2 = 3, S5 = 4, v5 = 256, h3 = 3, b5 = 1; r < t2; ) {
-              var F4 = n4(), Xe4 = o5();
-              if (F4 === E3) f5.memorySize = o5(), f5.memoryAlign = o5(), f5.tableSize = o5(), f5.tableAlign = o5();
-              else if (F4 === y5) for (var m6 = o5(), _4 = 0; _4 < m6; ++_4) g5 = a3(), f5.neededDynlibs.push(g5);
-              else if (F4 === A2) for (var Z2 = o5(); Z2--; ) {
+              var F5 = n4(), Xe4 = o5();
+              if (F5 === E3) f5.memorySize = o5(), f5.memoryAlign = o5(), f5.tableSize = o5(), f5.tableAlign = o5();
+              else if (F5 === y5) for (var m6 = o5(), _4 = 0; _4 < m6; ++_4) g5 = a3(), f5.neededDynlibs.push(g5);
+              else if (F5 === A2) for (var Z2 = o5(); Z2--; ) {
                 var ee3 = a3(), re2 = o5();
                 re2 & v5 && f5.tlsExports.add(ee3);
               }
-              else if (F4 === S5) for (var Z2 = o5(); Z2--; ) {
+              else if (F5 === S5) for (var Z2 = o5(); Z2--; ) {
                 var Vr = a3(), ee3 = a3(), re2 = o5();
                 (re2 & h3) == b5 && f5.weakImports.add(ee3);
               }
@@ -7432,13 +7432,13 @@ var init_chunk_SAANIQDT = __esm({
               var S5 = (h3, b5) => {
                 if (h3 > b5) throw new Error("invalid range (" + h3 + ", " + b5 + ") or no bytes requested!");
                 if (b5 > _4 - 1) throw new Error("only " + _4 + " bytes available! programmer error!");
-                var F4 = new XMLHttpRequest();
-                if (F4.open("GET", t2, false), _4 !== A2 && F4.setRequestHeader("Range", "bytes=" + h3 + "-" + b5), F4.responseType = "arraybuffer", F4.overrideMimeType && F4.overrideMimeType("text/plain; charset=x-user-defined"), F4.send(null), !(F4.status >= 200 && F4.status < 300 || F4.status === 304)) throw new Error("Couldn't load " + t2 + ". Status: " + F4.status);
-                return F4.response !== void 0 ? new Uint8Array(F4.response || []) : intArrayFromString(F4.responseText || "", true);
+                var F5 = new XMLHttpRequest();
+                if (F5.open("GET", t2, false), _4 !== A2 && F5.setRequestHeader("Range", "bytes=" + h3 + "-" + b5), F5.responseType = "arraybuffer", F5.overrideMimeType && F5.overrideMimeType("text/plain; charset=x-user-defined"), F5.send(null), !(F5.status >= 200 && F5.status < 300 || F5.status === 304)) throw new Error("Couldn't load " + t2 + ". Status: " + F5.status);
+                return F5.response !== void 0 ? new Uint8Array(F5.response || []) : intArrayFromString(F5.responseText || "", true);
               }, v5 = this;
               v5.setDataGetter((h3) => {
-                var b5 = h3 * A2, F4 = (h3 + 1) * A2 - 1;
-                if (F4 = Math.min(F4, _4 - 1), typeof v5.chunks[h3] > "u" && (v5.chunks[h3] = S5(b5, F4)), typeof v5.chunks[h3] > "u") throw new Error("doXHR failed!");
+                var b5 = h3 * A2, F5 = (h3 + 1) * A2 - 1;
+                if (F5 = Math.min(F5, _4 - 1), typeof v5.chunks[h3] > "u" && (v5.chunks[h3] = S5(b5, F5)), typeof v5.chunks[h3] > "u") throw new Error("doXHR failed!");
                 return v5.chunks[h3];
               }), (y5 || !_4) && (A2 = _4 = 1, _4 = this.getter(0).length, A2 = _4, out("LazyFiles on gzip forces download of the whole file when length is accessed")), this._length = _4, this._chunkSize = A2, this.lengthKnown = true;
             }
@@ -9893,13 +9893,13 @@ var init_dist = __esm({
               Module.dataFileDownloads ?? (Module.dataFileDownloads = {}), fetch(p6).catch((h3) => Promise.reject(new Error(`Network Error: ${p6}`, { cause: h3 }))).then((h3) => {
                 if (!h3.ok) return Promise.reject(new Error(`${h3.status}: ${h3.url}`));
                 if (!h3.body && h3.arrayBuffer) return h3.arrayBuffer().then(w4);
-                let y5 = h3.body.getReader(), E3 = () => y5.read().then(oe2).catch((H3) => Promise.reject(new Error(`Unexpected error while handling : ${h3.url} ${H3}`, { cause: H3 }))), F4 = [], k3 = h3.headers, I3 = Number(k3.get("Content-Length") ?? x5), q2 = 0, oe2 = ({ done: H3, value: X2 }) => {
+                let y5 = h3.body.getReader(), E3 = () => y5.read().then(oe2).catch((H3) => Promise.reject(new Error(`Unexpected error while handling : ${h3.url} ${H3}`, { cause: H3 }))), F5 = [], k3 = h3.headers, I3 = Number(k3.get("Content-Length") ?? x5), q2 = 0, oe2 = ({ done: H3, value: X2 }) => {
                   if (H3) {
-                    let A2 = new Uint8Array(F4.map((R3) => R3.length).reduce((R3, lt2) => R3 + lt2, 0)), B3 = 0;
-                    for (let R3 of F4) A2.set(R3, B3), B3 += R3.length;
+                    let A2 = new Uint8Array(F5.map((R3) => R3.length).reduce((R3, lt2) => R3 + lt2, 0)), B3 = 0;
+                    for (let R3 of F5) A2.set(R3, B3), B3 += R3.length;
                     w4(A2.buffer);
                   } else {
-                    F4.push(X2), q2 += X2.length, Module.dataFileDownloads[p6] = { loaded: q2, total: I3 };
+                    F5.push(X2), q2 += X2.length, Module.dataFileDownloads[p6] = { loaded: q2, total: I3 };
                     let A2 = 0, B3 = 0;
                     for (let R3 of Object.values(Module.dataFileDownloads)) A2 += R3.loaded, B3 += R3.total;
                     return Module.setStatus?.(`Downloading data... (${A2}/${B3})`), E3();
@@ -9916,28 +9916,28 @@ var init_dist = __esm({
               f5 ? (f5(p6), f5 = null) : g5 = p6;
             }, c4);
             function m6(p6) {
-              function x5(E3, F4) {
-                if (!E3) throw F4 + new Error().stack;
+              function x5(E3, F5) {
+                if (!E3) throw F5 + new Error().stack;
               }
               p6.FS_createPath("/", "home", true, true), p6.FS_createPath("/home", "postgres", true, true), p6.FS_createPath("/", "pglite", true, true), p6.FS_createPath("/pglite", "bin", true, true), p6.FS_createPath("/pglite", "icu", true, true), p6.FS_createPath("/pglite/icu", "icudt76l", true, true), p6.FS_createPath("/pglite/icu/icudt76l", "coll", true, true), p6.FS_createPath("/pglite", "lib", true, true), p6.FS_createPath("/pglite/lib", "postgresql", true, true), p6.FS_createPath("/pglite/lib/postgresql", "pgxs", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs", "config", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs", "src", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs/src", "makefiles", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs/src", "test", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs/src/test", "isolation", true, true), p6.FS_createPath("/pglite/lib/postgresql/pgxs/src/test", "regress", true, true), p6.FS_createPath("/pglite", "share", true, true), p6.FS_createPath("/pglite/share", "postgresql", true, true), p6.FS_createPath("/pglite/share/postgresql", "extension", true, true), p6.FS_createPath("/pglite/share/postgresql", "timezone", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Africa", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "America", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone/America", "Argentina", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone/America", "Indiana", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone/America", "Kentucky", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone/America", "North_Dakota", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Antarctica", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Arctic", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Asia", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Atlantic", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Australia", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Brazil", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Canada", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Chile", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Etc", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Europe", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Indian", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Mexico", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "Pacific", true, true), p6.FS_createPath("/pglite/share/postgresql/timezone", "US", true, true), p6.FS_createPath("/pglite/share/postgresql", "timezonesets", true, true), p6.FS_createPath("/pglite/share/postgresql", "tsearch_data", true, true);
-              function w4(E3, F4, k3) {
-                this.start = E3, this.end = F4, this.audio = k3;
+              function w4(E3, F5, k3) {
+                this.start = E3, this.end = F5, this.audio = k3;
               }
-              w4.prototype = { requests: {}, open: function(E3, F4) {
-                this.name = F4, this.requests[F4] = this, p6.addRunDependency(`fp ${this.name}`);
+              w4.prototype = { requests: {}, open: function(E3, F5) {
+                this.name = F5, this.requests[F5] = this, p6.addRunDependency(`fp ${this.name}`);
               }, send: function() {
               }, onload: function() {
                 var E3 = this.byteArray.subarray(this.start, this.end);
                 this.finish(E3);
               }, finish: function(E3) {
-                var F4 = this;
-                p6.FS_createDataFile(this.name, null, E3, true, true, true), p6.removeRunDependency(`fp ${F4.name}`), this.requests[this.name] = null;
+                var F5 = this;
+                p6.FS_createDataFile(this.name, null, E3, true, true, true), p6.removeRunDependency(`fp ${F5.name}`), this.requests[this.name] = null;
               } };
               for (var b5 = o5.files, h3 = 0; h3 < b5.length; ++h3) new w4(b5[h3].start, b5[h3].end, b5[h3].audio || 0).open("GET", b5[h3].filename);
               function y5(E3) {
                 x5(E3, "Loading data file failed."), x5(E3.constructor.name === ArrayBuffer.name, "bad input to processPackageData");
-                var F4 = new Uint8Array(E3);
-                w4.prototype.byteArray = F4;
+                var F5 = new Uint8Array(E3);
+                w4.prototype.byteArray = F5;
                 for (var k3 = o5.files, I3 = 0; I3 < k3.length; ++I3) w4.prototype.requests[k3[I3].filename].onload();
                 p6.removeRunDependency("datafile_pglite.data");
               }
@@ -10185,7 +10185,7 @@ var init_dist = __esm({
             }
           } else {
             s5(n4 !== "dylink.0");
-            for (var x5 = 1, w4 = 2, b5 = 3, h3 = 4, y5 = 256, E3 = 3, F4 = 1; t2 < r; ) {
+            for (var x5 = 1, w4 = 2, b5 = 3, h3 = 4, y5 = 256, E3 = 3, F5 = 1; t2 < r; ) {
               var k3 = a3(), I3 = o5();
               if (k3 === x5) f5.memorySize = o5(), f5.memoryAlign = o5(), f5.tableSize = o5(), f5.tableAlign = o5();
               else if (k3 === w4) for (var g5 = o5(), m6 = 0; m6 < g5; ++m6) p6 = _4(), f5.neededDynlibs.push(p6);
@@ -10195,7 +10195,7 @@ var init_dist = __esm({
               }
               else if (k3 === h3) for (var q2 = o5(); q2--; ) {
                 var X2 = _4(), oe2 = _4(), H3 = o5();
-                (H3 & E3) == F4 && f5.weakImports.add(oe2);
+                (H3 & E3) == F5 && f5.weakImports.add(oe2);
               }
               else t2 += I3;
             }
@@ -11783,16 +11783,16 @@ var init_dist = __esm({
               if (g5.open("HEAD", r, false), g5.send(null), !(g5.status >= 200 && g5.status < 300 || g5.status === 304)) throw new Error("Couldn't load " + r + ". Status: " + g5.status);
               var m6 = Number(g5.getResponseHeader("Content-length")), p6, x5 = (p6 = g5.getResponseHeader("Accept-Ranges")) && p6 === "bytes", w4 = (p6 = g5.getResponseHeader("Content-Encoding")) && p6 === "gzip", b5 = 1024 * 1024;
               x5 || (b5 = m6);
-              var h3 = (E3, F4) => {
-                if (E3 > F4) throw new Error("invalid range (" + E3 + ", " + F4 + ") or no bytes requested!");
-                if (F4 > m6 - 1) throw new Error("only " + m6 + " bytes available! programmer error!");
+              var h3 = (E3, F5) => {
+                if (E3 > F5) throw new Error("invalid range (" + E3 + ", " + F5 + ") or no bytes requested!");
+                if (F5 > m6 - 1) throw new Error("only " + m6 + " bytes available! programmer error!");
                 var k3 = new XMLHttpRequest();
-                if (k3.open("GET", r, false), m6 !== b5 && k3.setRequestHeader("Range", "bytes=" + E3 + "-" + F4), k3.responseType = "arraybuffer", k3.overrideMimeType && k3.overrideMimeType("text/plain; charset=x-user-defined"), k3.send(null), !(k3.status >= 200 && k3.status < 300 || k3.status === 304)) throw new Error("Couldn't load " + r + ". Status: " + k3.status);
+                if (k3.open("GET", r, false), m6 !== b5 && k3.setRequestHeader("Range", "bytes=" + E3 + "-" + F5), k3.responseType = "arraybuffer", k3.overrideMimeType && k3.overrideMimeType("text/plain; charset=x-user-defined"), k3.send(null), !(k3.status >= 200 && k3.status < 300 || k3.status === 304)) throw new Error("Couldn't load " + r + ". Status: " + k3.status);
                 return k3.response !== void 0 ? new Uint8Array(k3.response || []) : intArrayFromString(k3.responseText || "", true);
               }, y5 = this;
               y5.setDataGetter((E3) => {
-                var F4 = E3 * b5, k3 = (E3 + 1) * b5 - 1;
-                if (k3 = Math.min(k3, m6 - 1), typeof y5.chunks[E3] > "u" && (y5.chunks[E3] = h3(F4, k3)), typeof y5.chunks[E3] > "u") throw new Error("doXHR failed!");
+                var F5 = E3 * b5, k3 = (E3 + 1) * b5 - 1;
+                if (k3 = Math.min(k3, m6 - 1), typeof y5.chunks[E3] > "u" && (y5.chunks[E3] = h3(F5, k3)), typeof y5.chunks[E3] > "u") throw new Error("doXHR failed!");
                 return y5.chunks[E3];
               }), (w4 || !m6) && (b5 = m6 = 1, m6 = this.getter(0).length, b5 = m6, out("LazyFiles on gzip forces download of the whole file when length is accessed")), this._length = m6, this._chunkSize = b5, this.lengthKnown = true;
             }
@@ -11862,8 +11862,8 @@ var init_dist = __esm({
         } }, ___syscall__newselect = function(e, t2, r, a3, o5) {
           try {
             for (var _4 = 0, s5 = t2 ? HEAP32[t2 >> 2] : 0, n4 = t2 ? HEAP32[t2 + 4 >> 2] : 0, l2 = r ? HEAP32[r >> 2] : 0, d4 = r ? HEAP32[r + 4 >> 2] : 0, u2 = a3 ? HEAP32[a3 >> 2] : 0, c4 = a3 ? HEAP32[a3 + 4 >> 2] : 0, f5 = 0, g5 = 0, m6 = 0, p6 = 0, x5 = 0, w4 = 0, b5 = (t2 ? HEAP32[t2 >> 2] : 0) | (r ? HEAP32[r >> 2] : 0) | (a3 ? HEAP32[a3 >> 2] : 0), h3 = (t2 ? HEAP32[t2 + 4 >> 2] : 0) | (r ? HEAP32[r + 4 >> 2] : 0) | (a3 ? HEAP32[a3 + 4 >> 2] : 0), y5 = (X2, A2, B3, R3) => X2 < 32 ? A2 & R3 : B3 & R3, E3 = 0; E3 < e; E3++) {
-              var F4 = 1 << E3 % 32;
-              if (y5(E3, b5, h3, F4)) {
+              var F5 = 1 << E3 % 32;
+              if (y5(E3, b5, h3, F5)) {
                 var k3 = SYSCALLS.getStreamFromFD(E3), I3 = SYSCALLS.DEFAULT_POLLMASK;
                 if (k3.stream_ops.poll) {
                   var q2 = -1;
@@ -11873,7 +11873,7 @@ var init_dist = __esm({
                   }
                   I3 = k3.stream_ops.poll(k3, q2);
                 }
-                I3 & 1 && y5(E3, s5, n4, F4) && (E3 < 32 ? f5 = f5 | F4 : g5 = g5 | F4, _4++), I3 & 4 && y5(E3, l2, d4, F4) && (E3 < 32 ? m6 = m6 | F4 : p6 = p6 | F4, _4++), I3 & 2 && y5(E3, u2, c4, F4) && (E3 < 32 ? x5 = x5 | F4 : w4 = w4 | F4, _4++);
+                I3 & 1 && y5(E3, s5, n4, F5) && (E3 < 32 ? f5 = f5 | F5 : g5 = g5 | F5, _4++), I3 & 4 && y5(E3, l2, d4, F5) && (E3 < 32 ? m6 = m6 | F5 : p6 = p6 | F5, _4++), I3 & 2 && y5(E3, u2, c4, F5) && (E3 < 32 ? x5 = x5 | F5 : w4 = w4 | F5, _4++);
               }
             }
             return t2 && (HEAP32[t2 >> 2] = f5, HEAP32[t2 + 4 >> 2] = g5), r && (HEAP32[r >> 2] = m6, HEAP32[r + 4 >> 2] = p6), a3 && (HEAP32[a3 >> 2] = x5, HEAP32[a3 + 4 >> 2] = w4), _4;
@@ -13980,9 +13980,9 @@ ${n4}`), 0;
         let p6 = m6.FS.makedev(64, 0), x5 = { open: (w4) => {
         }, close: (w4) => {
         }, read: (w4, b5, h3, y5, E3) => {
-          let F4 = h(this, ie4);
-          if (!F4) throw new Error("No /dev/blob File or Blob provided to read from");
-          let k3 = new Uint8Array(F4);
+          let F5 = h(this, ie4);
+          if (!F5) throw new Error("No /dev/blob File or Blob provided to read from");
+          let k3 = new Uint8Array(F5);
           if (E3 >= k3.length) return 0;
           let I3 = Math.min(k3.length - E3, y5);
           for (let q2 = 0; q2 < I3; q2++) b5[h3 + q2] = k3[E3 + q2];
@@ -14136,322 +14136,898 @@ shared_preload_libraries=${r.join(",")}`;
   }
 });
 
-// src/lib/campaign-data.ts
-var campaign = {
-  id: "cmp_launch_001",
-  name: "Demo: Sample Campaign",
-  status: "report_ready",
-  readinessScore: 82,
-  appUrl: "https://demo.example/sample-app",
-  repoPath: "~/demo/sample-app",
-  depth: "Full launch audit",
-  runner: {
-    status: "connected",
-    host: "demo-runner (sample)",
-    version: "mcp-runner 0.1.0",
-    lastSync: "sample data"
-  },
-  environment: {
-    framework: "Next.js / TypeScript / Playwright candidate",
-    supportTier: "first-class",
-    auth: "captured locally",
-    scripts: ["npm run dev", "npm run lint", "npm run test:e2e"],
-    unsupportedGaps: ["Webhook side effects need sandbox provider keys before execution."]
+// src/lib/db.ts
+var cachedClient = null;
+async function getSqlClient(env = process.env) {
+  if (cachedClient) {
+    return cachedClient;
   }
+  if (env.POSTGRES_URL) {
+    const { neon } = await Promise.resolve().then(() => (init_serverless(), serverless_exports));
+    const sql = neon(env.POSTGRES_URL);
+    cachedClient = async (text, params = []) => {
+      const result = await sql.query(text, params);
+      if (Array.isArray(result)) {
+        return result;
+      }
+      return result.rows ?? [];
+    };
+    return cachedClient;
+  }
+  if (env.LAUNCHAUDIT_LOCAL_DB) {
+    const { PGlite } = await Promise.resolve().then(() => (init_dist(), dist_exports));
+    const pg = new PGlite(env.LAUNCHAUDIT_LOCAL_DB);
+    const ready = pg.waitReady;
+    if (ready) await ready;
+    cachedClient = async (text, params = []) => {
+      const result = await pg.query(text, params);
+      return result.rows ?? [];
+    };
+    return cachedClient;
+  }
+  return null;
+}
+
+// src/lib/instant-grade.ts
+import dns from "node:dns/promises";
+import net from "node:net";
+
+// src/lib/vibe-checks.ts
+var F4 = (category, severity, title, detail, fix) => ({ category, severity, title, detail, fix });
+var COMMON_TABLES = [
+  "users",
+  "profiles",
+  "customers",
+  "orders",
+  "messages",
+  "posts",
+  "todos",
+  "payments",
+  "subscriptions",
+  "accounts",
+  "leads",
+  "contacts"
+];
+var ADMIN_PATHS = ["/admin", "/dashboard", "/administrator", "/api/admin", "/api/admin/users"];
+var JWT_RE = /eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/;
+function extractSupabase(text) {
+  const urlM = text.match(/https:\/\/[a-z0-9-]+\.supabase\.co/i);
+  if (!urlM) return null;
+  const keyM = text.match(JWT_RE);
+  if (!keyM) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(keyM[0].split(".")[1], "base64").toString("utf8"));
+    if (payload.role !== "anon" && payload.role !== "service_role" && !/supabase/i.test(payload.iss ?? "")) return null;
+  } catch {
+  }
+  return { url: urlM[0].replace(/\/+$/, ""), anonKey: keyM[0] };
+}
+function extractFirebase(text) {
+  const db = text.match(/https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)?\.(?:firebaseio\.com|firebasedatabase\.app)/i);
+  const proj = text.match(/["']?projectId["']?\s*[:=]\s*["']([a-z0-9-]+)["']/i);
+  if (!db && !proj) return null;
+  return { databaseURL: db ? db[0].replace(/\/+$/, "") : null, projectId: proj ? proj[1] : null };
+}
+function findClientSecrets(text) {
+  const out2 = [];
+  const seen = /* @__PURE__ */ new Set();
+  const push = (kind, sev, m6) => {
+    const s5 = m6.slice(0, 10) + "\u2026";
+    const id = kind + s5;
+    if (!seen.has(id)) {
+      seen.add(id);
+      out2.push({ kind, sev, sample: s5 });
+    }
+  };
+  const rules = [
+    [/\bsk_live_[A-Za-z0-9]{16,}/g, "Stripe secret key (sk_live)", "critical"],
+    [/\bsk_test_[A-Za-z0-9]{16,}/g, "Stripe secret key (sk_test)", "critical"],
+    [/\brk_live_[A-Za-z0-9]{16,}/g, "Stripe restricted key (rk_live)", "critical"],
+    [/\bpk_test_[A-Za-z0-9]{16,}/g, "Stripe TEST publishable key in production", "medium"],
+    [/\bAKIA[0-9A-Z]{16}\b/g, "AWS access key id", "critical"],
+    [/\bsk-ant-[A-Za-z0-9_-]{20,}/g, "Anthropic API key", "critical"],
+    [/\bsk-proj-[A-Za-z0-9_-]{20,}/g, "OpenAI project key", "critical"],
+    [/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g, "Private key (PEM)", "critical"],
+    [/\bghp_[A-Za-z0-9]{36}\b/g, "GitHub personal access token", "critical"],
+    [/\bxox[baprs]-[A-Za-z0-9-]{10,}/g, "Slack token", "critical"]
+  ];
+  for (const [re2, kind, sev] of rules) {
+    const m6 = text.match(re2);
+    if (m6) for (const hit of m6.slice(0, 2)) push(kind, sev, hit);
+  }
+  return out2;
+}
+var PLACEHOLDER_RES = [
+  [/lorem ipsum/i, "lorem ipsum"],
+  [/\byour company\b/i, "your company"],
+  [/\byour business name\b/i, "your business name"],
+  [/\[insert[^\]]{0,40}\]/i, "[insert \u2026]"],
+  [/\breplace this\b/i, "replace this"],
+  [/company name here/i, "company name here"],
+  [/example@example\.com/i, "example@example.com"],
+  [/\b555-555-5555\b/, "555-555-5555"],
+  [/\bTODO:/, "TODO:"],
+  [/\byour headline here\b/i, "your headline here"],
+  [/\blorem\b/i, "lorem"]
+];
+function findPlaceholders(html) {
+  const visible = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ");
+  const hits = /* @__PURE__ */ new Set();
+  for (const [re2, label] of PLACEHOLDER_RES) if (re2.test(visible)) hits.add(label);
+  return [...hits];
+}
+function looksLikeShell(body2, homeHtml) {
+  const b5 = body2.trim();
+  if (b5.length < 1200) {
+    const mount = /<div[^>]+id=["'](root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(b5);
+    if (mount) return true;
+  }
+  if (homeHtml && Math.abs(b5.length - homeHtml.trim().length) < 40 && b5.slice(0, 400) === homeHtml.trim().slice(0, 400)) return true;
+  return false;
+}
+var AUTH_HINTS = [/\/login\b/i, /\/sign-?in\b/i, /\/api\/auth\b/i, /\/api\/login\b/i, /type=["']password["']/i];
+async function runVibeChecks(ctx) {
+  const { origin, html, jsTexts, grab: grab3 } = ctx;
+  const findings = [];
+  let passed = 0;
+  let checks = 0;
+  const corpus = [html, ...jsTexts].join("\n");
+  checks++;
+  const sb = extractSupabase(corpus);
+  if (sb) {
+    const readable = [];
+    await Promise.all(COMMON_TABLES.map(async (t2) => {
+      const r = await grab3(`${sb.url}/rest/v1/${t2}?select=*&limit=1`, { headers: { apikey: sb.anonKey, authorization: `Bearer ${sb.anonKey}` } }, 6e3);
+      if (!r || r.status !== 200) return;
+      try {
+        const rows = await r.json();
+        if (Array.isArray(rows) && rows.length > 0) readable.push(t2);
+      } catch {
+      }
+    }));
+    if (readable.length) {
+      findings.push(F4(
+        "Supabase / RLS",
+        "critical",
+        `Supabase tables readable with the public anon key: ${readable.join(", ")}`,
+        `Your Supabase URL and anon key ship in the client (that part is normal), but an unauthenticated request using that key returned rows from ${readable.length} table${readable.length === 1 ? "" : "s"} (${readable.join(", ")}). Row Level Security is off or too permissive \u2014 this is exactly the flaw that leaked 170 Lovable apps' user data.`,
+        `Enable Row Level Security on every public table in Supabase and add owner-scoped policies. For each of these tables (${readable.join(", ")}): run "alter table <t> enable row level security;" then add a policy like "create policy \\"own rows\\" on <t> for select using (auth.uid() = user_id);". Verify with an anon-key SELECT that it now returns zero rows. Do NOT rely on hiding the key in the client. Standard: Supabase RLS / CWE-284.`
+      ));
+    } else {
+      passed++;
+    }
+  } else {
+    passed++;
+  }
+  checks++;
+  const fb = extractFirebase(corpus);
+  let fbOpen = false;
+  if (fb?.databaseURL) {
+    const r = await grab3(`${fb.databaseURL}/.json?shallow=true`, {}, 6e3);
+    if (r && r.status === 200) {
+      const body2 = (await r.text()).slice(0, 2e3).trim();
+      if (body2 && body2 !== "null" && !/permission denied|"error"/i.test(body2)) {
+        fbOpen = true;
+        findings.push(F4(
+          "Firebase",
+          "critical",
+          "Firebase Realtime Database is world-readable",
+          `An unauthenticated request to ${fb.databaseURL}/.json returned data. Your database rules allow public reads \u2014 anyone can pull the whole tree.`,
+          `Lock down your Firebase Realtime Database rules. Replace any {".read": true} with auth-scoped rules, e.g. {"rules": {"$uid": {".read": "auth != null && auth.uid === $uid", ".write": "auth != null && auth.uid === $uid"}}}. Deploy with "firebase deploy --only database" and re-check that ${fb.databaseURL}/.json returns "Permission denied". Standard: Firebase Security Rules / CWE-284.`
+        ));
+      }
+    }
+  }
+  if (fb?.projectId && !fbOpen) {
+    const r = await grab3(`https://firestore.googleapis.com/v1/projects/${fb.projectId}/databases/(default)/documents/users?pageSize=1`, {}, 6e3);
+    if (r && r.status === 200) {
+      try {
+        const j4 = await r.json();
+        if (Array.isArray(j4.documents) && j4.documents.length > 0) {
+          fbOpen = true;
+          findings.push(F4(
+            "Firebase",
+            "critical",
+            "Firestore collection is world-readable",
+            `An unauthenticated Firestore read of the "users" collection in project ${fb.projectId} returned documents. Your Firestore rules allow public reads.`,
+            `Fix your Firestore security rules. Replace "allow read, write: if true;" with auth-scoped rules, e.g. "match /users/{uid} { allow read, write: if request.auth != null && request.auth.uid == uid; }". Deploy with "firebase deploy --only firestore:rules" and re-test an unauthenticated read returns PERMISSION_DENIED. Standard: Firebase Security Rules / CWE-284.`
+          ));
+        }
+      } catch {
+      }
+    }
+  }
+  if (!fbOpen) passed++;
+  checks++;
+  const secrets = findClientSecrets(corpus);
+  if (secrets.length) {
+    const crit = secrets.filter((s5) => s5.sev === "critical");
+    for (const s5 of crit.slice(0, 3)) {
+      findings.push(F4(
+        "Secrets",
+        "critical",
+        `${s5.kind} exposed in the client bundle`,
+        `A ${s5.kind} (${s5.sample}) is readable in your page or JS bundle. Anyone who opens dev tools has it. Assume it is already compromised.`,
+        `Remove the ${s5.kind} from all client-side code immediately and ROTATE it (assume it is leaked). Server-only secrets must live in a server env var (never NEXT_PUBLIC_/VITE_/PUBLIC_ prefixed) and be used only in server routes or edge functions. Rotate the key in the provider dashboard, redeploy, and re-scan. Standard: OWASP WSTG configuration / CWE-798.`
+      ));
+    }
+    const testKey = secrets.find((s5) => s5.sev === "medium");
+    if (testKey) {
+      findings.push(F4(
+        "Secrets",
+        "medium",
+        "Stripe is running in TEST mode in production",
+        "A pk_test_ publishable key is live on the production site \u2014 real customers cannot actually pay, and it signals the checkout was never switched to live.",
+        `Swap the Stripe TEST publishable key (pk_test_\u2026) for your LIVE key (pk_live_\u2026) in the production environment, and make sure the matching secret key is sk_live_ on the server. Keep test keys in your local/preview env only. Standard: Stripe go-live checklist.`
+      ));
+    }
+    if (!crit.length && !testKey) passed++;
+  } else {
+    passed++;
+  }
+  checks++;
+  const adminHits = [];
+  await Promise.all(ADMIN_PATHS.map(async (p6) => {
+    const r = await grab3(new URL(p6, origin).toString(), {}, 5e3);
+    if (!r) return;
+    const ct3 = (r.headers.get("content-type") || "").toLowerCase();
+    if (p6.startsWith("/api/")) {
+      if (r.status === 200 && /json/.test(ct3)) {
+        try {
+          const j4 = await r.json();
+          const hasData = Array.isArray(j4) ? j4.length > 0 : j4 && typeof j4 === "object" && Object.keys(j4).length > 0;
+          if (hasData) adminHits.push({ path: p6, sev: "critical", why: "returned JSON data to an unauthenticated caller" });
+        } catch {
+        }
+      }
+      return;
+    }
+    if (r.status === 200) {
+      const body2 = (await r.text()).slice(0, 4e4);
+      if (/type=["']password["']|sign in|log ?in|unauthor|forbidden/i.test(body2)) return;
+      if (looksLikeShell(body2, html)) {
+        adminHits.push({ path: p6, sev: "medium", why: "served a 200 client shell (HTTP can't prove the client gate; verify the API)" });
+        return;
+      }
+      if (/admin|dashboard|users|settings|manage/i.test(body2)) adminHits.push({ path: p6, sev: "high", why: "served real admin-looking content to an unauthenticated visitor" });
+    }
+  }));
+  if (adminHits.length) {
+    const worst = adminHits.some((h3) => h3.sev === "critical") ? "critical" : adminHits.some((h3) => h3.sev === "high") ? "high" : "medium";
+    findings.push(F4(
+      "Access control",
+      worst,
+      `Admin surface reachable without auth: ${adminHits.map((h3) => h3.path).join(", ")}`,
+      adminHits.map((h3) => `${h3.path} ${h3.why}`).join("; ") + ".",
+      `Add a SERVER-SIDE authorization check to these routes/APIs (${adminHits.map((h3) => h3.path).join(", ")}). In the route handler or shared middleware, reject anonymous or non-admin requests with 401/403 BEFORE returning anything \u2014 hiding the link in the UI is not a control. For Next.js, guard in middleware.ts and re-check the role inside each /api/admin handler. Verify an unauthenticated curl to each path returns 401/403. Standard: OWASP WSTG-ATHZ / CWE-306.`
+    ));
+  } else {
+    passed++;
+  }
+  checks++;
+  if (/\/@vite\/client|__vite__mapDeps|import\.meta\.env\.DEV/i.test(corpus) && /\/@vite\/client/i.test(html)) {
+    findings.push(F4(
+      "Debug leak",
+      "high",
+      "Vite dev server client is shipped in production",
+      "The page loads /@vite/client \u2014 you deployed the dev build, not a production build. It hot-reloads, exposes source, and is far slower.",
+      `Deploy the production build, not the dev server. Run "npm run build" and serve the dist/ output (e.g. "vite preview" or your host's static output), and make sure your deploy command is the build, not "vite"/"npm run dev". Standard: Vite production build.`
+    ));
+  } else if (/nextjs-portal|__nextjs_original-stack-frame|__next_dev/i.test(corpus)) {
+    findings.push(F4(
+      "Debug leak",
+      "medium",
+      "Next.js is running in development mode",
+      "Dev-only markers (the error overlay / stack-frame endpoint) are present \u2014 the site is served with `next dev`, which is slow and leaks source and stack traces.",
+      `Run Next.js in production: build with "next build" and start with "next start" (or deploy to a host that does this automatically). Never run "next dev" as your production server. Standard: Next.js deployment.`
+    ));
+  } else {
+    passed++;
+  }
+  checks++;
+  if (jsTexts.some((t2) => /\/\/[#@]\s*sourceMappingURL=/.test(t2))) {
+    findings.push(F4(
+      "Debug leak",
+      "low",
+      "Source maps are published in production",
+      "Your minified JS references a .map file, which ships your original, unminified source (and often comments and structure) to anyone.",
+      `Turn off source maps in production builds. Next.js: set "productionBrowserSourceMaps: false" in next.config.js (the default). Vite: set "build.sourcemap: false". Rebuild and confirm no //# sourceMappingURL= line remains in the shipped JS. Standard: production build hygiene.`
+    ));
+  } else {
+    passed++;
+  }
+  checks++;
+  if (AUTH_HINTS.some((re2) => re2.test(corpus))) {
+    findings.push(F4(
+      "Auth hardening",
+      "low",
+      "Verify rate limiting on the login endpoint",
+      "This app exposes a login / auth endpoint. We do not brute-force it, so we cannot confirm a limit exists \u2014 but AI builders almost never add one, and an unthrottled login invites credential-stuffing.",
+      `Add rate limiting to your login and password-reset endpoints (report-only finding \u2014 verify this yourself). Limit attempts per IP and per account (e.g. 5 per 15 minutes) and add exponential backoff or a captcha after repeated failures. On Vercel use @upstash/ratelimit; on Supabase Auth enable the built-in rate limits. Standard: OWASP WSTG-ATHN / API4:2023.`
+    ));
+  } else {
+    passed++;
+  }
+  checks++;
+  const placeholders = findPlaceholders(html);
+  if (placeholders.length) {
+    findings.push(F4(
+      "Content",
+      placeholders.length > 2 ? "medium" : "low",
+      `Placeholder copy still on the page: ${placeholders.slice(0, 4).join(", ")}`,
+      `The live page still shows scaffold text (${placeholders.join(", ")}). It reads as unfinished and can leak straight into search results and link previews.`,
+      `Replace the placeholder copy (${placeholders.join(", ")}) with real content. Search the codebase for each phrase and write the actual headline/body/contact details. Standard: launch content hygiene.`
+    ));
+  } else {
+    passed++;
+  }
+  return { findings, passed, checks };
+}
+
+// src/lib/instant-grade.ts
+var CHALLENGE_SIGNS = [/cf-browser-verification/i, /_cf_chl_opt/i, /cf-chl/i, /Attention Required!\s*\|\s*Cloudflare/i, /Just a moment\.\.\./i, /Access Denied/i, /Request unsuccessful\. Incapsula/i, /_Incapsula_Resource/i, /Reference #\d+\.[0-9a-f]+\.[0-9a-f]+\.[0-9a-f]+/i, /akamai/i, /Pardon Our Interruption/i, /PerimeterX/i, /px-captcha/i, /distil_r_captcha/i, /DataDome/i, /Please verify you are a human/i, /enable JavaScript and cookies to continue/i];
+function blockedReason(status, html) {
+  if (status >= 400) return `The site answered our scanner with HTTP ${status}, so what we saw was an error page, not your site.`;
+  if (status >= 300) return `The site kept redirecting (HTTP ${status}) and never served a page to our scanner.`;
+  const body2 = html.trim();
+  if (body2.length < 500) return `The site returned only ${body2.length} bytes to our scanner, which is not a real page. It may be blocking automated traffic.`;
+  for (const re2 of CHALLENGE_SIGNS) if (re2.test(body2.slice(0, 2e4))) return "The site put a bot-protection challenge (Cloudflare, Akamai or similar) in front of our scanner instead of the page.";
+  return null;
+}
+var PENALTY = { critical: 22, high: 13, medium: 7, low: 3 };
+var INSTANT_GRADE_NOTE = "This is the free 10-second surface scan (no code, no install). The deep audit \u2014 broken access control (IDOR), admin/RBAC, write-authz, and your actual code \u2014 runs free inside your own agent; your code never leaves your machine.";
+function privateIp(ip) {
+  if (net.isIPv4(ip)) {
+    const [a3, b5] = ip.split(".").map(Number);
+    return a3 === 10 || a3 === 127 || a3 === 0 || a3 === 169 && b5 === 254 || a3 === 172 && b5 >= 16 && b5 <= 31 || a3 === 192 && b5 === 168 || a3 === 100 && b5 >= 64 && b5 <= 127;
+  }
+  const x5 = ip.toLowerCase();
+  return x5 === "::1" || x5.startsWith("fc") || x5.startsWith("fd") || x5.startsWith("fe80") || x5.startsWith("::ffff:127.") || x5.startsWith("::ffff:10.") || x5.startsWith("::ffff:192.168.");
+}
+function hostLooksPrivate(host) {
+  const h3 = host.toLowerCase();
+  const bad = ["localhost", "metadata.google.internal", "instance-data"];
+  if (bad.includes(h3) || h3.endsWith(".internal") || h3.endsWith(".local") || h3.endsWith(".localhost")) return "private host";
+  if (net.isIP(host) && privateIp(host)) return "private ip";
+  return null;
+}
+async function assertPublic(host) {
+  const staticProblem = hostLooksPrivate(host);
+  if (staticProblem) throw new Error(staticProblem);
+  if (net.isIP(host)) return;
+  const addrs = await dns.lookup(host, { all: true });
+  if (!addrs.length || addrs.some((a3) => privateIp(a3.address))) throw new Error("resolves to private ip");
+}
+function parseTargetUrl(input) {
+  let raw = typeof input === "string" ? input.trim() : "";
+  if (!raw) return { ok: false, error: "Provide a url." };
+  if (raw.length > 2048) return { ok: false, error: "That URL is too long." };
+  if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
+  let u2;
+  try {
+    u2 = new URL(raw);
+  } catch {
+    return { ok: false, error: `Not a valid URL: ${raw}` };
+  }
+  if (u2.protocol !== "http:" && u2.protocol !== "https:") return { ok: false, error: "Only http/https URLs." };
+  if (u2.username || u2.password) return { ok: false, error: "Credentials in the URL aren't allowed." };
+  if (!u2.hostname || !u2.hostname.includes(".") && !net.isIP(u2.hostname)) return { ok: false, error: "That doesn't look like a public hostname." };
+  if (hostLooksPrivate(u2.hostname)) return { ok: false, error: "That host isn't a public address we can scan." };
+  return { ok: true, url: u2 };
+}
+async function grab(url, opts = {}, ms2 = 8e3) {
+  const ctrl = new AbortController();
+  const t2 = setTimeout(() => ctrl.abort(), ms2);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": "8020LaunchAudit-Grader/1.0", ...opts.headers || {} } });
+  } finally {
+    clearTimeout(t2);
+  }
+}
+async function safeGrab(url, opts = {}, ms2 = 6e3) {
+  try {
+    return await grab(url, opts, ms2);
+  } catch {
+    return null;
+  }
+}
+async function fetchJsBundles(html, origin, max = 6, capBytes = 6e5) {
+  const srcs = /* @__PURE__ */ new Set();
+  for (const m6 of html.matchAll(/<script\b[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi)) {
+    try {
+      const u2 = new URL(m6[1], origin);
+      if (u2.origin === origin.origin && /\.(js|mjs)(\?|$)/i.test(u2.pathname + u2.search)) srcs.add(u2.toString());
+    } catch {
+    }
+  }
+  const list = [...srcs].slice(0, max);
+  const texts = await Promise.all(list.map(async (u2) => {
+    const r = await safeGrab(u2, {}, 6e3);
+    if (!r || r.status !== 200) return "";
+    try {
+      return (await r.text()).slice(0, capBytes);
+    } catch {
+      return "";
+    }
+  }));
+  return texts.filter(Boolean);
+}
+var SURFACE_FIX = {
+  TLS: "Serve the whole site over HTTPS, 301-redirect http->https at the edge, and send Strict-Transport-Security (max-age=63072000; includeSubDomains; preload). Standard: OWASP Secure Headers / Mozilla TLS.",
+  "Security headers": "Set the missing response headers at the platform level so every route gets them: Content-Security-Policy, X-Frame-Options: DENY (or CSP frame-ancestors), X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin. In Next.js use the headers() config or middleware; on Vercel use vercel.json headers. Remove X-Powered-By. Standard: OWASP Secure Headers.",
+  Cookies: "Set session cookies with HttpOnly, Secure, and SameSite=Lax (or Strict). Standard: CWE-1004 / CWE-614.",
+  CORS: "Never reflect an arbitrary Origin in Access-Control-Allow-Origin together with Access-Control-Allow-Credentials: true. Allowlist your exact known origins in the server CORS config. Standard: CWE-942.",
+  Secrets: "Remove the exposed file/secret from what the server serves publicly, block it at the edge (deny /.env, /.git/*), and rotate anything leaked. Standard: OWASP WSTG configuration / CWE-798.",
+  SEO: "Add a unique <title> (50-60 chars), a meta description, a canonical link, Open Graph tags, and a viewport meta; make sure the page is not accidentally noindex. Standard: Google Search Central."
 };
-var testCards = [
-  {
-    id: "TC-101",
-    title: "Authenticated user can complete the primary workflow without hidden console failures",
-    category: "core_workflow",
-    status: "passed",
-    risk: "critical",
-    goal: "Prove the app's highest-value workflow works from first page load through final confirmation.",
-    steps: [
-      "Reuse captured local auth state.",
-      "Open dashboard from a clean browser context.",
-      "Create a new record with valid boundary data.",
-      "Verify confirmation, persisted state, and reload behavior."
-    ],
-    expectedEvidence: ["Trace", "Before/after screenshots", "Network log", "Persisted record assertion"],
-    dataNeeds: ["Authenticated builder account", "Fresh test record name"],
-    acceptanceCriteria: "The record exists after reload and no console error or failed API request appears during the flow."
-  },
-  {
-    id: "TC-118",
-    title: "Role boundary prevents client user from reaching admin-only repair actions",
-    category: "roles_permissions",
-    status: "failed",
-    risk: "high",
-    goal: "Confirm role separation is enforced at navigation, page load, and API mutation layers.",
-    steps: [
-      "Load captured client-role auth state.",
-      "Attempt direct navigation to admin repair task URL.",
-      "Attempt the backing mutation request from the browser context.",
-      "Capture server response and visible UI state."
-    ],
-    expectedEvidence: ["403/redirect proof", "Screenshot", "Network request/response pair"],
-    dataNeeds: ["Client role session", "Known admin task id"],
-    acceptanceCriteria: "Client role receives a blocked state and cannot mutate or view admin-only repair tasks."
-  },
-  {
-    id: "TC-124",
-    title: "Slow API response preserves form input and shows a recoverable state",
-    category: "forms_validation",
-    status: "passed",
-    risk: "medium",
-    goal: "Expose the common launch bug where slow services erase user work or double-submit forms.",
-    steps: [
-      "Throttle submit endpoint to 4 seconds.",
-      "Submit a valid form.",
-      "Verify disabled state, spinner, and no duplicate request.",
-      "Refresh after completion and confirm saved data."
-    ],
-    expectedEvidence: ["Network throttle trace", "DOM disabled-state assertion", "Screenshot"],
-    dataNeeds: ["Valid form payload", "Network interception rule"],
-    acceptanceCriteria: "Only one mutation fires, user input remains visible, and the saved state survives reload."
-  },
-  {
-    id: "TC-142",
-    title: "Mobile audit report is readable without horizontal overflow",
-    category: "responsive_visual",
-    status: "failed",
-    risk: "medium",
-    goal: "Verify the client-ready report can be reviewed on mobile without clipped tables or overlapping action buttons.",
-    steps: [
-      "Open report page at 390px width.",
-      "Scroll every section.",
-      "Inspect issue table, evidence gallery, and repair task cards.",
-      "Capture screenshot and overflow metrics."
-    ],
-    expectedEvidence: ["Mobile screenshot", "Layout overflow measurement", "DOM bounding boxes"],
-    dataNeeds: ["Generated audit report with at least two findings"],
-    acceptanceCriteria: "No primary content overflows the viewport and all action labels remain readable."
-  },
-  {
-    id: "TC-153",
-    title: "Webhook/payment side effects are declared instead of silently skipped",
-    category: "integration_side_effects",
-    status: "blocked",
-    risk: "high",
-    goal: "Prevent fake confidence by forcing unsupported third-party checks into the audit report.",
-    steps: [
-      "Inspect env and integration code references.",
-      "Detect missing sandbox keys.",
-      "Mark affected checks as blocked with exact reason."
-    ],
-    expectedEvidence: ["Env-key presence map", "Integration file references", "Blocked finding"],
-    dataNeeds: ["Sandbox provider keys or explicit skip approval"],
-    acceptanceCriteria: "The report names the blocked integration checks and does not count them as passed."
-  },
-  {
-    id: "TC-201",
-    title: "No cross-user object access by swapping an id (IDOR)",
-    category: "object_authz",
-    status: "failed",
-    risk: "critical",
-    goal: "A normal user requesting another owner's object id must be denied, never served the other owner's record.",
-    steps: ["Capture a normal 'user' session.", "GET another owner's object id (e.g. /api/orders/1).", "Confirm the response is 401/403/404, not the other owner's data."],
-    expectedEvidence: ["Network request/response pair", "Captured user session"],
-    dataNeeds: ["A non-admin test account"],
-    acceptanceCriteria: "As 'user', the swapped-id request returns 401/403/404, not a 2xx with another owner's object. WSTG-ATHZ-04 / CWE-639."
-  },
-  {
-    id: "TC-202",
-    title: "Account detail endpoint enforces ownership",
-    category: "object_authz",
-    status: "passed",
-    risk: "critical",
-    goal: "Prove the per-user record endpoint checks ownership server-side.",
-    steps: ["As 'user', request the user's own object (allowed).", "As 'user', request a neighbouring owner's id (denied)."],
-    expectedEvidence: ["Network log", "Positive + negative control"],
-    dataNeeds: ["A non-admin test account"],
-    acceptanceCriteria: "Owner can read their object; cross-owner read is blocked. WSTG-ATHZ-04 / CWE-639."
-  },
-  {
-    id: "TC-203",
-    title: "Normal user is denied a privileged mutation (BFLA)",
-    category: "mutation_authz",
-    status: "failed",
-    risk: "critical",
-    goal: "A privileged state-changing call by a normal user must be rejected with 401/403 before any write \u2014 the denial proves no state change.",
-    steps: ["As 'user', POST the privileged endpoint (e.g. /api/admin/delete-user).", "Confirm a 401/403, not a 2xx."],
-    expectedEvidence: ["Network request/response pair"],
-    dataNeeds: ["A non-admin test account"],
-    acceptanceCriteria: "As 'user', the privileged mutation returns 401/403 before any write. OWASP API5 / CWE-285."
-  },
-  {
-    id: "TC-204",
-    title: "Update endpoint ignores privileged fields (mass-assignment)",
-    category: "mass_assignment",
-    status: "needs_verification",
-    risk: "high",
-    goal: 'Sending role:"admin"/isAdmin:true to a profile-update endpoint must be ignored, not persisted.',
-    steps: ["As 'user', PATCH the profile with extra privileged fields.", "Re-read the record and confirm role/isAdmin did not change."],
-    expectedEvidence: ["Request body", "Re-read of the persisted record"],
-    dataNeeds: ["A non-admin test account", "An object-update endpoint"],
-    acceptanceCriteria: "Privileged fields are not accepted or echoed as persisted. OWASP API3 / CWE-915."
-  },
-  {
-    id: "TC-205",
-    title: "Session cookie carries HttpOnly, Secure, and SameSite",
-    category: "cookie_security",
-    status: "failed",
-    risk: "high",
-    goal: "A session cookie without HttpOnly is JS-readable (XSS theft); without Secure it leaks over http; without SameSite it is CSRF-exposed.",
-    steps: ["Log in and capture the Set-Cookie.", "Check for HttpOnly, Secure, and SameSite attributes."],
-    expectedEvidence: ["Set-Cookie header transcript"],
-    dataNeeds: ["A login that issues a session cookie"],
-    acceptanceCriteria: "The session Set-Cookie includes HttpOnly, Secure, and SameSite. CWE-1004 / CWE-614."
-  },
-  {
-    id: "TC-206",
-    title: "CORS does not reflect a hostile Origin with credentials",
-    category: "cors",
-    status: "passed",
-    risk: "high",
-    goal: "An arbitrary Origin must not be echoed in Access-Control-Allow-Origin together with Access-Control-Allow-Credentials: true.",
-    steps: ["Send a request with Origin: https://evil.example.", "Confirm the probe Origin is not reflected with credentials enabled."],
-    expectedEvidence: ["Response header transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "No credentialed reflection of an arbitrary Origin. CWE-942."
-  },
-  {
-    id: "TC-207",
-    title: "HSTS (Strict-Transport-Security) is present",
-    category: "tls_hsts",
-    status: "passed",
-    risk: "medium",
-    goal: "Without HSTS a browser will still try http first and can be downgraded before the redirect.",
-    steps: ["GET / over https.", "Confirm a Strict-Transport-Security response header."],
-    expectedEvidence: ["Response header transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "Response carries Strict-Transport-Security. OWASP Secure Headers / Mozilla TLS."
-  },
-  {
-    id: "TC-208",
-    title: "http redirects to https",
-    category: "tls_hsts",
-    status: "needs_verification",
-    risk: "medium",
-    goal: "Plain http must redirect to https so credentials/cookies never travel in cleartext.",
-    steps: ["GET the http:// origin.", "Confirm a 301/308 whose Location is https."],
-    expectedEvidence: ["Redirect transcript"],
-    dataNeeds: ["A reachable http endpoint to probe"],
-    acceptanceCriteria: "http requests 301/308-redirect to https."
-  },
-  {
-    id: "TC-209",
-    title: "SQL-injection canary is handled safely",
-    category: "injection",
-    status: "failed",
-    risk: "high",
-    goal: "A non-destructive SQLi canary must not 500 the server or leak a database error.",
-    steps: ["POST a field with the canary ' OR '1'='1.", "Confirm no 500 and no SQL/engine error text in the body."],
-    expectedEvidence: ["Request + response transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "No 500 and no DB-error text on the canary. WSTG-INPV / CWE-89."
-  },
-  {
-    id: "TC-210",
-    title: "XSS canary is escaped, not reflected",
-    category: "injection",
-    status: "passed",
-    risk: "high",
-    goal: "A reflected XSS canary must come back escaped, never as live markup.",
-    steps: ["Send the canary <svg/onload=alert(1)>.", "Confirm the raw payload is not reflected unescaped."],
-    expectedEvidence: ["Response body excerpt"],
-    dataNeeds: [],
-    acceptanceCriteria: "The raw XSS payload is not present unescaped in the response. WSTG-INPV / CWE-79."
-  },
-  {
-    id: "TC-211",
-    title: "Security headers are present and carry safe values",
-    category: "security_headers",
-    status: "failed",
-    risk: "high",
-    goal: "The hardening headers that stop clickjacking, MIME-sniffing, and stack-banner leaks must be set.",
-    steps: ["GET /.", "Check Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy.", "Confirm no X-Powered-By banner."],
-    expectedEvidence: ["Response header transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "CSP, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy are present with safe values. OWASP Secure Headers."
-  },
-  {
-    id: "TC-212",
-    title: "Secret and VCS files are not publicly downloadable",
-    category: "secrets_exposure",
-    status: "passed",
-    risk: "critical",
-    goal: "Config and version-control files must never be served to the public.",
-    steps: ["Request /.env, /.env.local, /.git/config, /.git/HEAD.", "Confirm each is blocked (not 200 with file content)."],
-    expectedEvidence: ["Per-path response transcript"],
-    dataNeeds: [],
-    acceptanceCriteria: "No /.env* or /.git/* path returns downloadable content. OWASP WSTG configuration testing."
+function ensureFix(f5) {
+  if (f5.fix) return f5;
+  return { ...f5, fix: SURFACE_FIX[f5.category] ?? `Address "${f5.title}": ${f5.detail}` };
+}
+async function runInstantGrade(target) {
+  let u2 = target;
+  try {
+    await assertPublic(u2.hostname);
+  } catch {
+    return { ok: false, status: 400, error: "That host isn't a public address we can scan." };
   }
-];
-var findings = [
-  {
-    id: "FD-118",
-    type: "product_bug",
-    severity: "high",
-    title: "Client role can load admin repair task detail by direct URL",
-    testCardId: "TC-118",
-    evidenceRefs: ["trace://TC-118/direct-url.zip", "screenshot://TC-118/admin-detail.png"],
-    summary: "Navigation hides the admin action, but the route-level loader returns repair task details for a client-role session."
-  },
-  {
-    id: "FD-142",
-    type: "product_bug",
-    severity: "medium",
-    title: "Mobile report table overflows 390px viewport",
-    testCardId: "TC-142",
-    evidenceRefs: ["screenshot://TC-142/mobile-overflow.png", "metric://TC-142/body-scroll-width"],
-    summary: "The evidence table uses fixed columns and pushes primary actions outside the viewport."
-  },
-  {
-    id: "FD-153",
-    type: "environment_issue",
-    severity: "high",
-    title: "Webhook checks blocked by missing sandbox keys",
-    testCardId: "TC-153",
-    evidenceRefs: ["env-map://campaign/cmp_launch_001"],
-    summary: "Payment/webhook confidence cannot be claimed until sandbox credentials are present or the check is explicitly waived."
+  const findings = [];
+  const passed = [];
+  let html = "", main = null;
+  try {
+    main = await grab(u2.toString());
+    if (main.status >= 300 && main.status < 400 && main.headers.get("location")) {
+      const loc = new URL(main.headers.get("location"), u2);
+      try {
+        await assertPublic(loc.hostname);
+        main = await grab(loc.toString());
+        u2 = loc;
+      } catch {
+      }
+    }
+    html = (await main.text()).slice(0, 2e5);
+  } catch {
+    return { ok: false, status: 502, error: `Couldn't reach ${u2.origin}. Make sure it's live and public.` };
   }
-];
-var repairTasks = [
-  {
-    finding_id: "FD-118",
-    severity: "high",
-    title: "Enforce server-side role guard on repair task detail route",
-    why_it_matters: "The UI hides admin actions, but direct navigation still exposes admin-only repair task details to a client user.",
-    evidence_refs: ["trace://TC-118/direct-url.zip", "screenshot://TC-118/admin-detail.png"],
-    likely_files: ["src/app/admin/repair-tasks/[id]/page.tsx", "src/lib/auth/roles.ts", "src/app/api/repair-tasks/[id]/route.ts"],
-    reproduction_steps: [
-      "Login with captured client-role browser state.",
-      "Navigate directly to /admin/repair-tasks/rt_102.",
-      "Observe repair task title, likely files, and agent prompt in the rendered page."
-    ],
-    expected_behavior: "Client role should receive a 403 page or redirect and API detail route should return 403.",
-    verification_command: "npx playwright test tests/roles/repair-task-guard.spec.ts",
-    agent_prompt: "Patch the repair task detail page and API route so authorization is enforced server-side. Keep admin access unchanged, return 403 for client users, and add a Playwright regression for direct URL access."
-  },
-  {
-    finding_id: "FD-142",
-    severity: "medium",
-    title: "Make audit report evidence table responsive",
-    why_it_matters: "The launch audit is supposed to be client-ready, but the mobile report currently clips evidence and action labels.",
-    evidence_refs: ["screenshot://TC-142/mobile-overflow.png", "metric://TC-142/body-scroll-width"],
-    likely_files: ["src/app/reports/[id]/page.tsx", "src/components/report/evidence-table.tsx"],
-    reproduction_steps: [
-      "Open /reports/rpt_launch_001 at 390px viewport width.",
-      "Scroll to Evidence.",
-      "Observe horizontal overflow and clipped action column."
-    ],
-    expected_behavior: "Evidence rows collapse into readable stacked rows on narrow screens with no body overflow.",
-    verification_command: "npx playwright test tests/responsive/audit-report-mobile.spec.ts",
-    agent_prompt: "Refactor the audit evidence table responsive layout so mobile uses stacked row cards while desktop preserves the dense table. Verify no horizontal body overflow at 390px."
+  const blocked = blockedReason(main.status, html);
+  if (blocked) {
+    return { ok: false, status: 409, blocked: true, http_status: main.status, error: `${blocked} We do not score what we cannot see: allow the user agent 8020LaunchAudit-Grader/1.0 (or your CDN's verified-bot list) and run it again, or ask for a refund.` };
   }
-];
+  const H3 = (n4) => main.headers.get(n4);
+  if (u2.protocol !== "https:") findings.push({ category: "TLS", severity: "high", title: "No HTTPS", detail: "The site is served over plain http \u2014 credentials and cookies travel in cleartext." });
+  else if (!H3("strict-transport-security")) findings.push({ category: "TLS", severity: "medium", title: "Missing HSTS", detail: "No Strict-Transport-Security header \u2014 browsers can be downgraded to http before the redirect." });
+  else passed.push("HSTS present");
+  const hdr = [
+    ["content-security-policy", "Content-Security-Policy", "high"],
+    ["x-frame-options", "X-Frame-Options (clickjacking)", "medium"],
+    ["x-content-type-options", "X-Content-Type-Options (MIME sniffing)", "low"],
+    ["referrer-policy", "Referrer-Policy", "low"]
+  ];
+  for (const [k3, label, sev] of hdr) {
+    if (!H3(k3)) findings.push({ category: "Security headers", severity: sev, title: `Missing ${label}`, detail: `The ${label} response header is not set.` });
+    else passed.push(`${label} set`);
+  }
+  if (H3("x-powered-by") || /express|php|next\.js/i.test(H3("server") || "")) findings.push({ category: "Security headers", severity: "low", title: "Stack banner leaked", detail: `Server reveals its stack (${H3("x-powered-by") || H3("server")}) \u2014 free recon for attackers.` });
+  const sc = H3("set-cookie") || "";
+  if (sc) {
+    const miss = ["HttpOnly", "Secure", "SameSite"].filter((f5) => !new RegExp(f5, "i").test(sc));
+    if (miss.length) findings.push({ category: "Cookies", severity: "high", title: `Session cookie missing ${miss.join(", ")}`, detail: "A login cookie without these flags can be stolen via XSS, leaked over http, or used in CSRF." });
+    else passed.push("Cookie flags hardened");
+  }
+  try {
+    const c4 = await grab(u2.toString(), { headers: { origin: "https://evil.example" } }, 6e3);
+    const acao = c4.headers.get("access-control-allow-origin");
+    if (acao === "https://evil.example" || acao === "*" && (c4.headers.get("access-control-allow-credentials") || "").toLowerCase() === "true")
+      findings.push({ category: "CORS", severity: "high", title: "CORS reflects any origin", detail: "The server echoes an arbitrary Origin (a hostile site could read your logged-in users' data)." });
+    else passed.push("CORS does not reflect hostile origin");
+  } catch {
+  }
+  for (const path of ["/.env", "/.git/config", "/.git/HEAD", "/.env.local"]) {
+    try {
+      const r = await grab(new URL(path, u2.origin).toString(), {}, 5e3);
+      if (r.status === 200) {
+        const ct3 = (r.headers.get("content-type") || "").toLowerCase();
+        const body2 = (await r.text()).slice(0, 4e3);
+        const looksReal = !ct3.includes("text/html") && !body2.trimStart().startsWith("<") && (/^\s*[A-Z0-9_]+\s*=/m.test(body2) || /\[core\]/.test(body2) || /^ref:\s/m.test(body2) || /-----BEGIN/.test(body2));
+        if (looksReal) {
+          findings.push({ category: "Secrets", severity: "critical", title: `Exposed ${path}`, detail: `${path} is publicly downloadable \u2014 it can leak credentials, keys, or your full git history.` });
+          break;
+        }
+      }
+    } catch {
+    }
+  }
+  const seo = [
+    [/<title[^>]*>\s*\S/i, "a real <title>", "medium"],
+    [/<meta[^>]+name=["']description["'][^>]+content=["']\s*\S/i, "a meta description", "low"],
+    [/<meta[^>]+name=["']viewport["']/i, "a mobile viewport tag", "medium"],
+    [/<meta[^>]+property=["']og:title["']/i, "an Open Graph title (link previews)", "low"]
+  ];
+  for (const [re2, label, sev] of seo) {
+    if (re2.test(html)) passed.push(label + " present");
+    else findings.push({ category: "SEO", severity: sev, title: `Missing ${label}`, detail: `The page is missing ${label}.` });
+  }
+  let passedCount = passed.length;
+  try {
+    const jsTexts = await fetchJsBundles(html, u2, 6);
+    const vibe = await runVibeChecks({ origin: u2, html, jsTexts, grab: safeGrab });
+    findings.push(...vibe.findings);
+    passedCount += vibe.passed;
+  } catch {
+  }
+  const withFixes = findings.map(ensureFix);
+  const penalty = withFixes.reduce((s5, f5) => s5 + PENALTY[f5.severity], 0);
+  const score = Math.max(0, Math.min(100, 100 - penalty));
+  const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  withFixes.sort((a3, b5) => order[a3.severity] - order[b5.severity]);
+  findings.length = 0;
+  findings.push(...withFixes);
+  return {
+    ok: true,
+    url: u2.origin,
+    score,
+    band,
+    passed: passedCount,
+    summary: findings.length ? `Surface scan found ${findings.length} issue${findings.length === 1 ? "" : "s"} on ${u2.host}.` : `No surface-level issues found on ${u2.host} \u2014 nice. The deep checks still need your repo.`,
+    findings,
+    note: INSTANT_GRADE_NOTE
+  };
+}
+
+// src/lib/deep-grade.ts
+import dns2 from "node:dns/promises";
+import tls from "node:tls";
+var PAGE_BUDGET = 8;
+var PAGE_TIMEOUT = 7e3;
+var PSI_TIMEOUT = 28e3;
+var PENALTY2 = { critical: 22, high: 13, medium: 7, low: 3 };
+var DEEP_GRADE_NOTE = "Single Run: a site-wide, URL-only audit (up to 8 pages) covering security headers, cookies, CORS, exposed files, accessibility basics, broken links, mixed content, SEO/launch blockers, error-page leaks, TLS, email DNS and Core Web Vitals. The hosted deep audit adds a real browser: broken access control, admin/RBAC, write-authz and authenticated flows.";
+var UA = "8020LaunchAudit-Grader/1.0 (+https://fusiondataco.com)";
+async function grab2(url, opts = {}, ms2 = PAGE_TIMEOUT) {
+  const ctrl = new AbortController();
+  const t2 = setTimeout(() => ctrl.abort(), ms2);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": UA, ...opts.headers || {} } });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t2);
+  }
+}
+function attr(tag, name2) {
+  const m6 = tag.match(new RegExp(`\\s${name2}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
+  return m6 ? m6[2] ?? m6[3] ?? m6[4] ?? "" : null;
+}
+function internalLinks(html, base, max = 60) {
+  const out2 = /* @__PURE__ */ new Set();
+  for (const m6 of html.matchAll(/<a\b[^>]*>/gi)) {
+    const href = attr(m6[0], "href");
+    if (!href || /^(mailto:|tel:|javascript:|#)/i.test(href)) continue;
+    let u2;
+    try {
+      u2 = new URL(href, base);
+    } catch {
+      continue;
+    }
+    if (u2.origin !== base.origin) continue;
+    if (/\.(png|jpe?g|gif|svg|webp|pdf|zip|mp4|css|js|ico|woff2?)$/i.test(u2.pathname)) continue;
+    u2.hash = "";
+    out2.add(u2.toString());
+    if (out2.size >= max) break;
+  }
+  return [...out2];
+}
+function certExpiryDays(host) {
+  return new Promise((resolve2) => {
+    const done = (v5) => {
+      try {
+        s5.destroy();
+      } catch {
+      }
+      resolve2(v5);
+    };
+    const s5 = tls.connect({ host, port: 443, servername: host, timeout: 5e3 }, () => {
+      const cert = s5.getPeerCertificate();
+      if (!cert || !cert.valid_to) return done(null);
+      done(Math.floor((new Date(cert.valid_to).getTime() - Date.now()) / 864e5));
+    });
+    s5.on("error", () => done(null));
+    s5.on("timeout", () => done(null));
+  });
+}
+async function txt(name2) {
+  try {
+    return (await dns2.resolveTxt(name2)).map((r) => r.join(""));
+  } catch {
+    return [];
+  }
+}
+async function pageSpeed(url) {
+  const key = process.env.PAGESPEED_API_KEY;
+  const q2 = new URLSearchParams({ url, strategy: "mobile" });
+  for (const c4 of ["performance", "accessibility", "best-practices", "seo"]) q2.append("category", c4);
+  if (key) q2.set("key", key);
+  const r = await grab2(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${q2}`, { headers: { accept: "application/json" } }, PSI_TIMEOUT);
+  if (!r || !r.ok) return null;
+  try {
+    const j4 = await r.json();
+    const cats = j4.lighthouseResult?.categories ?? {};
+    const pct = (k3) => typeof cats[k3]?.score === "number" ? Math.round(cats[k3].score * 100) : null;
+    const field = j4.loadingExperience?.metrics ?? {};
+    const lab = j4.lighthouseResult?.audits ?? {};
+    const hasField = Boolean(field.LARGEST_CONTENTFUL_PAINT_MS?.percentile);
+    return {
+      performance: pct("performance"),
+      accessibility: pct("accessibility"),
+      best_practices: pct("best-practices"),
+      seo: pct("seo"),
+      lcp_ms: hasField ? field.LARGEST_CONTENTFUL_PAINT_MS.percentile : lab["largest-contentful-paint"]?.numericValue != null ? Math.round(lab["largest-contentful-paint"].numericValue) : null,
+      cls: hasField && field.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile != null ? field.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile / 100 : lab["cumulative-layout-shift"]?.numericValue ?? null,
+      inp_ms: hasField ? field.INTERACTION_TO_NEXT_PAINT?.percentile ?? null : null,
+      source: hasField ? "field" : cats.performance ? "lab" : "none"
+    };
+  } catch {
+    return null;
+  }
+}
+async function runDeepGrade(target) {
+  const surface = await runInstantGrade(target);
+  if (!surface.ok) return surface;
+  const origin = new URL(surface.url);
+  const findings = [...surface.findings];
+  let passed = surface.passed;
+  let checks = 12;
+  const F5 = (category, severity, title, detail) => findings.push({ category, severity, title, detail });
+  const dedupe = new Set(findings.map((f5) => f5.title));
+  const Fonce = (category, severity, title, detail) => {
+    if (!dedupe.has(title)) {
+      dedupe.add(title);
+      F5(category, severity, title, detail);
+    }
+  };
+  const home = await grab2(origin.toString());
+  const homeHtml = home ? (await home.text()).slice(0, 3e5) : "";
+  const links = internalLinks(homeHtml, origin, 60);
+  const targets = [origin.toString(), ...links.filter((l2) => l2 !== origin.toString())].slice(0, PAGE_BUDGET);
+  const pages = [];
+  await Promise.all(targets.map(async (u2) => {
+    const r = u2 === origin.toString() && home ? home : await grab2(u2);
+    if (!r) {
+      pages.push({ url: u2, status: 0, html: "", headers: null });
+      return;
+    }
+    const html = u2 === origin.toString() ? homeHtml : (await r.text()).slice(0, 3e5);
+    pages.push({ url: u2, status: r.status, html, headers: r.headers });
+  }));
+  checks++;
+  const broken = pages.filter((p6) => p6.status === 0 || p6.status >= 400 || p6.status === 404);
+  const extra = links.filter((l2) => !targets.includes(l2)).slice(0, 20);
+  const extraBroken = [];
+  await Promise.all(extra.map(async (l2) => {
+    const r = await grab2(l2, { method: "HEAD" }, 5e3);
+    if (!r || r.status >= 400) extraBroken.push(l2);
+  }));
+  const brokenAll = [...broken.map((b5) => b5.url), ...extraBroken];
+  if (brokenAll.length) F5("Links", brokenAll.length > 3 ? "high" : "medium", `${brokenAll.length} broken internal link${brokenAll.length === 1 ? "" : "s"}`, `Linked from your own pages but returning an error: ${brokenAll.slice(0, 5).map((u2) => new URL(u2).pathname).join(", ")}${brokenAll.length > 5 ? ", \u2026" : ""}.`);
+  else passed++;
+  const okPages = pages.filter((p6) => p6.status > 0 && p6.status < 400 && p6.html);
+  if (okPages.length === 0) {
+    return { ok: false, status: 409, blocked: true, http_status: home?.status ?? 0, error: `We could not load a single page on ${origin.host} from our scanner (home page answered HTTP ${home?.status ?? "nothing"}). We do not score what we cannot see: allow the user agent 8020LaunchAudit-Grader/1.0 and run it again, or ask for a refund.` };
+  }
+  let noAlt = 0, noH1 = [], noLang = false, emptyBtn = 0, mixed = [], httpForms = [], noCanon = [], noTitle = [], noViewport = [];
+  let headerGaps = 0;
+  for (const p6 of okPages) {
+    const h3 = p6.html;
+    for (const m6 of h3.matchAll(/<img\b[^>]*>/gi)) {
+      if (attr(m6[0], "alt") === null && !/\srole\s*=\s*["']?presentation/i.test(m6[0])) noAlt++;
+    }
+    if (!/<h1[\s>]/i.test(h3)) noH1.push(p6.url);
+    if (p6.url === origin.toString() && !/<html[^>]*\slang\s*=/i.test(h3)) noLang = true;
+    for (const m6 of h3.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)) {
+      const inner = m6[1].replace(/<[^>]+>/g, "").trim();
+      if (!inner && !/aria-label/i.test(m6[0])) emptyBtn++;
+    }
+    if (origin.protocol === "https:") for (const m6 of h3.matchAll(/<(?:img|script|link|iframe|video|audio|source)\b[^>]*\s(?:src|href)\s*=\s*["']http:\/\/[^"']+/gi)) {
+      mixed.push(p6.url);
+      break;
+    }
+    for (const m6 of h3.matchAll(/<form\b[^>]*>/gi)) {
+      const a3 = attr(m6[0], "action");
+      if (a3 && /^http:\/\//i.test(a3)) {
+        httpForms.push(p6.url);
+        break;
+      }
+    }
+    if (!/<link[^>]+rel=["']canonical["']/i.test(h3)) noCanon.push(p6.url);
+    if (!/<title[^>]*>\s*\S/i.test(h3)) noTitle.push(p6.url);
+    if (!/<meta[^>]+name=["']viewport["']/i.test(h3)) noViewport.push(p6.url);
+    if (p6.headers && p6.url !== origin.toString()) {
+      for (const k3 of ["content-security-policy", "x-frame-options", "x-content-type-options"]) if (!p6.headers.get(k3)) headerGaps++;
+    }
+  }
+  checks += 8;
+  if (noAlt) F5("Accessibility", noAlt > 5 ? "high" : "medium", `${noAlt} image${noAlt === 1 ? "" : "s"} without alt text`, `Screen readers announce these as 'image' with no meaning; also an easy SEO loss. Add alt="" for decorative images and real descriptions for the rest.`);
+  else passed++;
+  if (noH1.length) F5("Accessibility", "medium", `${noH1.length} page${noH1.length === 1 ? "" : "s"} without an <h1>`, `Every page needs one heading that says what it is (${noH1.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")}).`);
+  else passed++;
+  if (noLang) F5("Accessibility", "medium", "No lang attribute on <html>", 'Screen readers guess the language; browsers translate the wrong thing. Add <html lang="en">.');
+  else passed++;
+  if (emptyBtn) F5("Accessibility", "medium", `${emptyBtn} button${emptyBtn === 1 ? "" : "s"} with no accessible name`, "Icon-only buttons need aria-label so keyboard and screen-reader users know what they do.");
+  else passed++;
+  if (mixed.length) F5("TLS", "high", "Mixed content on an https page", `Assets loaded over plain http on ${mixed.slice(0, 3).map((u2) => new URL(u2).pathname).join(", ")} \u2014 browsers block or warn, and the padlock disappears.`);
+  else passed++;
+  if (httpForms.length) F5("TLS", "critical", "Form posts over plain http", `A form on ${new URL(httpForms[0]).pathname} submits to an http:// URL \u2014 anything typed into it travels in cleartext.`);
+  else passed++;
+  if (noCanon.length === okPages.length && okPages.length) F5("SEO", "low", "No canonical URLs", 'Without <link rel="canonical"> search engines may index duplicate versions (www / trailing slash / query strings) and split your ranking.');
+  else passed++;
+  if (noTitle.length > 1) Fonce("SEO", "medium", `${noTitle.length} pages without a <title>`, "Each page needs its own title; browser tabs, bookmarks and search results all show it.");
+  if (noViewport.length > 1) Fonce("SEO", "medium", `${noViewport.length} pages missing the mobile viewport tag`, "Those pages render zoomed-out on phones.");
+  if (headerGaps > 0 && okPages.length > 1) F5("Security headers", "low", "Security headers not applied site-wide", `${headerGaps} header gap${headerGaps === 1 ? "" : "s"} on secondary pages \u2014 set CSP / X-Frame-Options / X-Content-Type-Options at the platform level so every route gets them.`);
+  else if (okPages.length > 1) passed++;
+  checks += 5;
+  const robots = await grab2(new URL("/robots.txt", origin).toString(), {}, 5e3);
+  const robotsTxt = robots && robots.status === 200 ? (await robots.text()).slice(0, 2e4) : "";
+  if (/^\s*user-agent:\s*\*\s*$[\s\S]*?^\s*disallow:\s*\/\s*$/im.test(robotsTxt)) F5("Launch", "critical", "robots.txt blocks the whole site", "User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch.");
+  else passed++;
+  if (/<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(homeHtml) || /noindex/i.test(home?.headers.get("x-robots-tag") || "")) F5("Launch", "critical", "Home page is noindex", "A noindex tag or X-Robots-Tag header on the home page removes the site from search results.");
+  else passed++;
+  const sitemapHinted = /sitemap:/i.test(robotsTxt);
+  const sm = await grab2(new URL("/sitemap.xml", origin).toString(), { method: "HEAD" }, 5e3);
+  if (!(sm && sm.status === 200) && !sitemapHinted) F5("SEO", "low", "No sitemap.xml", "A sitemap gets new pages discovered days faster. Most frameworks generate one in one line.");
+  else passed++;
+  const fav = /<link[^>]+rel=["'][^"']*icon[^"']*["']/i.test(homeHtml) || (await grab2(new URL("/favicon.ico", origin).toString(), { method: "HEAD" }, 4e3))?.status === 200;
+  if (!fav) F5("Launch", "low", "No favicon", "The tab shows a blank page icon; it reads as unfinished.");
+  else passed++;
+  if (!/<meta[^>]+property=["']og:image["']/i.test(homeHtml)) F5("SEO", "low", "No Open Graph image", "Links shared on LinkedIn, Slack, iMessage or X show no preview image without og:image.");
+  else passed++;
+  checks += 2;
+  const nf = await grab2(new URL(`/__launch-audit-${Date.now().toString(36)}`, origin).toString(), {}, 6e3);
+  if (nf) {
+    const body2 = (await nf.text()).slice(0, 5e4);
+    if (nf.status === 200 && !/not found|404/i.test(body2)) F5("Errors", "medium", "Soft 404", "Unknown URLs return 200 instead of 404 \u2014 search engines index junk pages and monitoring never sees the breakage.");
+    else passed++;
+    if (/(Traceback \(most recent call last\)|at Object\.<anonymous>|node_modules\/|Unhandled Runtime Error|Application error: a (client|server)-side exception|Whoops, looks like something went wrong|SQLSTATE\[|ORA-\d{5}|Warning: mysql_)/i.test(body2)) F5("Errors", "high", "Error page leaks internals", "The error page shows a stack trace or framework debug output \u2014 paths, versions and sometimes queries, for free.");
+    else passed++;
+  }
+  checks++;
+  const exposed = [];
+  const probes = [
+    ["/.DS_Store", /^\0\0\0\x01Bud1/],
+    ["/phpinfo.php", /phpinfo\(\)|PHP Version/i],
+    ["/config.json", /"(password|secret|api[_-]?key|token)"\s*:/i],
+    ["/.env.production", /^\s*[A-Z0-9_]+\s*=/m],
+    ["/backup.zip", /^PK\x03\x04/],
+    ["/db.sql", /(CREATE TABLE|INSERT INTO)/i],
+    ["/wp-config.php.bak", /DB_PASSWORD/],
+    ["/.git/index", /^DIRC/],
+    ["/server-status", /Apache Server Status/i],
+    ["/admin/config.yml", /(password|secret):/i]
+  ];
+  await Promise.all(probes.map(async ([path, re2]) => {
+    const r = await grab2(new URL(path, origin).toString(), {}, 5e3);
+    if (!r || r.status !== 200) return;
+    const body2 = (await r.text()).slice(0, 4e3);
+    if (re2.test(body2)) exposed.push(path);
+  }));
+  const maps = /* @__PURE__ */ new Set();
+  for (const m6 of homeHtml.matchAll(/<script\b[^>]*\ssrc\s*=\s*["']([^"']+\.js)(\?[^"']*)?["']/gi)) {
+    try {
+      const u2 = new URL(m6[1], origin);
+      if (u2.origin === origin.origin) maps.add(u2.toString() + ".map");
+    } catch {
+    }
+  }
+  let mapHit = "";
+  await Promise.all([...maps].slice(0, 6).map(async (u2) => {
+    const r = await grab2(u2, { method: "HEAD" }, 4e3);
+    if (r && r.status === 200 && /json|octet/i.test(r.headers.get("content-type") || "")) mapHit ||= new URL(u2).pathname;
+  }));
+  if (exposed.length) F5("Secrets", "critical", `Exposed ${exposed.join(", ")}`, "Publicly downloadable files that leak configuration, backups or server internals. Remove them or block them at the edge.");
+  else passed++;
+  if (mapHit) F5("Secrets", "low", "Source maps are public", `${mapHit} ships your original source to anyone who asks. Disable productionBrowserSourceMaps / devtool in production builds.`);
+  if (origin.protocol === "https:") {
+    checks += 2;
+    const days = await certExpiryDays(origin.hostname);
+    if (days !== null && days < 14) F5("TLS", days < 3 ? "critical" : "high", `TLS certificate expires in ${days} day${days === 1 ? "" : "s"}`, "When it lapses every visitor gets a full-page browser warning. Check that auto-renewal is actually running.");
+    else if (days !== null) passed++;
+    const plain = await grab2(`http://${origin.host}/`, {}, 6e3);
+    if (plain && !(plain.status >= 300 && plain.status < 400 && /^https:/i.test(plain.headers.get("location") || ""))) F5("TLS", "medium", "http:// does not redirect to https://", "Typing the bare domain lands on the insecure version (or a dead page). Add a permanent redirect at the edge.");
+    else if (plain) passed++;
+  }
+  checks += 2;
+  const apex = origin.hostname.split(".").slice(-2).join(".");
+  const spf = (await txt(apex)).some((t2) => /^v=spf1/i.test(t2));
+  const dmarc = (await txt(`_dmarc.${apex}`)).some((t2) => /^v=DMARC1/i.test(t2));
+  if (!spf) F5("Email", "medium", `No SPF record on ${apex}`, "Sign-up confirmations, receipts and password resets from this domain are far more likely to land in spam. Add a v=spf1 TXT record.");
+  else passed++;
+  if (!dmarc) F5("Email", "medium", `No DMARC record on ${apex}`, "Gmail and Yahoo now require DMARC for bulk senders, and it stops anyone spoofing your domain. Add _dmarc TXT: v=DMARC1; p=quarantine.");
+  else passed++;
+  checks += 2;
+  const t0 = Date.now();
+  const timed = await grab2(origin.toString(), { headers: { "cache-control": "no-cache" } }, 1e4);
+  const ttfb = Date.now() - t0;
+  const assets = /* @__PURE__ */ new Set();
+  for (const m6 of homeHtml.matchAll(/<(?:script|img|link)\b[^>]*\s(?:src|href)\s*=\s*["']([^"']+)["']/gi)) {
+    try {
+      const u2 = new URL(m6[1], origin);
+      if (/\.(js|mjs|css|png|jpe?g|gif|webp|avif|svg|woff2?)(\?|$)/i.test(u2.pathname + u2.search) || /\/_next\/static\//.test(u2.pathname)) assets.add(u2.toString());
+    } catch {
+    }
+  }
+  let bytes = homeHtml.length;
+  const big = [];
+  await Promise.all([...assets].slice(0, 25).map(async (u2) => {
+    const r = await grab2(u2, { method: "HEAD" }, 4e3);
+    const n4 = Number(r?.headers.get("content-length") || 0);
+    if (n4 > 0) {
+      bytes += n4;
+      if (n4 > 500 * 1024) big.push({ path: new URL(u2).pathname.split("/").pop() || u2, kb: Math.round(n4 / 1024) });
+    }
+  }));
+  if (timed && ttfb > 1800) F5("Performance", "medium", `Slow server response (${(ttfb / 1e3).toFixed(1)}s to first byte)`, "Time-to-first-byte over ~0.8s drags every other metric; check cold starts, uncached database calls, or a region far from your users.");
+  else if (timed) passed++;
+  const mb = bytes / (1024 * 1024);
+  if (mb > 3 || big.length) F5("Performance", mb > 5 ? "high" : "medium", `Heavy home page (${mb.toFixed(1)} MB across ${assets.size + 1} assets)`, `${big.length ? "Largest: " + big.sort((a3, b5) => b5.kb - a3.kb).slice(0, 3).map((b5) => `${b5.path} (${b5.kb} KB)`).join(", ") + ". " : ""}Mobile visitors on 4G wait roughly ${Math.max(1, Math.round(mb * 2))}s+ before the page is usable. Compress images (AVIF/WebP), lazy-load below the fold, split the JS bundle.`);
+  else passed++;
+  const lh = await pageSpeed(origin.toString());
+  if (lh) {
+    checks += 4;
+    if (lh.performance !== null && lh.performance < 50) F5("Performance", "high", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"}${lh.inp_ms != null ? `, INP ${lh.inp_ms}ms` : ""} (${lh.source} data). Below 50 is the range where users bounce before the page paints.`);
+    else if (lh.performance !== null && lh.performance < 80) F5("Performance", "medium", `Lighthouse performance ${lh.performance}/100 on mobile`, `LCP ${lh.lcp_ms != null ? Math.round(lh.lcp_ms / 100) / 10 + "s" : "n/a"}, CLS ${lh.cls != null ? lh.cls.toFixed(2) : "n/a"} (${lh.source} data). Google's 'good' bar is LCP under 2.5s and CLS under 0.1.`);
+    else if (lh.performance !== null) passed++;
+    if (lh.accessibility !== null && lh.accessibility < 90) F5("Accessibility", lh.accessibility < 70 ? "high" : "medium", `Lighthouse accessibility ${lh.accessibility}/100`, "Contrast, labels, focus order and ARIA problems Lighthouse can prove. Under 90 is where ADA/WCAG complaints start.");
+    else if (lh.accessibility !== null) passed++;
+    if (lh.best_practices !== null && lh.best_practices < 80) F5("Best practices", "low", `Lighthouse best-practices ${lh.best_practices}/100`, "Console errors, deprecated APIs, missing image aspect ratios or insecure requests.");
+    else if (lh.best_practices !== null) passed++;
+    if (lh.seo !== null && lh.seo < 90) F5("SEO", "low", `Lighthouse SEO ${lh.seo}/100`, "Crawlability, tap-target size, meta tags and structured data.");
+    else if (lh.seo !== null) passed++;
+  }
+  const twins = [
+    [/^Missing a mobile viewport tag$/, /pages missing the mobile viewport tag$/],
+    [/^Missing a real <title>$/, /pages without a <title>$/],
+    [/^Missing (Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy)/, /^Security headers not applied site-wide$/]
+  ];
+  const deduped = findings.filter((f5) => {
+    for (const [single, siteWide] of twins) {
+      if (single.test(f5.title) && findings.some((g5) => siteWide.test(g5.title))) {
+        if (/^Security headers not applied site-wide$/.test(f5.title)) return false;
+        if (!/^Missing (Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy)/.test(f5.title)) return false;
+      }
+    }
+    return true;
+  });
+  const CATEGORY_CAP = 30;
+  const byCategory = /* @__PURE__ */ new Map();
+  let penalty = 0;
+  for (const f5 of deduped) {
+    const c4 = byCategory.get(f5.category) || 0;
+    const add = Math.min(PENALTY2[f5.severity], Math.max(0, CATEGORY_CAP - c4));
+    byCategory.set(f5.category, c4 + add);
+    penalty += add;
+  }
+  findings.length = 0;
+  findings.push(...deduped.map(ensureFix));
+  const score = Math.max(0, Math.min(100, 100 - penalty));
+  const band = score >= 75 ? "green" : score >= 40 ? "yellow" : "red";
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  findings.sort((a3, b5) => order[a3.severity] - order[b5.severity]);
+  const scanned = okPages.length;
+  return {
+    ...surface,
+    kind: "deep",
+    score,
+    band,
+    passed,
+    findings,
+    pages_scanned: scanned,
+    pages: okPages.map((p6) => p6.url),
+    lighthouse: lh,
+    checks_run: checks,
+    summary: findings.length ? `Audited ${scanned} page${scanned === 1 ? "" : "s"} on ${origin.host}: ${findings.length} issue${findings.length === 1 ? "" : "s"} (${findings.filter((f5) => f5.severity === "critical" || f5.severity === "high").length} critical/high).` : `Audited ${scanned} page${scanned === 1 ? "" : "s"} on ${origin.host}: nothing to fix at the URL level. The browser-based deep audit is the next step.`,
+    note: DEEP_GRADE_NOTE
+  };
+}
 
 // src/lib/storage-contract.ts
 var paidAuditsSchemaSql = `create table if not exists paid_audits (
@@ -14617,357 +15193,220 @@ ${paidAuditsSchemaSql}
 
 ${scansSchemaSql}`;
 
-// src/lib/campaign-store.ts
-var SEED_PROJECT_ID = "proj_local_001";
-var SEED_OWNER_ID = "owner_fusion_rob";
-function safeSegment(value) {
-  return value.trim().replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").slice(0, 120);
+// src/lib/scan-store.ts
+function countBySeverity(findings) {
+  const c4 = { critical: 0, high: 0, medium: 0, low: 0 };
+  for (const f5 of findings) c4[f5.severity] = (c4[f5.severity] ?? 0) + 1;
+  return c4;
 }
-async function ensureSchema(sql) {
-  const statements = storageSchemaSql.split(";").map((statement) => statement.trim()).filter((statement) => statement.length > 0);
-  for (const statement of statements) {
-    await sql(statement);
-  }
+function newScanId() {
+  return "scan_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
-var readyPromise2 = null;
-function ensureCampaignReady(sql) {
-  if (!readyPromise2) {
-    readyPromise2 = (async () => {
-      await ensureSchema(sql);
-      await seedCampaignData(sql);
-    })().catch((error) => {
-      readyPromise2 = null;
-      throw error;
-    });
-  }
-  return readyPromise2;
+async function ensureScanTables(sql) {
+  for (const stmt of scansSchemaSql.split(";").map((s5) => s5.trim()).filter(Boolean)) await sql(stmt);
 }
-async function seedCampaignData(sql) {
+async function recordScan(sql, grade, source = "free") {
+  const id = newScanId();
+  const counts = countBySeverity(grade.findings);
   await sql(
-    `insert into projects (id, owner_id, repo_path_hint, framework, support_tier)
-     values ($1, $2, $3, $4, $5)
-     on conflict (id) do nothing`,
-    [SEED_PROJECT_ID, SEED_OWNER_ID, campaign.repoPath, campaign.environment.framework, campaign.environment.supportTier]
+    `insert into scans (id, url, origin, score, band, passed, counts, findings, source)
+     values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9)`,
+    [id, grade.url, grade.url, grade.score, grade.band, grade.passed, JSON.stringify(counts), JSON.stringify(grade.findings), source]
   );
-  await sql(
-    `insert into campaigns (id, project_id, status, app_url, depth, readiness_score, name, repo_path_hint)
-     values ($1, $2, $3, $4, $5, $6, $7, $8)
-     on conflict (id) do nothing`,
-    [campaign.id, SEED_PROJECT_ID, campaign.status, campaign.appUrl, campaign.depth, campaign.readinessScore, campaign.name, campaign.repoPath]
-  );
-  for (const card of testCards) {
-    await sql(
-      `insert into test_cards (id, campaign_id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       on conflict (id) do nothing`,
-      [
-        card.id,
-        campaign.id,
-        card.category,
-        card.risk,
-        card.status,
-        card.title,
-        card.goal,
-        JSON.stringify(card.steps),
-        JSON.stringify(card.expectedEvidence),
-        JSON.stringify(card.dataNeeds),
-        card.acceptanceCriteria
-      ]
-    );
-  }
-  for (const finding of findings) {
-    await sql(
-      `insert into findings (id, campaign_id, test_card_id, type, severity, title, summary, evidence_refs)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
-       on conflict (id) do nothing`,
-      [
-        finding.id,
-        campaign.id,
-        finding.testCardId,
-        finding.type,
-        finding.severity,
-        finding.title,
-        finding.summary,
-        JSON.stringify(finding.evidenceRefs)
-      ]
-    );
-  }
-  for (const task of repairTasks) {
-    await sql(
-      `insert into repair_tasks (id, finding_id, severity, title, why_it_matters, evidence_refs, likely_files, reproduction_steps, expected_behavior, verification_command, agent_prompt)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       on conflict (id) do nothing`,
-      [
-        `rt_${task.finding_id}`,
-        task.finding_id,
-        task.severity,
-        task.title,
-        task.why_it_matters,
-        JSON.stringify(task.evidence_refs),
-        JSON.stringify(task.likely_files),
-        JSON.stringify(task.reproduction_steps),
-        task.expected_behavior,
-        task.verification_command,
-        task.agent_prompt
-      ]
-    );
-  }
+  return { id, url: grade.url, origin: grade.url, score: grade.score, band: grade.band, passed: grade.passed, counts, findings: grade.findings, source, created_at: (/* @__PURE__ */ new Date()).toISOString() };
 }
-async function recordRunnerSync(sql, payload) {
-  const sessionId = `rs_${safeSegment(payload.campaign_id)}_${safeSegment(payload.runner_host)}`;
-  await sql(
-    `insert into runner_sessions (id, campaign_id, runner_host, version, last_sync_at)
-     values ($1, $2, $3, $4, now())
-     on conflict (id) do update set last_sync_at = now(), version = excluded.version`,
-    [sessionId, payload.campaign_id, payload.runner_host, payload.build_sha ?? "unknown"]
-  );
-  let cardsUpdated = 0;
-  let cardsInserted = 0;
-  for (const card of payload.test_cards) {
-    const inserted = await sql(
-      `insert into test_cards (id, campaign_id, category, risk, status, title, goal, steps, expected_evidence, data_needs, acceptance_criteria, exec)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-       on conflict (id) do update set
-         status = excluded.status,
-         title = excluded.title,
-         risk = excluded.risk,
-         goal = case when excluded.goal <> '' then excluded.goal else test_cards.goal end,
-         steps = case when excluded.steps <> '[]'::jsonb then excluded.steps else test_cards.steps end,
-         expected_evidence = case when excluded.expected_evidence <> '[]'::jsonb then excluded.expected_evidence else test_cards.expected_evidence end,
-         acceptance_criteria = case when excluded.acceptance_criteria <> '' then excluded.acceptance_criteria else test_cards.acceptance_criteria end,
-         exec = case when excluded.exec <> '[]'::jsonb then excluded.exec else test_cards.exec end
-       returning (xmax = 0) as inserted`,
-      [
-        card.id,
-        payload.campaign_id,
-        card.category,
-        card.risk,
-        card.status,
-        card.title,
-        card.goal ?? "",
-        JSON.stringify(card.steps ?? []),
-        JSON.stringify(card.expectedEvidence ?? []),
-        JSON.stringify(card.dataNeeds ?? []),
-        card.acceptanceCriteria ?? "",
-        JSON.stringify(card.exec ?? [])
-      ]
-    );
-    if (inserted[0]?.inserted) cardsInserted += 1;
-    else cardsUpdated += 1;
-  }
-  for (const run2 of payload.run_results ?? []) {
-    await sql(
-      `insert into runs (id, campaign_id, test_card_id, status, started_at, ended_at)
-       values ($1, $2, $3, $4, $5, $6)
-       on conflict (id) do update set status = excluded.status, ended_at = excluded.ended_at`,
-      [run2.run_id, payload.campaign_id, run2.test_card_id, run2.status, run2.started_at, run2.ended_at]
-    );
-  }
-  for (const finding of payload.findings ?? []) {
-    await sql(
-      `insert into findings (id, campaign_id, test_card_id, type, severity, title, summary, evidence_refs)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
-       on conflict (id) do update set summary = excluded.summary, severity = excluded.severity, evidence_refs = excluded.evidence_refs`,
-      [finding.id, payload.campaign_id, finding.test_card_id, finding.type, finding.severity, finding.title, finding.summary, JSON.stringify(finding.evidence_refs)]
-    );
-    if (finding.type === "product_bug") {
-      const card = payload.test_cards.find((c4) => c4.id === finding.test_card_id);
-      const scanDetail = payload.scan_detail ?? {};
-      const likelyFiles = (scanDetail.route_files_sampled ?? []).slice(0, 4);
-      const reproSteps = card?.steps?.length ? card.steps : [`Re-run test card ${finding.test_card_id} against ${payload.runtime_summary.app_url}`];
-      const agentPrompt = [
-        `Fix the following launch-blocking issue in this codebase.`,
-        `Failure: ${finding.title}.`,
-        `Details: ${finding.summary}`,
-        `Reproduction: ${reproSteps.join(" -> ")}`,
-        `Acceptance: ${card?.acceptanceCriteria ?? "the failed check passes on re-run"}.`,
-        `Do not weaken the test; fix the behavior. Evidence refs: ${finding.evidence_refs.join(", ") || "screenshot on file"}.`
-      ].join(" ");
-      await sql(
-        `insert into repair_tasks (id, finding_id, severity, title, why_it_matters, evidence_refs, likely_files, reproduction_steps, expected_behavior, verification_command, agent_prompt)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-         on conflict (id) do update set
-           severity = excluded.severity,
-           why_it_matters = excluded.why_it_matters,
-           evidence_refs = excluded.evidence_refs,
-           agent_prompt = excluded.agent_prompt`,
-        [
-          `rt_${finding.id}`,
-          finding.id,
-          finding.severity,
-          `Repair: ${finding.title.replace(/ — failed$/, "")}`,
-          `This check is part of the launch gate for ${payload.runtime_summary.app_url}; it failed with evidence attached and blocks the readiness score.`,
-          JSON.stringify(finding.evidence_refs),
-          JSON.stringify(likelyFiles),
-          JSON.stringify(reproSteps),
-          card?.acceptanceCriteria ?? "The failed check passes on re-run with evidence.",
-          `node --experimental-strip-types runner/audit.ts --name "verify-fix" --app-url ${payload.runtime_summary.app_url}`,
-          agentPrompt
-        ]
-      );
-    }
-  }
-  const scoreRows = await sql(
-    `select
-       count(*) filter (where status = 'passed')::int as passed,
-       count(*) filter (where status = 'failed')::int as failed,
-       count(*) filter (where status = 'blocked')::int as blocked
-     from test_cards where campaign_id = $1`,
-    [payload.campaign_id]
-  );
-  const { passed = 0, failed = 0, blocked = 0 } = scoreRows[0] ?? {};
-  const denominator = Number(passed) + Number(failed) + Number(blocked);
-  const readiness = denominator === 0 ? 0 : Math.round(Number(passed) / denominator * 100);
-  const status = Number(failed) > 0 ? "analyzing" : denominator > 0 ? "report_ready" : "planning";
-  await sql(
-    `update campaigns set updated_at = now(), readiness_score = $2, status = $3 where id = $1`,
-    [payload.campaign_id, readiness, status]
-  );
-  return { sessionId, cardsUpdated, cardsInserted, readiness };
+async function scanHistory(sql, origin, limit = 30) {
+  const rows = await sql(`select * from scans where origin = $1 order by created_at desc limit $2`, [origin, limit]);
+  return rows;
 }
-
-// src/lib/db.ts
-var cachedClient = null;
-async function getSqlClient(env = process.env) {
-  if (cachedClient) {
-    return cachedClient;
-  }
-  if (env.POSTGRES_URL) {
-    const { neon } = await Promise.resolve().then(() => (init_serverless(), serverless_exports));
-    const sql = neon(env.POSTGRES_URL);
-    cachedClient = async (text, params = []) => {
-      const result = await sql.query(text, params);
-      if (Array.isArray(result)) {
-        return result;
-      }
-      return result.rows ?? [];
-    };
-    return cachedClient;
-  }
-  if (env.LAUNCHAUDIT_LOCAL_DB) {
-    const { PGlite } = await Promise.resolve().then(() => (init_dist(), dist_exports));
-    const pg = new PGlite(env.LAUNCHAUDIT_LOCAL_DB);
-    const ready = pg.waitReady;
-    if (ready) await ready;
-    cachedClient = async (text, params = []) => {
-      const result = await pg.query(text, params);
-      return result.rows ?? [];
-    };
-    return cachedClient;
-  }
-  return null;
-}
-
-// server/api-src/runner-auth.ts
-import crypto2 from "node:crypto";
-function headerValue(headers, name2) {
-  const raw = headers[name2] ?? headers[name2.toLowerCase()];
-  if (Array.isArray(raw)) return raw[0];
-  return raw;
-}
-function presentedSecret(headers) {
-  const bearer = headerValue(headers, "authorization");
-  if (bearer && /^Bearer\s+/i.test(bearer)) {
-    return bearer.replace(/^Bearer\s+/i, "").trim();
-  }
-  const direct = headerValue(headers, "x-runner-secret");
-  if (direct) return direct.trim();
-  return void 0;
-}
-function timingSafeEqual(a3, b5) {
-  const aBuf = Buffer.from(a3, "utf8");
-  const bBuf = Buffer.from(b5, "utf8");
-  const aHash = crypto2.createHash("sha256").update(aBuf).digest();
-  const bHash = crypto2.createHash("sha256").update(bBuf).digest();
-  return crypto2.timingSafeEqual(aHash, bHash);
-}
-function authorizeRunnerWrite(headers) {
-  const configured = (process.env.RUNNER_SYNC_SECRET ?? "").trim();
-  const isProduction = process.env.VERCEL_ENV === "production";
-  const presented = presentedSecret(headers ?? {});
-  if (!configured) {
-    if (isProduction) {
-      return {
-        ok: false,
-        status: 503,
-        error: "Runner write endpoint is not configured (RUNNER_SYNC_SECRET unset). Writes are rejected."
-      };
-    }
-    return { ok: true };
-  }
-  if (!presented) {
-    return {
-      ok: false,
-      status: 401,
-      error: "Missing runner credential. Send the shared secret as 'authorization: Bearer <secret>' or 'x-runner-secret: <secret>'."
-    };
-  }
-  if (!timingSafeEqual(presented, configured)) {
-    return { ok: false, status: 401, error: "Invalid runner credential." };
-  }
-  return { ok: true };
-}
-
-// server/api-src/runner/sync.ts
-function hasRequiredSyncShape(body2) {
-  return Boolean(
-    body2.campaign_id && body2.runner_host && body2.repo_summary?.framework && body2.runtime_summary?.app_url && Array.isArray(body2.test_cards) && Array.isArray(body2.artifact_refs)
-  );
-}
-async function handler(request, response) {
-  if (request.method !== "POST") {
-    response.status(405).json({ accepted: false, error: "Method not allowed." });
-    return;
-  }
-  const auth = authorizeRunnerWrite(request.headers);
-  if (!auth.ok) {
-    response.status(auth.status).json({ accepted: false, error: auth.error });
-    return;
-  }
-  const body2 = request.body ?? {};
-  if (!hasRequiredSyncShape(body2)) {
-    response.status(400).json({
-      accepted: false,
-      error: "Runner sync payload must include campaign_id, runner_host, repo_summary, runtime_summary, test_cards, and artifact_refs."
-    });
-    return;
-  }
-  let persistence = {
-    mode: "seeded",
-    detail: "POSTGRES_URL is not configured; sync accepted but not durably stored."
+function diffScans(prev, next) {
+  const key = (f5) => `${f5.category}::${f5.title}`;
+  const prevKeys = new Set((prev?.findings ?? []).map(key));
+  const nextKeys = new Set(next.findings.map(key));
+  const newFindings = next.findings.filter((f5) => !prevKeys.has(key(f5)));
+  const fixedFindings = (prev?.findings ?? []).filter((f5) => !nextKeys.has(key(f5)));
+  const unchanged = next.findings.length - newFindings.length;
+  return {
+    score_from: prev?.score ?? next.score,
+    score_to: next.score,
+    score_delta: next.score - (prev?.score ?? next.score),
+    new_findings: newFindings,
+    fixed_findings: fixedFindings,
+    unchanged
   };
-  const sql = await getSqlClient();
-  if (sql) {
-    try {
-      await ensureCampaignReady(sql);
-      const result = await recordRunnerSync(sql, body2);
-      persistence = {
-        mode: "postgres",
-        session_id: result.sessionId,
-        cards_updated: result.cardsUpdated,
-        cards_inserted: result.cardsInserted,
-        readiness: result.readiness
-      };
-    } catch (error) {
-      persistence = {
-        mode: "postgres",
-        error: error instanceof Error ? error.message : "Unknown persistence failure."
-      };
-    }
+}
+async function monitorsDue(sql, olderThanHours = 24 * 7, limit = 25) {
+  const rows = await sql(
+    `select * from monitors
+     where active = true and (last_run_at is null or last_run_at < now() - ($1 || ' hours')::interval)
+     order by last_run_at asc nulls first limit $2`,
+    [String(olderThanHours), limit]
+  );
+  return rows;
+}
+async function markMonitorRun(sql, origin, scanId) {
+  await sql(`update monitors set last_scan_id = $2, last_run_at = now() where origin = $1`, [origin, scanId]);
+}
+
+// src/lib/mailer.ts
+import tls2 from "node:tls";
+function mailerConfigured(env = process.env) {
+  return Boolean(env.MONITOR_SMTP_URL && env.MONITOR_MAIL_FROM);
+}
+function b64(s5) {
+  return Buffer.from(s5, "utf8").toString("base64");
+}
+async function sendMail(input, env = process.env) {
+  if (!mailerConfigured(env)) return { skipped: "SMTP not configured (MONITOR_SMTP_URL / MONITOR_MAIL_FROM unset)" };
+  let url;
+  try {
+    url = new URL(env.MONITOR_SMTP_URL);
+  } catch {
+    return { ok: false, error: "MONITOR_SMTP_URL is not a valid URL" };
   }
-  response.status(200).json({
-    accepted: true,
-    campaign_id: body2.campaign_id,
-    synced_at: (/* @__PURE__ */ new Date()).toISOString(),
-    scan_mode: body2.scan_mode ?? "seeded_simulation",
-    normalized: {
-      framework: body2.repo_summary.framework,
-      app_url: body2.runtime_summary.app_url,
-      cards_received: body2.test_cards.length,
-      artifacts_received: body2.artifact_refs.length
-    },
-    persistence
+  if (url.protocol !== "smtps:") return { ok: false, error: "Only smtps:// (implicit TLS, port 465) is supported" };
+  const host = url.hostname;
+  const port = Number(url.port || 465);
+  const user = decodeURIComponent(url.username);
+  const pass = decodeURIComponent(url.password);
+  const from = env.MONITOR_MAIL_FROM;
+  return new Promise((resolve2) => {
+    let settled = false;
+    const done = (r) => {
+      if (!settled) {
+        settled = true;
+        try {
+          socket.end();
+        } catch {
+        }
+        resolve2(r);
+      }
+    };
+    const socket = tls2.connect({ host, port, servername: host, timeout: 12e3 }, () => {
+    });
+    let buf = "";
+    const queue = [
+      { cmd: null, expect: 220 },
+      { cmd: `EHLO ${host}`, expect: 250 },
+      { cmd: "AUTH LOGIN", expect: 334 },
+      { cmd: b64(user), expect: 334 },
+      { cmd: b64(pass), expect: 235 },
+      { cmd: `MAIL FROM:<${from}>`, expect: 250 },
+      { cmd: `RCPT TO:<${input.to}>`, expect: 250 },
+      { cmd: "DATA", expect: 354 },
+      { cmd: buildMessage(from, input) + "\r\n.", expect: 250 },
+      { cmd: "QUIT", expect: 221 }
+    ];
+    let step = 0;
+    const pump = () => {
+      const line = buf.trim().split("\n").pop() || "";
+      const code = Number(line.slice(0, 3));
+      const expected = queue[step].expect;
+      if (code !== expected) {
+        done({ ok: false, error: `SMTP step ${step} expected ${expected}, got: ${line.slice(0, 120)}` });
+        return;
+      }
+      step++;
+      buf = "";
+      if (step >= queue.length) {
+        done({ ok: true });
+        return;
+      }
+      const next = queue[step];
+      if (next.cmd !== null) socket.write(next.cmd + "\r\n");
+      if (queue[step - 1].cmd === "QUIT") done({ ok: true });
+    };
+    socket.on("data", (d4) => {
+      buf += d4.toString("utf8");
+      if (/\r?\n$/.test(buf)) pump();
+    });
+    socket.on("error", (e) => done({ ok: false, error: e instanceof Error ? e.message : String(e) }));
+    socket.on("timeout", () => done({ ok: false, error: "SMTP timeout" }));
   });
+}
+function buildMessage(from, input) {
+  const headers = [
+    `From: ${from}`,
+    `To: ${input.to}`,
+    `Subject: ${input.subject.replace(/[\r\n]/g, " ")}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=utf-8",
+    ""
+  ];
+  const body2 = input.text.replace(/\r?\n/g, "\r\n").replace(/^\./gm, "..");
+  return headers.join("\r\n") + body2;
+}
+
+// server/api-src/rescan-cron.ts
+function authorized(req) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return true;
+  const h3 = req.headers ?? {};
+  const auth = (Array.isArray(h3.authorization) ? h3.authorization[0] : h3.authorization) ?? "";
+  if (auth === `Bearer ${secret}`) return true;
+  let q2 = req.query?.key;
+  if (Array.isArray(q2)) q2 = q2[0];
+  if (!q2 && req.url) q2 = new URL(req.url, "http://x").searchParams.get("key") ?? void 0;
+  return q2 === secret;
+}
+function diffEmail(origin, diff) {
+  const lines = [`80/20 Launch Audit \u2014 weekly monitor for ${origin}`, ""];
+  lines.push(`Score: ${diff.score_from} -> ${diff.score_to} (${diff.score_delta >= 0 ? "+" : ""}${diff.score_delta})`, "");
+  if (diff.new_findings.length) {
+    lines.push(`NEW issues (${diff.new_findings.length}):`);
+    for (const f5 of diff.new_findings) lines.push(`  - [${f5.severity}] ${f5.title}`);
+    lines.push("");
+  }
+  if (diff.fixed_findings.length) {
+    lines.push(`FIXED since last week (${diff.fixed_findings.length}):`);
+    for (const f5 of diff.fixed_findings) lines.push(`  - ${f5.title}`);
+    lines.push("");
+  }
+  if (!diff.new_findings.length && !diff.fixed_findings.length) lines.push("No change since the last scan.", "");
+  lines.push(`Full report: https://80-20.dev/monitor?url=${encodeURIComponent(origin)}`);
+  return lines.join("\n");
+}
+async function handler(req, res) {
+  if (!authorized(req)) {
+    res.status(401).json({ error: "Unauthorized." });
+    return;
+  }
+  const sql = await getSqlClient();
+  if (!sql) {
+    res.status(503).json({ error: "Monitoring requires Postgres." });
+    return;
+  }
+  try {
+    await ensureScanTables(sql);
+    const due = await monitorsDue(sql, 24 * 7, 15);
+    const results = [];
+    for (const m6 of due) {
+      const parsed = parseTargetUrl(m6.origin);
+      if (!parsed.ok) {
+        results.push({ origin: m6.origin, skipped: parsed.error });
+        continue;
+      }
+      const grade = await runDeepGrade(parsed.url);
+      if (!grade.ok) {
+        results.push({ origin: m6.origin, error: grade.error });
+        await markMonitorRun(sql, m6.origin, m6.last_scan_id ?? "");
+        continue;
+      }
+      const prevHistory = await scanHistory(sql, m6.origin, 1);
+      const prev = prevHistory[0] ?? null;
+      const row = await recordScan(sql, grade, "monitor");
+      await markMonitorRun(sql, m6.origin, row.id);
+      const diff = diffScans(prev ? { score: prev.score, findings: prev.findings } : null, { score: grade.score, findings: grade.findings });
+      let mail = { skipped: "no recipient" };
+      if (m6.email) {
+        mail = mailerConfigured() ? await sendMail({ to: m6.email, subject: `Launch Audit: ${m6.origin} scored ${grade.score}/100 (${diff.score_delta >= 0 ? "+" : ""}${diff.score_delta})`, text: diffEmail(m6.origin, diff) }) : { skipped: "SMTP not configured" };
+      }
+      results.push({ origin: m6.origin, score: grade.score, delta: diff.score_delta, new: diff.new_findings.length, fixed: diff.fixed_findings.length, mail });
+    }
+    res.status(200).json({ ok: true, scanned: results.length, mailer: mailerConfigured() ? "configured" : "not configured", results });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : "Cron run failed." });
+  }
 }
 export {
   handler as default

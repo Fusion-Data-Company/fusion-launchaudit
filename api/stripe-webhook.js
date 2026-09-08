@@ -14214,6 +14214,41 @@ var paidAuditsSchemaSql = `create table if not exists paid_audits (
 );
 
 create index if not exists paid_audits_status_idx on paid_audits (status, created_at);`;
+var scansSchemaSql = `create table if not exists scans (
+  id text primary key,
+  url text not null,
+  origin text not null,
+  score integer not null,
+  band text not null,
+  passed integer not null default 0,
+  counts jsonb not null default '{}'::jsonb,
+  findings jsonb not null default '[]'::jsonb,
+  source text not null default 'free',
+  created_at timestamptz not null default now()
+);
+create index if not exists scans_origin_idx on scans (origin, created_at desc);
+
+create table if not exists scan_leads (
+  id text primary key,
+  email text not null,
+  scan_id text,
+  origin text,
+  created_at timestamptz not null default now()
+);
+create index if not exists scan_leads_email_idx on scan_leads (email, created_at);
+
+create table if not exists monitors (
+  id text primary key,
+  origin text not null unique,
+  email text,
+  frequency text not null default 'weekly',
+  agency_name text,
+  logo_url text,
+  active boolean not null default true,
+  last_scan_id text,
+  last_run_at timestamptz,
+  created_at timestamptz not null default now()
+);`;
 var storageSchemaSql = `create table if not exists projects (
   id text primary key,
   owner_id text not null,
@@ -14323,7 +14358,9 @@ alter table campaigns add column if not exists repo_path_hint text;
 
 alter table test_cards add column if not exists exec jsonb not null default '[]'::jsonb;
 
-${paidAuditsSchemaSql}`;
+${paidAuditsSchemaSql}
+
+${scansSchemaSql}`;
 
 // src/lib/paid-audits.ts
 async function ensurePaidAuditsTable(sql) {
