@@ -215,12 +215,18 @@
   .la-panel h3 { margin: 0 0 4px; font-size: var(--elite-t3); line-height: var(--elite-lh3); color: var(--elite-ink); }
   .la-panel > p { margin: 0 0 16px; font-size: var(--elite-t5); line-height: var(--elite-lh5); color: var(--elite-ink-2); }
   .la-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+  /* Block + absolute marker, NOT a two-column grid. A grid row makes every
+     inline child its own grid item, so a single <b> inside the sentence splits
+     the text into extra columns and the line wraps one word at a time. Found
+     by looking at the rendered page, not at the rule. */
   .la-list li {
-    display: grid; grid-template-columns: 16px 1fr; gap: 10px; align-items: start;
+    position: relative; display: block; padding-left: 26px;
     font-size: var(--elite-t5); line-height: var(--elite-lh5); color: var(--elite-ink-2);
   }
+  .la-list li > b { color: var(--elite-ink); font-weight: 650; }
   .la-list li::before {
-    content: ""; width: 16px; height: 16px; border-radius: 50%; margin-top: 2px;
+    content: ""; position: absolute; left: 0; top: .34em;
+    width: 15px; height: 15px; border-radius: 50%;
     background: color-mix(in srgb, var(--la-dot, var(--elite-accent)) 16%, transparent);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--la-dot, var(--elite-accent)) 44%, transparent);
   }
