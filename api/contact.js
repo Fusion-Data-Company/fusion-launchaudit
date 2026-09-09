@@ -14168,22 +14168,72 @@ async function getSqlClient(env = process.env) {
   return null;
 }
 
+// src/lib/rate-limit.ts
+var buckets = /* @__PURE__ */ new Map();
+var MAX_KEYS = 5e3;
+function consumeAttempt(opts) {
+  const now = opts.now ?? Date.now();
+  const id = `${opts.scope}:${opts.key}`;
+  let b5 = buckets.get(id);
+  if (!b5 || b5.resetAt <= now) {
+    if (buckets.size >= MAX_KEYS) sweep(now);
+    b5 = { count: 0, resetAt: now + opts.windowMs };
+    buckets.set(id, b5);
+  }
+  b5.count += 1;
+  if (b5.count > opts.limit) return { ok: false, retryAfterSec: Math.max(1, Math.ceil((b5.resetAt - now) / 1e3)) };
+  return { ok: true, remaining: opts.limit - b5.count };
+}
+function sweep(now) {
+  for (const [k3, v5] of buckets) if (v5.resetAt <= now) buckets.delete(k3);
+  if (buckets.size >= MAX_KEYS) buckets.clear();
+}
+function clientIp(headers) {
+  const h3 = headers ?? {};
+  const pick = (name2) => {
+    const v5 = h3[name2] ?? h3[name2.toLowerCase()];
+    return Array.isArray(v5) ? v5[0] : v5;
+  };
+  const xff = pick("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim() || "unknown";
+  return pick("x-real-ip")?.trim() || "unknown";
+}
+
 // server/api-src/contact.ts
+var CONTACT_TYPES = /* @__PURE__ */ new Set(["question", "test", "feedback", "partnership"]);
+var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST a JSON body { email, message }." });
     return;
   }
-  const { name: name2, email, message, type } = req.body ?? {};
+  const rl = consumeAttempt({ scope: "contact", key: clientIp(req.headers), limit: 10, windowMs: 10 * 6e4 });
+  if (!rl.ok) {
+    res.status(429).json({ error: `Too many messages from this address. Try again in ${rl.retryAfterSec}s.` });
+    return;
+  }
+  const body2 = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
+  if (body2.name !== void 0 && typeof body2.name !== "string" || body2.email !== void 0 && typeof body2.email !== "string" || body2.message !== void 0 && typeof body2.message !== "string" || body2.type !== void 0 && typeof body2.type !== "string") {
+    res.status(400).json({ error: "name, email, message and type must be strings." });
+    return;
+  }
+  const name2 = body2.name?.trim() ?? "";
+  const email = body2.email?.trim() ?? "";
+  const message = body2.message?.trim() ?? "";
+  const type = body2.type ?? "question";
   if (!email || !message) {
     res.status(400).json({ error: "email and message are required." });
     return;
   }
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+  if (!EMAIL_RE.test(email)) {
     res.status(400).json({ error: "Enter a valid email." });
     return;
   }
-  if (message.length > 5e3 || name2 && name2.length > 200 || email.length > 320) {
+  if (!CONTACT_TYPES.has(type)) {
+    res.status(400).json({ error: "Choose a valid message type." });
+    return;
+  }
+  if (message.length > 5e3 || name2.length > 200 || email.length > 320) {
     res.status(400).json({ error: "That's a bit long \u2014 trim it down." });
     return;
   }
@@ -14202,7 +14252,7 @@ async function handler(req, res) {
     const id = "sub_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
     await sql(
       `insert into submissions (id, name, email, type, message) values ($1, $2, $3, $4, $5)`,
-      [id, name2 || null, email, type || "question", message]
+      [id, name2 || null, email, type, message]
     );
     res.status(200).json({ ok: true });
   } catch (e) {

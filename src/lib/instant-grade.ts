@@ -5,9 +5,11 @@
  * is privacy-safe and runs in a serverless function. It is an honest SUBSET of
  * the full local audit; the deep checks (IDOR, admin/RBAC, repo) need Chromium.
  */
-import dns from "node:dns/promises";
-import net from "node:net";
 import { runVibeChecks } from "./vibe-checks.ts";
+import net from "node:net";
+import { assertPublic, hostLooksPrivate, privateIp, publicFetch } from "./public-fetch.ts";
+
+export { assertPublic, hostLooksPrivate, privateIp } from "./public-fetch.ts";
 
 export type Sev = "critical" | "high" | "medium" | "low";
 export type Finding = { title: string; severity: Sev; detail: string; category: string; fix?: string };
@@ -45,33 +47,6 @@ const PENALTY: Record<Sev, number> = { critical: 22, high: 13, medium: 7, low: 3
 export const INSTANT_GRADE_NOTE =
   "This is the free 10-second surface scan (no code, no install). The deep audit — broken access control (IDOR), admin/RBAC, write-authz, and your actual code — runs free inside your own agent; your code never leaves your machine.";
 
-export function privateIp(ip: string): boolean {
-  if (net.isIPv4(ip)) {
-    const [a, b] = ip.split(".").map(Number);
-    return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
-  }
-  const x = ip.toLowerCase();
-  return x === "::1" || x.startsWith("fc") || x.startsWith("fd") || x.startsWith("fe80") || x.startsWith("::ffff:127.") || x.startsWith("::ffff:10.") || x.startsWith("::ffff:192.168.");
-}
-
-/** Static (no-DNS) part of the SSRF guard. Returns an error string or null. */
-export function hostLooksPrivate(host: string): string | null {
-  const h = host.toLowerCase();
-  const bad = ["localhost", "metadata.google.internal", "instance-data"];
-  if (bad.includes(h) || h.endsWith(".internal") || h.endsWith(".local") || h.endsWith(".localhost")) return "private host";
-  if (net.isIP(host) && privateIp(host)) return "private ip";
-  return null;
-}
-
-/** Full SSRF guard: static check + DNS resolution must not land on a private address. */
-export async function assertPublic(host: string): Promise<void> {
-  const staticProblem = hostLooksPrivate(host);
-  if (staticProblem) throw new Error(staticProblem);
-  if (net.isIP(host)) return;
-  const addrs = await dns.lookup(host, { all: true });
-  if (!addrs.length || addrs.some((a: { address: string }) => privateIp(a.address))) throw new Error("resolves to private ip");
-}
-
 /**
  * Normalize + syntactically validate a user-supplied target URL (no network).
  * Adds https:// when the scheme is missing, rejects non-http(s) and private hosts.
@@ -93,7 +68,7 @@ export function parseTargetUrl(input: unknown): { ok: true; url: URL } | { ok: f
 async function grab(url: string, opts: RequestInit = {}, ms = 8000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
-  try { return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": "8020LaunchAudit-Grader/1.0", ...(opts.headers || {}) } }); }
+  try { return await publicFetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": "8020LaunchAudit-Grader/1.0", ...(opts.headers || {}) } }); }
   finally { clearTimeout(t); }
 }
 

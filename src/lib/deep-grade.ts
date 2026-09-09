@@ -22,6 +22,7 @@
 import dns from "node:dns/promises";
 import tls from "node:tls";
 import { ensureFix, runInstantGrade, type Finding, type GradeFailure, type InstantGrade, type Sev } from "./instant-grade.ts";
+import { publicFetch } from "./public-fetch.ts";
 
 export const PAGE_BUDGET = 8;
 const PAGE_TIMEOUT = 7000;
@@ -55,7 +56,7 @@ const UA = "8020LaunchAudit-Grader/1.0 (+https://fusiondataco.com)";
 async function grab(url: string, opts: RequestInit = {}, ms = PAGE_TIMEOUT): Promise<Response | null> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
-  try { return await fetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": UA, ...(opts.headers || {}) } }); }
+  try { return await publicFetch(url, { ...opts, signal: ctrl.signal, redirect: "manual", headers: { "user-agent": UA, ...(opts.headers || {}) } }); }
   catch { return null; }
   finally { clearTimeout(t); }
 }
