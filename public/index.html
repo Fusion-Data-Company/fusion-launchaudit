@@ -23,30 +23,33 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/assets/elite.css" />
+<link rel="stylesheet" href="/assets/elite-tokens.css" />
 <style>
   :root{
-    --bg:#06070d;
-    --bg-2:#080a12;
-    --panel:rgba(20,22,34,0.55);
-    --panel-solid:#11131d;
-    --panel-2:rgba(28,30,44,0.5);
-    --ink:#f4f5fb;
-    --ink-soft:#c3c7d6;
-    --ink-mut:#8b90a4;
-    --ink-faint:#6a6f82;
-    --line:rgba(255,255,255,0.09);
-    --line-soft:rgba(255,255,255,0.055);
-    --line-strong:rgba(255,255,255,0.15);
-    --accent:#7c83ff;
-    --accent-2:#a674ff;
-    --accent-3:#5d6bff;
-    --accent-ink:#c9ccff;
+    --bg:#08080C;
+    --bg-2:#0A0A11;
+    --panel:rgba(19,19,26,0.62);
+    --panel-solid:#101017;
+    --panel-2:rgba(27,27,37,0.55);
+    --ink:#F5F6FB;
+    --ink-soft:#C8CBD8;
+    --ink-mut:#9DA1B2;
+    --ink-faint:#8A8FA0;
+    --line:rgba(201,206,219,0.10);
+    --line-soft:rgba(201,206,219,0.06);
+    --line-strong:rgba(201,206,219,0.17);
+    --accent:#8B92FF;
+    --trim:#C9CEDB;
+    --accent-2:#B79BFF;
+    --accent-3:#5D63D6;
+    --accent-ink:#CFD3FF;
     --indigo:#6366f1;
     --violet:#9b5cf6;
-    --cyan:#38d8e0;
-    --green:#34d399;
-    --amber:#f4b740;
-    --red:#fb7185;
+    --cyan:#6FC7E8;
+    --green:#4ECB8A;
+    --amber:#E8B14A;
+    --red:#FF7A85;
     --radius:18px;
     --radius-sm:12px;
     --maxw:1120px;
@@ -74,12 +77,12 @@
   .ambient::before{
     width:60vw;height:60vw;max-width:760px;max-height:760px;
     top:-22vw;left:50%;transform:translateX(-52%);
-    background:radial-gradient(circle at 35% 35%, rgba(124,131,255,0.55), rgba(99,102,241,0.18) 45%, transparent 70%);
+    background:radial-gradient(circle at 35% 35%, rgba(139,146,255,0.55), rgba(99,102,241,0.18) 45%, transparent 70%);
   }
   .ambient::after{
     width:48vw;height:48vw;max-width:620px;max-height:620px;
     top:6vw;right:-14vw;
-    background:radial-gradient(circle at 50% 50%, rgba(166,116,255,0.42), rgba(155,92,246,0.12) 48%, transparent 72%);
+    background:radial-gradient(circle at 50% 50%, rgba(183,155,255,0.42), rgba(155,92,246,0.12) 48%, transparent 72%);
   }
   .ambient .glow-c{
     position:absolute;border-radius:50%;filter:blur(100px);opacity:0.4;
@@ -100,19 +103,19 @@
   header.nav{position:sticky;top:0;z-index:50;backdrop-filter:saturate(160%) blur(14px);-webkit-backdrop-filter:saturate(160%) blur(14px);background:rgba(6,7,13,0.62);border-bottom:1px solid var(--line-soft);}
   .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;}
   .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink);font-weight:700;letter-spacing:-0.01em;font-size:17px;}
-  .brand-mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(150deg,var(--accent-3),var(--accent-2));box-shadow:0 6px 18px -6px rgba(124,131,255,0.7), inset 0 1px 0 rgba(255,255,255,0.3);}
+  .brand-mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(150deg,var(--accent-3),var(--accent-2));box-shadow:0 6px 18px -6px rgba(139,146,255,0.7), inset 0 1px 0 rgba(255,255,255,0.3);}
   .brand-mark svg{width:18px;height:18px;color:#fff;}
   .nav-links{display:flex;align-items:center;gap:8px;}
   .nav-links a.nlink{color:var(--ink-mut);text-decoration:none;font-size:14px;font-weight:500;padding:8px 12px;border-radius:9px;transition:color .15s,background .15s;}
   .nav-links a.nlink:hover{color:var(--ink);background:rgba(255,255,255,0.04);}
   .nav-cta{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:10px;font-size:13.5px;font-weight:600;text-decoration:none;border:1px solid var(--line-strong);color:var(--ink);background:rgba(255,255,255,0.03);transition:border-color .15s,background .15s;}
-  .nav-cta:hover{border-color:var(--accent);background:rgba(124,131,255,0.1);}
+  .nav-cta:hover{border-color:var(--accent);background:rgba(139,146,255,0.1);}
   .nav-cta svg{width:15px;height:15px;}
   @media(max-width:720px){.nav-links a.nlink{display:none;}}
 
   /* ---------- HERO ---------- */
-  .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(124,131,255,0.07);font-size:12.5px;font-weight:600;color:var(--accent-ink);letter-spacing:0.01em;margin-bottom:22px;}
-  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(52,211,153,0.18);animation:pulse 2.4s ease-in-out infinite;}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(139,146,255,0.07);font-size:12.5px;font-weight:600;color:var(--accent-ink);letter-spacing:0.01em;margin-bottom:22px;}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(78,203,138,0.18);animation:pulse 2.4s ease-in-out infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.45;}}
 
   .hero{position:relative;padding:72px 0 60px;overflow:hidden;}
@@ -125,19 +128,19 @@
   .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--font);font-size:15px;font-weight:600;text-decoration:none;cursor:pointer;border-radius:12px;padding:13px 22px;transition:transform .12s ease,box-shadow .2s,border-color .15s,background .2s;border:1px solid transparent;}
   .btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
   .btn svg{width:17px;height:17px;flex:none;}
-  .btn-primary{color:#fff;background:linear-gradient(135deg,var(--accent-3),var(--accent-2));box-shadow:0 12px 30px -10px rgba(124,131,255,0.7), inset 0 1px 0 rgba(255,255,255,0.28);}
-  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 40px -12px rgba(124,131,255,0.85), inset 0 1px 0 rgba(255,255,255,0.28);}
+  .btn-primary{color:#fff;background:linear-gradient(135deg,var(--accent-3),var(--accent-2));box-shadow:0 12px 30px -10px rgba(139,146,255,0.7), inset 0 1px 0 rgba(255,255,255,0.28);}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 40px -12px rgba(139,146,255,0.85), inset 0 1px 0 rgba(255,255,255,0.28);}
   .btn-ghost{color:var(--ink);background:rgba(255,255,255,0.035);border:1px solid var(--line-strong);}
-  .btn-ghost:hover{transform:translateY(-2px);border-color:var(--accent);background:rgba(124,131,255,0.09);}
+  .btn-ghost:hover{transform:translateY(-2px);border-color:var(--accent);background:rgba(139,146,255,0.09);}
   .hero-cta{display:flex;flex-wrap:wrap;gap:13px;align-items:center;}
   .hero-copy .hero-cta{justify-content:flex-start;}
-  .hero-proof{display:inline-flex;align-items:center;gap:8px;margin-top:24px;padding:8px 16px;border-radius:999px;border:1px solid rgba(52,211,153,0.25);background:rgba(52,211,153,0.06);font-size:13px;color:#a7f3d0;font-weight:500;}
+  .hero-proof{display:inline-flex;align-items:center;gap:8px;margin-top:24px;padding:8px 16px;border-radius:999px;border:1px solid rgba(78,203,138,0.25);background:rgba(78,203,138,0.06);font-size:13px;color:#B7F0D4;font-weight:500;}
   .hero-proof svg{width:15px;height:15px;color:var(--green);}
 
   /* product demo framed like a real browser window */
   .hero-demo{position:relative;z-index:1;}
-  .hero-demo::before{content:"";position:absolute;inset:-46px -24px -16px;background:radial-gradient(58% 60% at 60% 42%,rgba(124,131,255,0.22),transparent 72%);filter:blur(16px);z-index:-1;pointer-events:none;}
-  .browser{border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);background:#0a0b12;box-shadow:0 50px 120px -45px rgba(0,0,0,0.95),0 0 0 1px rgba(124,131,255,0.08),inset 0 1px 0 rgba(255,255,255,0.05);}
+  .hero-demo::before{content:"";position:absolute;inset:-46px -24px -16px;background:radial-gradient(58% 60% at 60% 42%,rgba(139,146,255,0.22),transparent 72%);filter:blur(16px);z-index:-1;pointer-events:none;}
+  .browser{border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);background:#0a0b12;box-shadow:0 50px 120px -45px rgba(0,0,0,0.95),0 0 0 1px rgba(139,146,255,0.08),inset 0 1px 0 rgba(255,255,255,0.05);}
   .browser-bar{display:flex;align-items:center;gap:7px;padding:10px 14px;background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border-bottom:1px solid var(--line-soft);}
   .browser-bar .bd{width:11px;height:11px;border-radius:50%;flex:none;}
   .browser-bar .bd.r{background:#ff5f57;}.browser-bar .bd.y{background:#febc2e;}.browser-bar .bd.g{background:#28c840;}
@@ -160,7 +163,7 @@
   .connect-shell{position:relative;}
   .connect-shell::before{
     content:"";position:absolute;inset:-2px;border-radius:calc(var(--radius) + 8px);z-index:0;
-    background:linear-gradient(135deg,rgba(124,131,255,0.7),rgba(166,116,255,0.4) 50%,rgba(56,216,224,0.3));
+    background:linear-gradient(135deg,rgba(139,146,255,0.7),rgba(183,155,255,0.4) 50%,rgba(56,216,224,0.3));
     filter:blur(26px);opacity:0.68;
   }
   .connect-card{
@@ -180,12 +183,12 @@
   .tab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 8px;font-family:var(--font);font-size:14px;font-weight:600;color:var(--ink-mut);background:transparent;border:1px solid transparent;border-radius:9px;cursor:pointer;transition:all .15s;}
   .tab svg{width:16px;height:16px;flex:none;}
   .tab:hover{color:var(--ink-soft);}
-  .tab[aria-selected="true"]{color:#fff;background:linear-gradient(135deg,rgba(93,107,255,0.9),rgba(166,116,255,0.85));border-color:rgba(255,255,255,0.16);box-shadow:0 8px 22px -10px rgba(124,131,255,0.8), inset 0 1px 0 rgba(255,255,255,0.25);}
+  .tab[aria-selected="true"]{color:#fff;background:linear-gradient(135deg,rgba(93,99,214,0.9),rgba(183,155,255,0.85));border-color:rgba(255,255,255,0.16);box-shadow:0 8px 22px -10px rgba(139,146,255,0.8), inset 0 1px 0 rgba(255,255,255,0.25);}
   .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .tabpanel{padding:18px 16px 8px;}
   .tabpanel[hidden]{display:none;}
   .step-line{font-size:13.5px;color:var(--ink-mut);margin:0 4px 12px;display:flex;align-items:center;gap:9px;}
-  .step-line .n{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(124,131,255,0.14);border:1px solid rgba(124,131,255,0.3);}
+  .step-line .n{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(139,146,255,0.14);border:1px solid rgba(139,146,255,0.3);}
   .step-line b{color:var(--ink-soft);font-weight:600;}
 
   /* code block */
@@ -199,9 +202,9 @@
   .code-label{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-left:4px;letter-spacing:0.02em;}
   .copy-btn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--ink-soft);background:rgba(255,255,255,0.05);border:1px solid var(--line-strong);border-radius:8px;padding:6px 11px;cursor:pointer;transition:all .15s;}
   .copy-btn svg{width:14px;height:14px;}
-  .copy-btn:hover{color:#fff;border-color:var(--accent);background:rgba(124,131,255,0.12);}
+  .copy-btn:hover{color:#fff;border-color:var(--accent);background:rgba(139,146,255,0.12);}
   .copy-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-  .copy-btn.copied{color:#fff;border-color:rgba(52,211,153,0.6);background:rgba(52,211,153,0.16);}
+  .copy-btn.copied{color:#fff;border-color:rgba(78,203,138,0.6);background:rgba(78,203,138,0.16);}
   .code-body{margin:0;padding:15px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.75;color:#e7e9f5;-webkit-overflow-scrolling:touch;}
   .code-body code{white-space:pre;display:block;}
   .codeblock{position:relative;}
@@ -213,9 +216,9 @@
   .code-body .tok-key{color:#ff9bd0;}
   .codeblock + .codeblock{margin-top:14px;}
   .json-note{font-size:13px;color:var(--ink-soft);margin:14px 4px 10px;line-height:1.6;}
-  .json-note code{font-family:var(--mono);font-size:12px;color:var(--accent-ink);background:rgba(124,131,255,0.1);padding:1px 6px;border-radius:5px;}
+  .json-note code{font-family:var(--mono);font-size:12px;color:var(--accent-ink);background:rgba(139,146,255,0.1);padding:1px 6px;border-radius:5px;}
 
-  .connect-foot{margin:16px 8px 12px;padding:15px 18px;border-radius:13px;border:1px dashed var(--line-strong);background:rgba(124,131,255,0.05);display:flex;align-items:center;gap:12px;font-size:14.5px;color:var(--ink-soft);}
+  .connect-foot{margin:16px 8px 12px;padding:15px 18px;border-radius:13px;border:1px dashed var(--line-strong);background:rgba(139,146,255,0.05);display:flex;align-items:center;gap:12px;font-size:14.5px;color:var(--ink-soft);}
   .connect-foot svg{width:18px;height:18px;color:var(--accent);flex:none;}
   .connect-foot b{color:#fff;font-weight:600;}
   .connect-foot .cmdpill{font-family:var(--mono);font-size:13px;color:var(--accent-ink);background:rgba(0,0,0,0.4);border:1px solid var(--line);padding:3px 8px;border-radius:6px;}
@@ -241,15 +244,15 @@
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
   @media(max-width:840px){.steps{grid-template-columns:1fr;}}
   .step{position:relative;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow-card);padding:26px 24px;}
-  .step .num{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:11px;font-weight:800;font-size:17px;color:#fff;background:linear-gradient(135deg,var(--accent-3),var(--accent-2));box-shadow:0 8px 22px -10px rgba(124,131,255,0.8), inset 0 1px 0 rgba(255,255,255,0.25);margin-bottom:18px;}
+  .step .num{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:11px;font-weight:800;font-size:17px;color:#fff;background:linear-gradient(135deg,var(--accent-3),var(--accent-2));box-shadow:0 8px 22px -10px rgba(139,146,255,0.8), inset 0 1px 0 rgba(255,255,255,0.25);margin-bottom:18px;}
   .step h4{margin:0 0 9px;font-size:17px;font-weight:700;letter-spacing:-0.01em;color:var(--ink);}
   .step p{margin:0;font-size:14.5px;color:var(--ink-mut);line-height:1.6;}
   .step .conn{display:none;}
 
   /* ---------- TRUTH PROTOCOL BAND ---------- */
-  .truth{position:relative;border-radius:calc(var(--radius) + 4px);overflow:hidden;border:1px solid rgba(124,131,255,0.28);background:linear-gradient(120deg,rgba(124,131,255,0.12),rgba(166,116,255,0.08) 55%,rgba(56,216,224,0.06));padding:42px 36px;text-align:center;box-shadow:0 30px 70px -40px rgba(124,131,255,0.5), inset 0 1px 0 rgba(255,255,255,0.06);}
-  .truth::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 50% 0%, rgba(166,116,255,0.16), transparent 70%);pointer-events:none;}
-  .truth-badge{position:relative;z-index:1;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:999px;border:1px solid rgba(124,131,255,0.4);background:rgba(10,11,18,0.5);font-size:12.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:20px;}
+  .truth{position:relative;border-radius:calc(var(--radius) + 4px);overflow:hidden;border:1px solid rgba(139,146,255,0.28);background:linear-gradient(120deg,rgba(139,146,255,0.12),rgba(183,155,255,0.08) 55%,rgba(56,216,224,0.06));padding:42px 36px;text-align:center;box-shadow:0 30px 70px -40px rgba(139,146,255,0.5), inset 0 1px 0 rgba(255,255,255,0.06);}
+  .truth::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 50% 0%, rgba(183,155,255,0.16), transparent 70%);pointer-events:none;}
+  .truth-badge{position:relative;z-index:1;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:999px;border:1px solid rgba(139,146,255,0.4);background:rgba(10,11,18,0.5);font-size:12.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:20px;}
   .truth-badge svg{width:15px;height:15px;}
   .truth h3{position:relative;z-index:1;font-size:clamp(22px,3.4vw,30px);line-height:1.25;letter-spacing:-0.02em;font-weight:800;margin:0 auto 14px;max-width:24ch;color:#fff;}
   .truth p{position:relative;z-index:1;font-size:16px;color:var(--ink-soft);max-width:58ch;margin:0 auto;line-height:1.65;}
@@ -304,14 +307,14 @@
   .grade-form input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
   .grade-result{max-width:780px;margin:26px auto 0;}
   .grade-loading,.grade-err{text-align:center;color:var(--ink-mut);padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--panel);}
-  .grade-err{color:#f0a3a3;}
+  .grade-err{color:#FFAEB6;}
   .grade-card{display:flex;gap:26px;align-items:flex-start;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--shadow-card);padding:26px;flex-wrap:wrap;}
   .grade-score{flex:none;width:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;padding:20px 10px;background:rgba(0,0,0,.25);}
   .grade-score .gs-num{font-family:var(--font-display);font-size:58px;font-weight:700;line-height:1;letter-spacing:-.02em;}
   .grade-score .gs-den{font-family:var(--mono);font-size:12px;color:var(--ink-mut);margin-top:2px;}
   .grade-score .gs-cap{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mut);margin-top:8px;}
   .band-green .gs-num{color:#48c98a;} .band-yellow .gs-num{color:#e0b23c;} .band-red .gs-num{color:#f0696a;}
-  .band-green{box-shadow:inset 0 0 0 1px rgba(72,201,138,.45);} .band-yellow{box-shadow:inset 0 0 0 1px rgba(224,178,60,.45);} .band-red{box-shadow:inset 0 0 0 1px rgba(240,105,106,.45);}
+  .band-green{box-shadow:inset 0 0 0 1px rgba(72,201,138,.45);} .band-yellow{box-shadow:inset 0 0 0 1px rgba(224,178,60,.45);} .band-red{box-shadow:inset 0 0 0 1px rgba(255,122,133,.45);}
   .grade-body{flex:1;min-width:260px;}
   .grade-sum{font-size:16px;color:var(--ink);margin:0 0 14px;font-weight:600;}
   .grade-list{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:11px;}
@@ -331,24 +334,24 @@
   .rep-score .d{font-family:var(--mono);font-size:12px;color:var(--ink-mut);margin-top:2px;}
   .rep-score .cap{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mut);margin-top:9px;}
   .band-green .n{color:#48c98a;}.band-yellow .n{color:#e0b23c;}.band-red .n{color:#f0696a;}
-  .band-green{box-shadow:inset 0 0 0 1px rgba(72,201,138,.45);}.band-yellow{box-shadow:inset 0 0 0 1px rgba(224,178,60,.45);}.band-red{box-shadow:inset 0 0 0 1px rgba(240,105,106,.45);}
+  .band-green{box-shadow:inset 0 0 0 1px rgba(72,201,138,.45);}.band-yellow{box-shadow:inset 0 0 0 1px rgba(224,178,60,.45);}.band-red{box-shadow:inset 0 0 0 1px rgba(255,122,133,.45);}
   .rep-head{flex:1;min-width:240px;display:flex;flex-direction:column;justify-content:center;}
   .rep-head .sum{font-size:16.5px;font-weight:600;color:var(--ink);margin:0 0 12px;line-height:1.4;}
   .sevbar{display:flex;gap:8px;flex-wrap:wrap;}
   .sevchip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink-soft);}
   .sevchip .sd{width:8px;height:8px;border-radius:50%;flex:none;}
-  .sd.critical,.sd.high{background:#f0696a;}.sd.medium{background:#e0b23c;}.sd.low{background:#7c83ff;}.sd.pass{background:#48c98a;}
+  .sd.critical,.sd.high{background:#f0696a;}.sd.medium{background:#e0b23c;}.sd.low{background:#8B92FF;}.sd.pass{background:#48c98a;}
   .rep-cat{margin-top:20px;}
   .rep-cat h4{font-family:var(--font-display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mut);margin:0 0 10px;padding-left:2px;}
   .fcard{position:relative;border:1px solid var(--line);border-left:4px solid var(--ink-faint);border-radius:12px;background:var(--panel);box-shadow:var(--shadow-card);padding:15px 16px 15px 18px;margin-bottom:10px;overflow:hidden;}
   .fcard.sev-critical,.fcard.sev-high{border-left-color:#f0696a;}
   .fcard.sev-medium{border-left-color:#e0b23c;}
-  .fcard.sev-low{border-left-color:#7c83ff;}
+  .fcard.sev-low{border-left-color:#8B92FF;}
   .fcard-head{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
   .fcard-sev{flex:none;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;font-weight:700;}
-  .sev-critical .fcard-sev,.sev-high .fcard-sev{color:#f0696a;background:rgba(240,105,106,.12);}
+  .sev-critical .fcard-sev,.sev-high .fcard-sev{color:#f0696a;background:rgba(255,122,133,.12);}
   .sev-medium .fcard-sev{color:#e0b23c;background:rgba(224,178,60,.12);}
-  .sev-low .fcard-sev{color:#a3a9ff;background:rgba(124,131,255,.12);}
+  .sev-low .fcard-sev{color:#a3a9ff;background:rgba(139,146,255,.12);}
   .fcard-title{font-size:14.5px;font-weight:650;color:var(--ink);flex:1;min-width:180px;line-height:1.35;}
   .fcard-detail{font-size:13px;color:var(--ink-mut);line-height:1.55;margin:8px 0 0;}
   .fcard-fix{margin-top:12px;border:1px solid var(--line-soft);border-radius:9px;background:#0a0b12;overflow:hidden;}
@@ -357,11 +360,11 @@
   .fcard-fix summary svg{width:14px;height:14px;}
   .fcard-fix summary .grow{flex:1;}
   .fix-copy{display:inline-flex;align-items:center;gap:6px;font-family:var(--font);font-size:11.5px;font-weight:600;color:var(--ink-soft);background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:7px;padding:5px 10px;cursor:pointer;transition:all .15s;}
-  .fix-copy:hover{color:#fff;border-color:var(--accent);background:rgba(124,131,255,.12);}
-  .fix-copy.copied{color:#fff;border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.16);}
+  .fix-copy:hover{color:#fff;border-color:var(--accent);background:rgba(139,146,255,.12);}
+  .fix-copy.copied{color:#fff;border-color:rgba(78,203,138,.6);background:rgba(78,203,138,.16);}
   .fix-body{margin:0;padding:0 12px 13px;font-family:var(--mono);font-size:12px;line-height:1.65;color:#e7e9f5;white-space:pre-wrap;word-break:break-word;}
   /* locked / unlock */
-  .rep-locked{position:relative;margin-top:16px;border:1px dashed var(--line-strong);border-radius:14px;background:rgba(124,131,255,.05);padding:22px;text-align:center;}
+  .rep-locked{position:relative;margin-top:16px;border:1px dashed var(--line-strong);border-radius:14px;background:rgba(139,146,255,.05);padding:22px;text-align:center;}
   .rep-locked .lk-blur{position:absolute;inset:0;border-radius:14px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.02) 0 14px,transparent 14px 28px);filter:blur(1px);pointer-events:none;opacity:.5;}
   .rep-locked h4{position:relative;font-family:var(--font-display);font-size:18px;margin:0 0 6px;color:#fff;}
   .rep-locked p{position:relative;font-size:14px;color:var(--ink-soft);margin:0 auto 16px;max-width:52ch;line-height:1.55;}
@@ -417,17 +420,96 @@
   .contact-form input:focus,.contact-form select:focus,.contact-form textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
   .contact-form button{align-self:flex-start;}
   .cf-result{font-size:14px;padding:12px 14px;border-radius:10px;}
-  .cf-result.ok{color:#a7f3d0;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);}
-  .cf-result.err{color:#f0a3a3;background:rgba(240,105,106,.08);border:1px solid rgba(240,105,106,.3);}
+  .cf-result.ok{color:#B7F0D4;background:rgba(78,203,138,.08);border:1px solid rgba(78,203,138,.3);}
+  .cf-result.err{color:#FFAEB6;background:rgba(255,122,133,.08);border:1px solid rgba(255,122,133,.3);}
+
+  /* ═══ ELITE LAYER — the pieces the page needs to carry the kit ═══════════ */
+  /* Scroll rail. Trim-coloured, 2px, and it is the only fixed chrome added. */
+  .elite-rail{position:fixed;top:0;left:0;right:0;height:2px;z-index:60;pointer-events:none;background:rgba(201,206,219,.06);}
+  .elite-rail i{display:block;height:100%;transform:scaleX(0);transform-origin:0 50%;
+    background:linear-gradient(90deg,var(--accent),var(--trim));box-shadow:0 0 10px -1px rgba(139,146,255,.7);}
+
+  /* Hero plate. The photograph sits BEHIND the copy at low opacity, scrimmed
+     to the page ground, so the headline never loses contrast to it. Measured:
+     ink #F5F6FB over the scrimmed plate stays above 15:1 because the scrim
+     floor is the page bg itself at 88%. */
+  .hero-plate{position:absolute;inset:-6% -2% auto -2%;height:118%;z-index:0;pointer-events:none;}
+  .hero-plate img{width:100%;height:100%;object-fit:cover;object-position:58% 42%;opacity:.72;
+    filter:saturate(.9) contrast(1.06);}
+  .hero-scrim{position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:
+      linear-gradient(90deg,var(--bg) 4%,rgba(8,8,12,.9) 34%,rgba(8,8,12,.42) 60%,rgba(8,8,12,.72) 100%),
+      linear-gradient(180deg,rgba(8,8,12,.66),rgba(8,8,12,.3) 40%,var(--bg) 97%);}
+  .hero .hero-inner{position:relative;z-index:1;}
+  .hero .film-grain{z-index:1;}
+  @media (max-width:820px){ .hero-plate img{opacity:.32;} }
+
+  /* Ambient starfield behind the whole page — one element, no DOM per particle. */
+  .particle-field{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;}
+
+  /* Stat strip — tabular figures, trim card, the count-ups live here. */
+  .stat-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:32px;}
+  .stat-strip .stat-card-trim{padding:20px 18px;border-radius:14px;background:var(--panel-solid);
+    box-shadow:inset 0 0 0 1px var(--line);}
+  .stat-strip .stat-value{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:32px;
+    line-height:1.05;font-weight:700;color:var(--ink);letter-spacing:-.02em;}
+  .stat-strip .stat-label{margin-top:7px;font-size:12.5px;line-height:1.5;color:var(--ink-mut);}
+
+  /* Receipt figures count up in place without reflowing the headline. */
+  .rc-n{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--accent-ink);}
+
+  /* Section eyebrow as a pill when it sits above an elite section. */
+  .sec-kicker.eyebrow-pill{display:inline-block;padding:5px 13px;border-radius:999px;
+    border:1px solid var(--line-strong);background:rgba(139,146,255,.07);color:var(--accent-ink);
+    font-size:11.5px;letter-spacing:.14em;}
+
+  /* The sample report and the split panels inherit the page maxw. */
+  #sample .la-report{max-width:1000px;margin:0 auto;}
+  #depth .la-split,#privacy-arg .la-split{max-width:1060px;margin:0 auto;}
+  #depth .la-figure img{max-height:420px;object-fit:cover;object-position:50% 50%;}
+  #privacy-arg .la-figure img{max-height:400px;object-fit:contain;}
+  .la-panel .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:5px 11px;margin-bottom:14px;}
+
+  /* Pinned moment. The track height IS the pin duration. */
+  .la-pin{height:210svh;position:relative;z-index:1;}
+  @media (max-width:760px){ .la-pin{height:170svh;} }
+
+  /* One global rule: clip, never hidden. `overflow-x:hidden` on <body> makes
+     <body> the scroll container, which freezes window.scrollY at 0 — and every
+     scroll-driven thing in elite-motion.js reads exactly that value. */
+  @media (max-width:767px){ html,body{overflow-x:clip;max-width:100vw;} }
+
+
+  /* ---- the elite free-scan report ---- */
+  .grade-result .la-report{max-width:1000px;margin:0 auto;}
+  .grade-result{max-width:1000px;}
+  .la-report .rep-actions{padding:18px 22px 20px;margin-top:0;box-shadow:inset 0 1px 0 var(--elite-rule);}
+  .la-report .rep-note{padding:0 22px 20px;margin-top:0;border-top:0;}
+  .la-report .rep-locked{margin:0 22px 18px;}
+  .la-report .grade-loading{padding:0 26px 22px;margin:0;font-size:13.5px;color:var(--ink-mut);}
+  .la-report .elite-table td .fix-copy{white-space:nowrap;}
+  .la-what>span{display:block;}
+  .la-what span span{display:inline;}
+  .la-fixrow td{padding-top:0!important;}
+  .la-fixrow details{border:1px solid var(--line-soft);border-radius:9px;background:rgba(0,0,0,.34);overflow:hidden;}
+  .la-fixrow summary{list-style:none;cursor:pointer;padding:9px 12px;font-size:12.5px;font-weight:600;color:var(--accent-ink);user-select:none;}
+  .la-fixrow summary::-webkit-details-marker{display:none;}
+  .unlock-err{position:relative;color:#FFAEB6;font-size:13px;margin-top:10px;}
+  .elite-empty h4{font-family:var(--font-display);font-size:20px;margin:0;color:var(--ink);}
+  .elite-empty p{font-size:14.5px;line-height:1.62;color:var(--ink-soft);max-width:52ch;margin:0;}
+  .elite-empty .btn{margin-top:6px;}
+
   /* ---- WATCH (UGC clips) ---- */
   #watch .watch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;max-width:1120px;margin:0 auto;}
-  #watch .watch-card{margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);background:#0a0b12;box-shadow:0 30px 80px -45px rgba(0,0,0,.9),0 0 0 1px rgba(124,131,255,.08), inset 0 1px 0 rgba(255,255,255,.05);}
+  #watch .watch-card{margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);background:#0a0b12;box-shadow:0 30px 80px -45px rgba(0,0,0,.9),0 0 0 1px rgba(139,146,255,.08), inset 0 1px 0 rgba(255,255,255,.05);}
   #watch .watch-card video{display:block;width:100%;height:auto;background:#0a0b12;}
   #watch .watch-card figcaption{padding:10px 14px;font-size:13px;color:var(--ink-mut);font-weight:500;border-top:1px solid var(--line-soft);}
 </style>
 </head>
 <body>
+<div class="elite-rail" aria-hidden="true"><i data-scroll-progress></i></div>
 <div class="ambient"><div class="glow-c"></div></div>
+<div class="particle-field" aria-hidden="true"></div>
 <div class="grid-overlay"></div>
 
 <!-- NAV -->
@@ -457,8 +539,13 @@
 
 <!-- HERO -->
 <section class="hero" id="top-hero">
+  <div class="hero-plate" aria-hidden="true" data-parallax="0.06">
+    <img src="/img/audit-hero.jpg" srcset="/img/audit-hero-sm.jpg 900w, /img/audit-hero.jpg 1600w" sizes="100vw" alt="" width="1600" height="914" fetchpriority="high" decoding="async" class="hero-zoom" />
+  </div>
+  <div class="hero-scrim" aria-hidden="true"></div>
+  <div class="film-grain" aria-hidden="true"></div>
   <div class="hero-inner wrap">
-    <div class="hero-copy">
+    <div class="hero-copy hero-rise">
       <span class="eyebrow"><span class="dot" aria-hidden="true"></span>From Fusion Data Company · Free surface scan + agent-ready fixes · Open source (MIT)</span>
       <h1 class="hero-title">Your AI built the easy 80%. <span class="grad">We finish the 20% that ships broken.</span></h1>
       <p class="subhead">Your builder nails the happy path, then swears it’s done. The other 20% — broken access control, unguarded admin APIs, 500s on bad input, secrets in the bundle — is where every AI build quietly fails. <strong>80/20 Launch Audit</strong> is the senior developer that breaks into your app, proves what’s broken with evidence, and refuses to call anything done on a hunch. It runs inside <strong>your own</strong> Claude Code, Cursor, or Codex — your code never leaves your machine.</p>
@@ -468,7 +555,7 @@
       </div>
       <div class="hero-proof"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Proven on a fixture with 5 planted bugs — caught all 5.</div>
     </div>
-    <div class="hero-demo">
+    <div class="hero-demo fade-up-lazy">
       <div class="browser">
         <div class="browser-bar" aria-hidden="true"><span class="bd r"></span><span class="bd y"></span><span class="bd g"></span><span class="browser-url">80-20.dev/app</span></div>
         <video class="demo-video" autoplay muted loop playsinline preload="auto" poster="/hero-poster.jpg"><source src="/hero.mp4" type="video/mp4"></video>
@@ -481,7 +568,7 @@
 <!-- FREE INSTANT GRADER -->
 <section class="block" id="grade">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head reveal">
       <div class="sec-kicker">Free · 10 seconds · no install</div>
       <h2 class="sec-title">Grade your app right now</h2>
       <p class="sec-sub">Paste your live URL. We run the checks the free tools skip — Supabase / Firebase rules read with your own public key, API keys leaked in the bundle, admin routes open without auth, Stripe test keys in production, dev builds shipped by mistake — plus headers, cookies, CORS, HTTPS and SEO. Every finding comes with a paste-ready fix for Claude Code or Cursor. No signup, no code upload; only the URL leaves your browser.</p>
@@ -495,16 +582,178 @@
   </div>
 </section>
 
+
+<!-- WHAT THE FREE SCAN SEES vs WHAT THE DEEP AUDIT SEES -->
+<section class="block" id="depth">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-kicker eyebrow-pill">Two different jobs</div>
+      <h2 class="sec-title">The free scan reads the skin. The deep audit opens the patient.</h2>
+      <p class="sec-sub">They are not the same product at two prices. The free surface scan asks every question that can be answered from outside your app, from one HTTP conversation. The deep audit runs inside your agent, drives a real browser, logs in as two different people, and tries to cross the line between them. One is a look. The other is a break-in.</p>
+    </div>
+
+    <figure class="la-figure reveal" style="max-width:1000px;margin:0 auto 34px;">
+      <img src="/img/scan-depth.svg" alt="Left: a hollow shell lit only where a single scanning beam touches it. Right: the same object cut open, every internal layer mapped and measured." width="1600" height="900" loading="lazy" decoding="async" />
+      <figcaption>Left, the surface scan: one pass over the outer skin. Right, the deep audit: every internal layer instrumented.</figcaption>
+    </figure>
+
+    <div class="la-split reveal elite-stagger">
+      <div class="la-panel corner-ticks">
+        <div class="eyebrow" style="margin-bottom:14px;color:var(--trim);border-color:var(--line-strong);background:transparent;">Free surface scan &middot; from outside &middot; ~10s</div>
+        <h3>What one HTTP conversation can prove</h3>
+        <p>No install, no code, no login. Only the URL leaves your browser.</p>
+        <ul class="la-list is-surface">
+          <li>Supabase and Firebase rules, read with your own public anon key &mdash; the CVE-2025-48757 class</li>
+          <li>API keys and service-role secrets shipped into the JavaScript bundle</li>
+          <li>Admin routes answering an unauthenticated request (SPA shells honestly downgraded, never over-claimed)</li>
+          <li>Stripe test keys live in production, dev builds and public source maps shipped by mistake</li>
+          <li>Security headers, cookie flags, CORS, TLS and certificate expiry</li>
+          <li>SEO basics, broken links, placeholder copy left in the page</li>
+        </ul>
+      </div>
+
+      <div class="la-panel corner-ticks inner-ring">
+        <div class="eyebrow" style="margin-bottom:14px;color:var(--accent-ink);background:rgba(139,146,255,.09);border-color:var(--accent-line, rgba(139,146,255,.3));">Deep audit &middot; in your agent &middot; free and MIT</div>
+        <h3>What only a real break-in can prove</h3>
+        <p>Chromium plus raw HTTP, driven from your own machine on your own agent subscription.</p>
+        <ul class="la-list is-deep">
+          <li>Broken access control: change one id and read another user&rsquo;s row &mdash; attempted, not inferred</li>
+          <li>Privilege gradient: log in as two identities and try to cross between them</li>
+          <li>Write authorization and mass assignment on the endpoints your UI hides but your server still answers</li>
+          <li>Malformed input into every handler, watching for a 500 with a stack trace attached</li>
+          <li>Real-viewport behaviour at 390px and 768px, WCAG 2.2 reflow, axe-core accessibility</li>
+          <li>Your repo: middleware map versus what the server actually enforces</li>
+          <li>The watchdog: every <em>pass</em> re-run against fresh evidence before it is allowed to count</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stat-strip reveal">
+      <div class="stat-card-trim">
+        <div class="stat-value" data-count="1485" data-count-dur="1600">0</div>
+        <div class="stat-label">sourced tests in the catalog</div>
+      </div>
+      <div class="stat-card-trim">
+        <div class="stat-value" data-count="69">0</div>
+        <div class="stat-label">checks generated for the demo target</div>
+      </div>
+      <div class="stat-card-trim">
+        <div class="stat-value" data-count="353">0</div>
+        <div class="stat-label">tests green in the engine&rsquo;s own suite</div>
+      </div>
+      <div class="stat-card-trim">
+        <div class="stat-value" data-count="5" data-count-suffix="/5">0</div>
+        <div class="stat-label">planted bugs caught on the fixture</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE SAMPLE REPORT: see the deliverable before you pay -->
+<section class="block" id="sample">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-kicker eyebrow-pill">The deliverable, before you pay for it</div>
+      <h2 class="sec-title">This is the report.</h2>
+      <p class="sec-sub">Not a mock-up. This is a real run against <code>fixtures/buggy-shop</code> &mdash; the open-source test target in our own repo, whose five planted bugs are written down in <a href="https://github.com/Fusion-Data-Company/fusion-launchaudit/blob/main/fixtures/buggy-shop/BUGS.md" target="_blank" rel="noopener">BUGS.md</a> before the audit ever runs. Every number below came out of the engine. It found all five, and it says out loud which checks it could not run.</p>
+    </div>
+
+    <div class="la-report reveal" id="sample-report">
+      <div class="la-report__head">
+        <div id="sample-gauge"></div>
+        <div class="la-report__meta">
+          <p class="la-report__url">http://127.0.0.1:4400 &middot; buggy-shop</p>
+          <p class="la-report__sub">69 checks generated. <b>43 passed</b>, <b>15 failed</b>, <b>11 blocked</b> for want of credentials, HTTPS or a lockfile &mdash; and blocked checks are reported as coverage gaps, never quietly counted as passes. Readiness is <b>passed &divide; (passed + product bugs + needs&#8209;verification)</b>: of the checks we could actually run, what fraction is launch&#8209;ready.</p>
+          <div class="la-report__counts">
+            <span class="chip chip-crit sev-chip">7 critical</span>
+            <span class="chip chip-bad sev-chip">7 high</span>
+            <span class="chip chip-warn sev-chip">1 medium</span>
+            <span class="chip chip-info sev-chip">8 needs verification</span>
+            <span class="chip chip-idle sev-chip">11 blocked</span>
+          </div>
+          <div class="la-sevbar" aria-hidden="true">
+            <i class="s-crit" style="width:30.4%"></i><i class="s-high" style="width:30.4%"></i><i class="s-med" style="width:4.4%"></i><i class="s-low" style="width:34.8%"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="la-findings">
+        <div class="elite-table-wrap">
+          <table class="elite-table is-compact">
+            <thead>
+              <tr>
+                <th scope="col">Severity</th>
+                <th scope="col">Check</th>
+                <th scope="col">What broke, and why it costs you</th>
+                <th scope="col" class="num">Evidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="la-row-crit">
+                <td><span class="chip chip-crit sev-chip">Critical</span></td>
+                <td class="la-cat">TC-ADM-004 &middot; roles_permissions</td>
+                <td class="la-what"><b>Admin route blocks anonymous access: /admin/users/1</b><span>A privileged surface answered an unauthenticated request. Server-side authorization is missing, not just UI-hidden. Expected a redirect, 401 or 403; got <span class="tabular">200</span>.</span></td>
+                <td class="num tabular">HTTP 200</td>
+              </tr>
+              <tr class="la-row-crit">
+                <td><span class="chip chip-crit sev-chip">Critical</span></td>
+                <td class="la-cat">TC-MUT-002 &middot; mutation_authz</td>
+                <td class="la-what"><b>Normal user denied privileged POST: /api/admin/delete-user</b><span>Signed in as an ordinary user, the delete call succeeded. The button is gone from the UI; the action still fires for anyone who calls it directly.</span></td>
+                <td class="num tabular">HTTP 200</td>
+              </tr>
+              <tr class="la-row-crit">
+                <td><span class="chip chip-crit sev-chip">Critical</span></td>
+                <td class="la-cat">TC-OBJ-001 &middot; object_authz</td>
+                <td class="la-what"><b>No cross-user object access: /admin/users/1</b><span>One id changed in the URL returned another person&rsquo;s record, salary and SSN included. This is broken access control, tried and confirmed.</span></td>
+                <td class="num tabular">HTTP 200</td>
+              </tr>
+              <tr class="la-row-high">
+                <td><span class="chip chip-bad sev-chip">High</span></td>
+                <td class="la-cat">TC-API-003 &middot; api_contract</td>
+                <td class="la-what"><b>Malformed input handled cleanly: POST /api/orders</b><span>A missing <code>qty</code> threw a TypeError and returned a raw stack trace in the response body. Your internals, handed to a stranger.</span></td>
+                <td class="num tabular">HTTP 500</td>
+              </tr>
+              <tr class="la-row-high">
+                <td><span class="chip chip-bad sev-chip">High</span></td>
+                <td class="la-cat">TC-FE-009 &middot; responsive_visual</td>
+                <td class="la-what"><b>No horizontal overflow on phone (390px)</b><span>Horizontal overflow detected in a real 390px viewport, three attempts, three failures &mdash; not a one-off flake. Playwright trace attached.</span></td>
+                <td class="num tabular">3 of 3</td>
+              </tr>
+              <tr class="la-row-high">
+                <td><span class="chip chip-bad sev-chip">High</span></td>
+                <td class="la-cat">TC-SEC-001 &middot; security_headers</td>
+                <td class="la-what"><b>Hardening headers carry safe values: /</b><span>No CSP, X-Frame-Options, X-Content-Type-Options or HSTS on any response. The cheap defenses that quietly never got turned on.</span></td>
+                <td class="num tabular">0 of 4</td>
+              </tr>
+              <tr class="la-row-low">
+                <td><span class="chip chip-info sev-chip">Verify</span></td>
+                <td class="la-cat">TC-TLS-001 &middot; blocked</td>
+                <td class="la-what"><b>TLS/HSTS checks apply to an https deployment</b><span>Not run, and said so: the target is plain http, so HSTS and the http&rarr;https redirect are not meaningful here. A blocked check is a coverage gap, never a pass.</span></td>
+                <td class="num tabular">&mdash;</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="padding:18px 26px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;box-shadow:inset 0 1px 0 var(--elite-rule);">
+        <a class="btn btn-primary" href="#grade">Grade your own app free &rarr;</a>
+        <a class="btn btn-ghost" href="#connect">Run this exact audit in your agent</a>
+        <span style="font-size:12.5px;color:var(--ink-mut);">Sixteen more findings and every paste-ready fix are in the full report.</span>
+      </div>
+    </div>
+  </div>
+</section>
 <!-- ORDER A HOSTED AUDIT (paid) -->
 <section class="block" id="order">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head reveal">
       <div class="sec-kicker">Don't want to run it yourself?</div>
       <h2 class="sec-title">Order a hosted Single Run</h2>
       <p class="sec-sub">The tool stays free and MIT: run the full deep audit in your own agent any time. If you would rather not, we run the site-wide URL audit for you, hosted, and the report is on your screen inside a minute. No install, no code upload, no human in the loop. The report lives at a private link tied to your order, so keep the link.</p>
     </div>
     <form id="order-form" class="order-form" novalidate>
-      <div class="tiers tiers-2">
+      <div class="tiers tiers-2 reveal">
         <label class="tier selected" for="tier-single">
           <input type="radio" name="tier" id="tier-single" value="single" checked />
           <span class="tier-badge">Automated</span>
@@ -545,9 +794,36 @@
 </section>
 
 <!-- CONNECT / CENTERPIECE -->
+
+<!-- THE PRIVACY ARGUMENT, DRAWN -->
+<section class="block" id="privacy-arg">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-kicker eyebrow-pill">The part nobody else can offer</div>
+      <h2 class="sec-title">Your code never leaves your machine.</h2>
+      <p class="sec-sub">Every hosted scanner in this category needs your repository, or a login, or an agent installed on your infrastructure. The deep audit needs none of it, because it is not our software running on our servers &mdash; it is an MCP server running inside <em>your</em> Claude Code, Cursor or Codex, on <em>your</em> subscription, against a localhost URL if you like. We never see a file. There is no upload step to opt out of, because there is no upload.</p>
+    </div>
+
+    <div class="la-split reveal" style="align-items:center;">
+      <figure class="la-figure">
+        <img src="/img/code-stays-home.svg" alt="A laptop enclosed in a shield. Every file and code block stays inside the shield; a single small marker leaves toward a distant cloud, and nothing comes back in." width="1200" height="900" loading="lazy" decoding="async" />
+        <figcaption>Everything inside the shield stays on your machine. One thing leaves, and only if you ask for the hosted scan: the URL.</figcaption>
+      </figure>
+      <div class="la-panel hairline-trim">
+        <h3>What actually crosses the wire</h3>
+        <ul class="la-list is-deep">
+          <li><b>Deep audit, in your agent:</b> nothing. Zero LLM calls from the engine, zero network calls to us. The host agent does the reasoning on your own subscription; the report is written to your disk.</li>
+          <li><b>Free surface scan:</b> the URL you typed, and nothing else. No signup, no code, no repository access.</li>
+          <li><b>Hosted Single Run:</b> the URL and the email you gave for the order. We fetch your public pages exactly the way a browser does.</li>
+        </ul>
+        <p style="margin:18px 0 0;font-size:13.5px;line-height:1.65;color:var(--ink-mut);">The engine is MIT-licensed and the whole of it is on GitHub, so this is a claim you can read rather than one you have to believe. <a href="https://github.com/Fusion-Data-Company/fusion-launchaudit" target="_blank" rel="noopener" style="color:var(--accent-ink);">Check it.</a></p>
+      </div>
+    </div>
+  </div>
+</section>
 <section class="block" id="connect">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head reveal">
       <div class="sec-kicker">Get started in one paste</div>
       <h2 class="sec-title">Connect it to your agent</h2>
       <p class="sec-sub">80/20 Launch Audit runs as an MCP server inside the coding agent you already pay for. No API key to buy, no hosted backend, nothing to deploy. Copy one line, paste it into your agent, done.</p>
@@ -605,7 +881,7 @@
             </div>
             <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="cmd-cursor"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> run dashboard</code></pre>
           </div>
-          <p class="json-note"><span class="n" style="display:inline-grid;width:20px;height:20px;border-radius:6px;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(124,131,255,0.14);border:1px solid rgba(124,131,255,0.3);vertical-align:-5px;margin-right:6px;">2</span>Add a server named <code>launchaudit</code> to Cursor's MCP settings at <code>~/.cursor/mcp.json</code>:</p>
+          <p class="json-note"><span class="n" style="display:inline-grid;width:20px;height:20px;border-radius:6px;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(139,146,255,0.14);border:1px solid rgba(139,146,255,0.3);vertical-align:-5px;margin-right:6px;">2</span>Add a server named <code>launchaudit</code> to Cursor's MCP settings at <code>~/.cursor/mcp.json</code>:</p>
           <div class="codeblock">
             <div class="code-bar">
               <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -633,7 +909,7 @@
             </div>
             <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="cmd-codex"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> run dashboard</code></pre>
           </div>
-          <p class="json-note"><span class="n" style="display:inline-grid;width:20px;height:20px;border-radius:6px;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(124,131,255,0.14);border:1px solid rgba(124,131,255,0.3);vertical-align:-5px;margin-right:6px;">2</span>Codex CLI speaks MCP — register the same <code>launchaudit</code> server in your Codex config (same command, same args):</p>
+          <p class="json-note"><span class="n" style="display:inline-grid;width:20px;height:20px;border-radius:6px;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(139,146,255,0.14);border:1px solid rgba(139,146,255,0.3);vertical-align:-5px;margin-right:6px;">2</span>Codex CLI speaks MCP — register the same <code>launchaudit</code> server in your Codex config (same command, same args):</p>
           <div class="codeblock">
             <div class="code-bar">
               <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -659,12 +935,12 @@
 <!-- WHAT IT CATCHES -->
 <section class="block" id="catches">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head reveal">
       <div class="sec-kicker">The stuff that ships broken</div>
       <h2 class="sec-title">What it catches</h2>
       <p class="sec-sub">Linters check syntax. 80/20 Launch Audit checks reality — the things AI builders confidently ship and quietly fake. It actively tries to break in, not just look around.</p>
     </div>
-    <div class="catch-grid">
+    <div class="catch-grid reveal elite-stagger">
       <div class="cgcard danger">
         <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 8.3-7 9.5C8 19.3 5 15.4 5 11V6z"/><path d="M9.5 12l1.8 1.8 3.5-3.6"/></svg></div>
         <h4>Broken access control (IDOR)</h4>
@@ -712,12 +988,12 @@
 <!-- WHY NOT JUST ASK YOUR AI -->
 <section class="block" id="why">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head reveal">
       <div class="sec-kicker">Why this isn’t your AI</div>
       <h2 class="sec-title">“Can’t I just ask my AI to check it?”</h2>
       <p class="sec-sub">You already did — and it said it looked good. That’s the trap: your AI wants to help, so it tells you what you’re hoping to hear. It reads your own code and agrees with it. It won’t log in as a stranger to read your data, won’t hammer your API until it leaks, and never double-checks its own “looks fine.” 80/20 Launch Audit makes it do the opposite of people-pleasing.</p>
     </div>
-    <div class="catch-grid why-grid">
+    <div class="catch-grid why-grid reveal">
       <div class="cgcard">
         <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="2"/></svg></div>
         <h4>It attacks — for real</h4>
@@ -741,12 +1017,12 @@
 <!-- WATCH (UGC clips) -->
 <section class="block" id="watch">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head reveal">
       <div class="sec-kicker">See it in 15 seconds</div>
       <h2 class="sec-title">Three takes, one message: free, local, and yours.</h2>
       <p class="sec-sub">Real developers on why "your AI said it's done" isn't enough — and how 80/20 Launch Audit runs free, on your own machine and your own agent subscription.</p>
     </div>
-    <div class="watch-grid">
+    <div class="watch-grid reveal">
       <figure class="watch-card"><video controls preload="metadata" playsinline poster="/launch-ugc-poster.jpg"><source src="/launch-ugc.mp4" type="video/mp4" /></video><figcaption>The short version</figcaption></figure>
       <figure class="watch-card"><video controls preload="metadata" playsinline poster="/launch-ugc-2-poster.jpg"><source src="/launch-ugc-2.mp4" type="video/mp4" /></video><figcaption>Free, local, on your own subscription</figcaption></figure>
       <figure class="watch-card"><video controls preload="metadata" playsinline poster="/launch-ugc-3-poster.jpg"><source src="/launch-ugc-3.mp4" type="video/mp4" /></video><figcaption>A template you make your own</figcaption></figure>
@@ -757,18 +1033,18 @@
 <!-- RECEIPTS -->
 <section class="block" id="receipts">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head reveal">
       <div class="sec-kicker">The receipts</div>
       <h2 class="sec-title">“It looked done.” Here’s what that costs.</h2>
       <p class="sec-sub">Not hypotheticals — documented incidents and studies. This is why “your AI said it’s ready” isn’t enough.</p>
     </div>
-    <div class="catch-grid">
+    <div class="catch-grid reveal elite-stagger">
       <div class="cgcard danger"><h4>An AI agent deleted a live production database during a code freeze — then lied that it couldn’t be recovered.</h4><p>The Register, 2025 · Replit / SaaStr incident</p></div>
-      <div class="cgcard danger"><h4>45% of AI-generated code fails security tests — and newer models are no better.</h4><p>Veracode GenAI Code Security Report, 2025</p></div>
-      <div class="cgcard danger"><h4>One AI-built app leaked 1.5 million API keys.</h4><p>Wiz, 2026 · Moltbook</p></div>
-      <div class="cgcard danger"><h4>170 live AI-built apps were leaking users’ names, emails, and financial data.</h4><p>Semafor · CVE-2025-48757 (Lovable)</p></div>
+      <div class="cgcard danger"><h4><span class="rc-n" data-count="45" data-count-suffix="%">0%</span> of AI-generated code fails security tests — and newer models are no better.</h4><p>Veracode GenAI Code Security Report, 2025</p></div>
+      <div class="cgcard danger"><h4>One AI-built app leaked <span class="rc-n" data-count="1500000">0</span> API keys.</h4><p>Wiz, 2026 · Moltbook</p></div>
+      <div class="cgcard danger"><h4><span class="rc-n" data-count="170">0</span> live AI-built apps were leaking users’ names, emails, and financial data.</h4><p>Semafor · CVE-2025-48757 (Lovable)</p></div>
       <div class="cgcard"><h4>Developers using AI write less secure code — but are more confident it’s secure.</h4><p>Stanford, ACM CCS 2023</p></div>
-      <div class="cgcard"><h4>AI-written pull requests carry ~1.7× more bugs.</h4><p>CodeRabbit, 2025 · 470 real GitHub PRs</p></div>
+      <div class="cgcard"><h4>AI-written pull requests carry ~<span class="rc-n" data-count="1.7" data-count-dp="1" data-count-suffix="×">0.0×</span> more bugs.</h4><p>CodeRabbit, 2025 · 470 real GitHub PRs</p></div>
     </div>
   </div>
 </section>
@@ -776,12 +1052,12 @@
 <!-- HOW IT WORKS -->
 <section class="block" id="how">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head reveal">
       <div class="sec-kicker">Three steps</div>
       <h2 class="sec-title">How it works</h2>
       <p class="sec-sub">From a running URL to a scored, evidence-backed punch list — and then the fixes — without leaving your editor.</p>
     </div>
-    <div class="steps">
+    <div class="steps reveal elite-stagger">
       <div class="step">
         <div class="num">1</div>
         <h4>Connect it to your agent</h4>
@@ -804,7 +1080,7 @@
 <!-- TRUTH PROTOCOL -->
 <section class="block">
   <div class="wrap">
-    <div class="truth">
+    <div class="truth reveal">
       <span class="truth-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>The Truth Protocol</span>
       <h3>No check passes without proof.</h3>
       <p>A watchdog independently re-verifies every single <span class="hl">“pass”</span> against fresh evidence — re-running the interaction, re-fetching the response, re-reading the state. <span class="hl">Anything it can't reproduce is flagged, never silently passed.</span> So the score you get is the truth, not a hopeful guess.</p>
@@ -812,6 +1088,22 @@
   </div>
 </section>
 
+
+<!-- THE PINNED MOMENT. Once per page: it is a held note and stops working the third time. -->
+<section class="la-pin" aria-label="Before you ship">
+  <div class="la-pin__stage">
+    <div class="la-pin__plate" style="background-image:url(/img/audit-hero.jpg)"></div>
+    <div class="la-pin__scrim"></div>
+    <div class="la-pin__copy">
+      <div class="eyebrow-pill" style="margin-bottom:20px;">The 20% you cannot see from here</div>
+      <h2 class="elite-heading-gradient" style="font-family:var(--font-display);font-size:clamp(30px,5.2vw,56px);line-height:1.08;letter-spacing:-.02em;margin:0 0 18px;">It is 1&nbsp;a.m. and your agent says it is done.</h2>
+      <p style="max-width:56ch;margin:0 auto;font-size:17px;line-height:1.65;color:var(--ink-soft);">It is not lying to you on purpose. It read your code, agreed with it, and never once logged in as a stranger to see what your app hands out. Somebody should do that before your first real user does.</p>
+      <div class="hero-cta" style="justify-content:center;margin-top:26px;">
+        <a class="btn btn-primary" href="#grade">Find out in ten seconds &rarr;</a>
+      </div>
+    </div>
+  </div>
+</section>
 <!-- CLOSING CTA -->
 <section class="block">
   <div class="wrap closer">
@@ -834,7 +1126,7 @@
 <!-- CONTACT -->
 <section class="block" id="contact">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head reveal">
       <div class="sec-kicker">Get in touch</div>
       <h2 class="sec-title">Questions, ideas, a check we should add?</h2>
       <p class="sec-sub">Send anything — a question about the platform, a test you want in the default suite, feedback, or a partnership. It goes straight to Fusion.</p>
@@ -909,6 +1201,7 @@
   </div>
 </footer>
 
+<script src="/assets/elite-motion.js" defer></script>
 <script src="/assets/landing.js" defer></script>
 </body>
 </html>

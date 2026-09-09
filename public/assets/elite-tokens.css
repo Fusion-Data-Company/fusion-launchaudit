@@ -235,9 +235,15 @@
     position: absolute; inset: 0; background-size: cover; background-position: 50% 42%;
     will-change: transform;
   }
+  /* The scrim is not decoration, it is the contrast guarantee. The copy band
+     is pinned to a measured ceiling: the lightest pixel a headline can sit on
+     is held at or below #1E1E28, where the gradient's palest stop (#B79BFF)
+     still measures 7.19:1 and the body ink (#C8CBD8) measures 10.22:1. */
   .la-pin__scrim {
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--elite-bg) 78%, transparent), color-mix(in srgb, var(--elite-bg) 62%, transparent) 45%, var(--elite-bg));
+    background:
+      radial-gradient(72% 58% at 50% 46%, color-mix(in srgb, var(--elite-bg) 93%, transparent), transparent 74%),
+      linear-gradient(180deg, color-mix(in srgb, var(--elite-bg) 84%, transparent), color-mix(in srgb, var(--elite-bg) 70%, transparent) 45%, var(--elite-bg));
   }
   .la-pin__copy { position: relative; text-align: center; padding: 0 22px; max-width: 900px; }
 }
