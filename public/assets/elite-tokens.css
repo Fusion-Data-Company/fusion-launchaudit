@@ -127,8 +127,14 @@
   .la-gauge.is-yellow { --la-band: var(--elite-warn); }
   .la-gauge.is-red    { --la-band: var(--la-crit); }
   .la-gauge.is-blocked{ --la-band: var(--elite-ink-3); }
-  .la-gauge.is-sm { width: 116px; height: 116px; }
-  .la-gauge.is-sm .la-gauge__num { font-size: 32px; }
+  .la-gauge.is-sm { width: 124px; height: 124px; }
+  .la-gauge.is-sm .la-gauge__num { font-size: 34px; }
+  .la-gauge.is-sm .la-gauge__den { font-size: 10px; }
+  /* The band word does not fit inside a 124px ring without touching the arc,
+     and a label clipped by its own gauge reads as a rendering fault. The
+     colour of the arc already carries the band, and the aria-label states it
+     in words for anyone who cannot see the colour. */
+  .la-gauge.is-sm .la-gauge__band { display: none; }
 
   /* ---- report shell ----------------------------------------------------- */
   .la-report {
@@ -186,6 +192,10 @@
     background: color-mix(in srgb, var(--la-crit) 7%, var(--elite-surface));
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--la-crit) 26%, transparent);
   }
+  /* The kit sizes the disc but not the glyph inside it: an <svg> with no
+     intrinsic size collapses to 300x150 and gets clipped to a smear by the
+     grid. Both marks get an explicit glyph size here. */
+  .elite-empty__mark svg, .la-error__mark svg { width: 21px; height: 21px; display: block; }
   .la-error__mark {
     width: 40px; height: 40px; border-radius: 50%;
     display: grid; place-content: center; color: var(--la-crit);

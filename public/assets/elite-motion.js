@@ -57,6 +57,10 @@
     list = document.querySelectorAll("[data-count]");
     for (i = 0; i < list.length; i++) {
       el = list[i];
+      /* A finished counter is finished. Without this flag a resize — and a
+         full-page screenshot IS a resize — re-collects it, restarts it from
+         zero, and a figure that had landed reads 0 again for a second. */
+      if (el.hasAttribute("data-counted")) continue;
       counters.push({
         el: el,
         to: parseFloat(el.getAttribute("data-count")),
@@ -128,7 +132,7 @@
       var p = Math.min(1, (now - r.t0) / r.dur);
       var eased = 1 - Math.pow(1 - p, 3);
       writeCount(r, r.from + (r.to - r.from) * eased);
-      if (p >= 1) counters.splice(i, 1);
+      if (p >= 1) { r.el.setAttribute("data-counted", ""); counters.splice(i, 1); }
     }
 
     /* Pinned — the pin track's HEIGHT is the pin duration. Use once a page. */
@@ -159,7 +163,7 @@
     if (r.dp === 0 && r.to >= 1000) n = Number(n).toLocaleString("en-US");
     r.el.textContent = r.prefix + n + r.suffix;
   }
-  function finishCount(r) { writeCount(r, r.to); }
+  function finishCount(r) { writeCount(r, r.to); r.el.setAttribute("data-counted", ""); }
 
   function schedule() {
     if (queued) return;
