@@ -14174,6 +14174,10 @@ var paymentLifecycleSchema = `create table if not exists paid_audit_payment_stat
   status text not null check(status in ('payment_failed','refunded','disputed')),
   updated_at timestamptz not null default now()
 )`;
+async function reconcilePaymentState(sql, session) {
+  await sql(`update paid_audits a set status=p.status
+    from paid_audit_payment_state p where a.stripe_session_id=$1 and p.stripe_session_id=a.stripe_session_id`, [session]);
+}
 
 // src/lib/paid-audits.ts
 import { randomUUID } from "node:crypto";
@@ -15263,18 +15267,25 @@ async function gradePaidAudit(sql, row) {
       await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify(result), claim]);
     }
   } else if ("blocked" in result && result.blocked) {
-    const refund = await refundBlockedOrder(row);
+    const refund = await refundBlockedOrder(sql, row, claim);
     await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund }), claim]);
   } else {
     await sql(`update paid_audits set grade_json = $2::jsonb, grade_claim_token=null, grade_claimed_at=null where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error }), claim]);
   }
   return await getPaidAuditBySession(sql, row.stripe_session_id) ?? row;
 }
-async function refundBlockedOrder(row) {
+async function refundBlockedOrder(sql, row, claim) {
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return { skipped: "STRIPE_SECRET_KEY unset" };
   if (process.env.AUTO_REFUND_BLOCKED === "0") return { skipped: "AUTO_REFUND_BLOCKED=0" };
   try {
+    await reconcilePaymentState(sql, row.stripe_session_id);
+    const current = await sql(`select a.status, a.grade_claim_token
+      from paid_audits a where a.id=$1 limit 1`, [row.id]);
+    const currentRow = current[0];
+    if (!currentRow || currentRow.status !== "queued" || currentRow.grade_claim_token !== claim) {
+      return { skipped: `order is ${currentRow?.status ?? "missing"}` };
+    }
     const session = await stripeGet(secret, `/v1/checkout/sessions/${encodeURIComponent(row.stripe_session_id)}`);
     if (!session.payment_intent) return { error: "session has no payment_intent" };
     const r = await stripeRequest(

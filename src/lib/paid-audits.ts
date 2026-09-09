@@ -86,7 +86,7 @@ export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise
   } else if ("blocked" in result && result.blocked) {
     // The target would not let us see it. That is a real outcome the buyer must
     // be told about, and it is the refund trigger the refund policy names.
-    const refund = await refundBlockedOrder(row);
+    const refund = await refundBlockedOrder(sql, row, claim);
     await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund }), claim]);
   } else {
     // Keep status 'queued' so a retry (the next poll or the sweep) can grade it later.
@@ -100,11 +100,21 @@ export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise
  * idempotent on the session id, and record the outcome in grade_json so the order page and
  * the operator can both see whether it went through. A failure never hides the blocked result.
  */
-async function refundBlockedOrder(row: PaidAuditRow): Promise<{ id?: string; error?: string; skipped?: string }> {
+export async function refundBlockedOrder(sql: SqlClient, row: PaidAuditRow, claim: string): Promise<{ id?: string; error?: string; skipped?: string }> {
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return { skipped: "STRIPE_SECRET_KEY unset" };
   if (process.env.AUTO_REFUND_BLOCKED === "0") return { skipped: "AUTO_REFUND_BLOCKED=0" };
   try {
+    // The grader's row may be stale while a Stripe lifecycle webhook closes the
+    // payment. Reconcile first, then require the same queued claim before any
+    // external refund side effect.
+    await reconcilePaymentState(sql, row.stripe_session_id);
+    const current = await sql(`select a.status, a.grade_claim_token
+      from paid_audits a where a.id=$1 limit 1`, [row.id]);
+    const currentRow = current[0] as { status?: PaidAuditStatus; grade_claim_token?: string | null } | undefined;
+    if (!currentRow || currentRow.status !== "queued" || currentRow.grade_claim_token !== claim) {
+      return { skipped: `order is ${currentRow?.status ?? "missing"}` };
+    }
     const session = await stripeGet<{ payment_intent?: string | null }>(secret, `/v1/checkout/sessions/${encodeURIComponent(row.stripe_session_id)}`);
     if (!session.payment_intent) return { error: "session has no payment_intent" };
     const r = await stripeRequest<{ id: string }>(

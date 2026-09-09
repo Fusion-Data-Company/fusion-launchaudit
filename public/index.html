@@ -6,6 +6,10 @@
 <title>80/20 Launch Audit — the senior dev that finishes your app</title>
 <meta name="description" content="80/20 Launch Audit is a deep, automated launch-readiness audit for web apps. It runs inside your own coding agent, drives your app in a real browser, and produces a 0–100 readiness score with evidence for every check. A watchdog re-verifies every pass — so it never lies that something works." />
 <meta name="color-scheme" content="dark" />
+<link rel="canonical" href="https://80-20.dev/" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"80/20 Launch Audit","url":"https://80-20.dev/","applicationCategory":"DeveloperApplication","operatingSystem":"Cross-platform","description":"Launch-readiness auditing for web applications, with browser checks and evidence-backed reports.","publisher":{"@type":"Organization","name":"Fusion Data Company","url":"https://fusiondataco.com/"}}
+</script>
 <link rel="icon" href="/favicon-32.png" type="image/png" />
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -111,7 +115,7 @@
   .nav-cta{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:10px;font-size:13.5px;font-weight:600;text-decoration:none;border:1px solid var(--line-strong);color:var(--ink);background:rgba(255,255,255,0.03);transition:border-color .15s,background .15s;}
   .nav-cta:hover{border-color:var(--accent);background:rgba(139,146,255,0.1);}
   .nav-cta svg{width:15px;height:15px;}
-  @media(max-width:720px){.nav-links a.nlink{display:none;}}
+  @media(max-width:900px){.nav-links a.nlink{display:none;}}
 
   /* ---------- HERO ---------- */
   .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(139,146,255,0.07);font-size:12.5px;font-weight:600;color:var(--accent-ink);letter-spacing:0.01em;margin-bottom:22px;}
@@ -863,7 +867,7 @@
                 <span class="cb-label">Copy</span>
               </button>
             </div>
-            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="cmd-claude"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">claude</span> mcp add launchaudit -- node <span class="tok-flag">--experimental-strip-types</span> ./runner/mcp-server.ts <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> run dashboard</code></pre>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body" tabindex="0" aria-label="Installation code"><code id="cmd-claude"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">claude</span> mcp add launchaudit -- node <span class="tok-flag">--experimental-strip-types</span> ./runner/mcp-server.ts <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> run dashboard</code></pre>
           </div>
         </div>
 
@@ -879,7 +883,7 @@
                 <span class="cb-label">Copy</span>
               </button>
             </div>
-            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="cmd-cursor"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> run dashboard</code></pre>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body" tabindex="0" aria-label="Installation code"><code id="cmd-cursor"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> run dashboard</code></pre>
           </div>
           <p class="json-note"><span class="n" style="display:inline-grid;width:20px;height:20px;border-radius:6px;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(139,146,255,0.14);border:1px solid rgba(139,146,255,0.3);vertical-align:-5px;margin-right:6px;">2</span>Add a server named <code>launchaudit</code> to Cursor's MCP settings at <code>~/.cursor/mcp.json</code>:</p>
           <div class="codeblock">
@@ -891,7 +895,7 @@
                 <span class="cb-label">Copy</span>
               </button>
             </div>
-            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="json-cursor"><span class="tok-key">{</span> <span class="tok-str">"mcpServers"</span>: <span class="tok-key">{</span> <span class="tok-str">"launchaudit"</span>: <span class="tok-key">{</span> <span class="tok-str">"command"</span>: <span class="tok-str">"node"</span>, <span class="tok-str">"args"</span>: [<span class="tok-str">"--experimental-strip-types"</span>, <span class="tok-str">"./runner/mcp-server.ts"</span>] <span class="tok-key">}</span> <span class="tok-key">}</span> <span class="tok-key">}</span></code></pre>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body" tabindex="0" aria-label="Installation code"><code id="json-cursor"><span class="tok-key">{</span> <span class="tok-str">"mcpServers"</span>: <span class="tok-key">{</span> <span class="tok-str">"launchaudit"</span>: <span class="tok-key">{</span> <span class="tok-str">"command"</span>: <span class="tok-str">"node"</span>, <span class="tok-str">"args"</span>: [<span class="tok-str">"--experimental-strip-types"</span>, <span class="tok-str">"./runner/mcp-server.ts"</span>] <span class="tok-key">}</span> <span class="tok-key">}</span> <span class="tok-key">}</span></code></pre>
           </div>
         </div>
 
@@ -907,7 +911,7 @@
                 <span class="cb-label">Copy</span>
               </button>
             </div>
-            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="cmd-codex"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> run dashboard</code></pre>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body" tabindex="0" aria-label="Installation code"><code id="cmd-codex"><span class="tok-cmd">git</span> clone https://github.com/Fusion-Data-Company/fusion-launchaudit.git <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">cd</span> fusion-launchaudit <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> install <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npx</span> playwright install chromium <span class="tok-amp">&amp;&amp;</span> <span class="tok-cmd">npm</span> run dashboard</code></pre>
           </div>
           <p class="json-note"><span class="n" style="display:inline-grid;width:20px;height:20px;border-radius:6px;place-items:center;font-size:11px;font-weight:700;color:var(--accent-ink);background:rgba(139,146,255,0.14);border:1px solid rgba(139,146,255,0.3);vertical-align:-5px;margin-right:6px;">2</span>Codex CLI speaks MCP — register the same <code>launchaudit</code> server in your Codex config (same command, same args):</p>
           <div class="codeblock">
@@ -919,7 +923,7 @@
                 <span class="cb-label">Copy</span>
               </button>
             </div>
-            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body"><code id="json-codex"><span class="tok-key">{</span> <span class="tok-str">"mcpServers"</span>: <span class="tok-key">{</span> <span class="tok-str">"launchaudit"</span>: <span class="tok-key">{</span> <span class="tok-str">"command"</span>: <span class="tok-str">"node"</span>, <span class="tok-str">"args"</span>: [<span class="tok-str">"--experimental-strip-types"</span>, <span class="tok-str">"./runner/mcp-server.ts"</span>] <span class="tok-key">}</span> <span class="tok-key">}</span> <span class="tok-key">}</span></code></pre>
+            <span class="scrollfade" aria-hidden="true"></span><pre class="code-body" tabindex="0" aria-label="Installation code"><code id="json-codex"><span class="tok-key">{</span> <span class="tok-str">"mcpServers"</span>: <span class="tok-key">{</span> <span class="tok-str">"launchaudit"</span>: <span class="tok-key">{</span> <span class="tok-str">"command"</span>: <span class="tok-str">"node"</span>, <span class="tok-str">"args"</span>: [<span class="tok-str">"--experimental-strip-types"</span>, <span class="tok-str">"./runner/mcp-server.ts"</span>] <span class="tok-key">}</span> <span class="tok-key">}</span> <span class="tok-key">}</span></code></pre>
           </div>
         </div>
 
