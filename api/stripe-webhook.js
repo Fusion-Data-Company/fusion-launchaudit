@@ -14492,8 +14492,8 @@ async function handler(req, res) {
     res.status(400).json({ error: "No session in event." });
     return;
   }
-  if (session.payment_status && session.payment_status !== "paid") {
-    res.status(200).json({ received: true, ignored: `payment_status=${session.payment_status}` });
+  if (session.payment_status !== "paid") {
+    res.status(200).json({ received: true, ignored: `payment_status=${session.payment_status ?? "missing"}` });
     return;
   }
   const targetUrl = session.metadata?.target_url?.trim();
