@@ -22,7 +22,7 @@
     "dashboard": "node --experimental-strip-types server/dashboard.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@neondatabase/serverless": "^1.1.0",
     "undici": "^6.28.1",
     "@vercel/blob": "^2.4.0",
