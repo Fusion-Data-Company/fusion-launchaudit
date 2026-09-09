@@ -61,15 +61,26 @@ export default async function handler(req: Req, res: Res) {
     if (next) {
       const obj = event.data?.object as { id?: string; object?: string; payment_intent?: string | null } | undefined;
       const sql0 = await getSqlClient();
+      if (!sql0) { res.status(503).json({ error: "Database unavailable; retry lifecycle event." }); return; }
       let sessionId = obj?.id?.startsWith("cs_") ? obj.id : null;
       const secretKey = process.env.STRIPE_SECRET_KEY;
       if (!sessionId && obj?.payment_intent && secretKey) {
         try {
           const list = await stripeGet<{ data?: { id: string }[] }>(secretKey, `/v1/checkout/sessions?payment_intent=${encodeURIComponent(obj.payment_intent)}&limit=1`);
           sessionId = list.data?.[0]?.id ?? null;
-        } catch { sessionId = null; }
+        } catch { res.status(502).json({ error: "Payment lookup failed; retry lifecycle event." }); return; }
       }
-      if (sql0 && sessionId) await sql0(`update paid_audits set status = $2 where stripe_session_id = $1 and status <> 'blocked'`, [sessionId, next]).catch(() => undefined);
+      if (!sessionId && obj?.payment_intent && !secretKey) {
+        res.status(503).json({ error: "Payment lookup unavailable; retry lifecycle event." }); return;
+      }
+      if (sessionId) {
+        try {
+          await ensurePaidAuditsTable(sql0);
+          await sql0(`update paid_audits set status = $2 where stripe_session_id = $1`, [sessionId, next]);
+        } catch {
+          res.status(500).json({ error: "Could not persist lifecycle event; Stripe should retry." }); return;
+        }
+      }
     }
     res.status(200).json({ received: true, ignored: event.type }); return;
   }

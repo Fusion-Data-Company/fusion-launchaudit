@@ -14213,7 +14213,9 @@ var paidAuditsSchemaSql = `create table if not exists paid_audits (
   report_url text
 );
 
-create index if not exists paid_audits_status_idx on paid_audits (status, created_at);`;
+create index if not exists paid_audits_status_idx on paid_audits (status, created_at);
+alter table paid_audits add column if not exists grade_claim_token text;
+alter table paid_audits add column if not exists grade_claimed_at timestamptz;`;
 var scansSchemaSql = `create table if not exists scans (
   id text primary key,
   url text not null,
@@ -14432,6 +14434,10 @@ async function handler(req, res) {
     if (next) {
       const obj = event.data?.object;
       const sql0 = await getSqlClient();
+      if (!sql0) {
+        res.status(503).json({ error: "Database unavailable; retry lifecycle event." });
+        return;
+      }
       let sessionId = obj?.id?.startsWith("cs_") ? obj.id : null;
       const secretKey = process.env.STRIPE_SECRET_KEY;
       if (!sessionId && obj?.payment_intent && secretKey) {
@@ -14439,10 +14445,23 @@ async function handler(req, res) {
           const list = await stripeGet(secretKey, `/v1/checkout/sessions?payment_intent=${encodeURIComponent(obj.payment_intent)}&limit=1`);
           sessionId = list.data?.[0]?.id ?? null;
         } catch {
-          sessionId = null;
+          res.status(502).json({ error: "Payment lookup failed; retry lifecycle event." });
+          return;
         }
       }
-      if (sql0 && sessionId) await sql0(`update paid_audits set status = $2 where stripe_session_id = $1 and status <> 'blocked'`, [sessionId, next]).catch(() => void 0);
+      if (!sessionId && obj?.payment_intent && !secretKey) {
+        res.status(503).json({ error: "Payment lookup unavailable; retry lifecycle event." });
+        return;
+      }
+      if (sessionId) {
+        try {
+          await ensurePaidAuditsTable(sql0);
+          await sql0(`update paid_audits set status = $2 where stripe_session_id = $1`, [sessionId, next]);
+        } catch {
+          res.status(500).json({ error: "Could not persist lifecycle event; Stripe should retry." });
+          return;
+        }
+      }
     }
     res.status(200).json({ received: true, ignored: event.type });
     return;

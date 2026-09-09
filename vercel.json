@@ -11,7 +11,8 @@
     "api/monitor.js": { "maxDuration": 30 },
     "api/rescan-cron.js": { "maxDuration": 300 }
   },
-  "crons": [{ "path": "/api/rescan-cron", "schedule": "0 13 * * 1" }],
+  "crons": [{ "path": "/api/rescan-cron", "schedule": "0 13 * * 1" },
+    { "path": "/api/grade-order", "schedule": "0 * * * *" }],
   "redirects": [{ "source": "/landing", "destination": "/#order", "permanent": true }],
   "headers": [
     {

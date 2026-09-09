@@ -14168,6 +14168,9 @@ async function getSqlClient(env = process.env) {
   return null;
 }
 
+// src/lib/paid-audits.ts
+import { randomUUID } from "node:crypto";
+
 // src/lib/storage-contract.ts
 var paidAuditsSchemaSql = `create table if not exists paid_audits (
   id text primary key,
@@ -14183,7 +14186,9 @@ var paidAuditsSchemaSql = `create table if not exists paid_audits (
   report_url text
 );
 
-create index if not exists paid_audits_status_idx on paid_audits (status, created_at);`;
+create index if not exists paid_audits_status_idx on paid_audits (status, created_at);
+alter table paid_audits add column if not exists grade_claim_token text;
+alter table paid_audits add column if not exists grade_claimed_at timestamptz;`;
 var scansSchemaSql = `create table if not exists scans (
   id text primary key,
   url text not null,
@@ -15235,19 +15240,25 @@ async function getPaidAuditBySession(sql, stripeSessionId) {
 }
 async function gradePaidAudit(sql, row) {
   if (row.status !== "queued") return row;
+  const claim = randomUUID();
+  const owned = await sql(`update paid_audits set grade_claim_token=$2, grade_claimed_at=now()
+    where id=$1 and status='queued'
+      and (grade_claimed_at is null or grade_claimed_at < now() - interval '10 minutes')
+    returning id`, [row.id, claim]);
+  if (!owned.length) return await getPaidAuditBySession(sql, row.stripe_session_id) ?? row;
   const parsed = parseTargetUrl(row.target_url);
   const result = parsed.ok ? await runDeepGrade(parsed.url) : { ok: false, status: 400, error: parsed.error };
   if (result.ok) {
     if (row.tier === "single") {
-      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1`, [row.id, JSON.stringify(result)]);
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify(result), claim]);
     } else {
-      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify(result), claim]);
     }
   } else if ("blocked" in result && result.blocked) {
     const refund = await refundBlockedOrder(row);
-    await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund })]);
+    await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund }), claim]);
   } else {
-    await sql(`update paid_audits set grade_json = $2::jsonb where id = $1`, [row.id, JSON.stringify({ error: result.error })]);
+    await sql(`update paid_audits set grade_json = $2::jsonb, grade_claim_token=null, grade_claimed_at=null where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error }), claim]);
   }
   return await getPaidAuditBySession(sql, row.stripe_session_id) ?? row;
 }
