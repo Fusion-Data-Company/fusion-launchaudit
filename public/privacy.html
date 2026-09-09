@@ -10,15 +10,23 @@
 <link rel="icon" href="/favicon-32.png" type="image/png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/assets/elite.css" />
+<link rel="stylesheet" href="/assets/elite-tokens.css" />
 <style>
-  :root{--bg:#0b0c14;--panel:rgba(20,22,34,0.75);--line:rgba(255,255,255,0.09);--ink:#eef0f6;--ink-mut:#aab0c3;--ink-faint:#7b8196;--accent:#7c83ff;--font:"Inter",system-ui,sans-serif;--font-display:"Space Grotesk","Inter",system-ui,sans-serif;}
+  :root{--bg:#08080C;--panel:#101017;--panel-2:#17171F;--line:rgba(201,206,219,0.10);--line-strong:rgba(201,206,219,0.17);--ink:#F5F6FB;--ink-mut:#C8CBD8;--ink-faint:#9DA1B2;--accent:#8B92FF;--accent-ink:#CFD3FF;--trim:#C9CEDB;--font:"Inter",system-ui,sans-serif;--font-display:"Space Grotesk","Inter",system-ui,sans-serif;}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:760px;margin:0 auto;padding:40px 22px 80px;}
   .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);margin-bottom:40px;}
   .brand img{height:26px;} .brand span{font-family:var(--font-display);font-weight:700;font-size:16px;}
-  .kicker{font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+  .kicker{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);padding:5px 12px;border-radius:999px;border:1px solid var(--line-strong);background:rgba(139,146,255,.07);margin-bottom:14px;}
+  .wrap{position:relative;}
+  .page-plate{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .page-plate img{width:100%;height:100%;object-fit:cover;object-position:60% 38%;opacity:.12;filter:saturate(.6);}
+  .page-plate::after{content:"";position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 0%,rgba(8,8,12,.76),var(--bg) 76%);}
+  body>.wrap{z-index:1;}
+  @media (max-width:767px){html,body{overflow-x:clip;max-width:100vw;}}
   h1{font-family:var(--font-display);font-size:34px;letter-spacing:-.02em;margin:0 0 8px;}
   h2{font-family:var(--font-display);font-size:20px;margin:34px 0 8px;}
   p,li{color:var(--ink-mut);font-size:15.5px;} .meta{color:var(--ink-faint);font-size:13px;margin:0 0 28px;}
@@ -27,6 +35,7 @@
 </style>
 </head>
 <body>
+<div class="page-plate" aria-hidden="true"><img src="/img/audit-hero.jpg" alt="" width="1600" height="914" decoding="async" loading="lazy" /></div>
 <div class="wrap">
   <a class="brand" href="/"><img src="/logo-80-20.png" alt="80/20" /><span>Launch Audit</span></a>
   <div class="kicker">Legal</div>
@@ -57,5 +66,6 @@
     <a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refunds">Refunds</a><a href="/">Home</a>
   </div>
 </div>
+<script src="/assets/elite-motion.js" defer></script>
 </body>
 </html>
