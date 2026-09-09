@@ -7,6 +7,7 @@
  * functions don't have. Rows stay at 'graded' until a worker/human runs it and
  * sets report_url + status 'delivered'. Never claim otherwise in the UI.
  */
+import { paymentLifecycleSchema, reconcilePaymentState } from "./payment-lifecycle.ts";
 import { randomUUID } from "node:crypto";
 import type { SqlClient } from "./db.ts";
 import { paidAuditsSchemaSql } from "./storage-contract.ts";
@@ -31,6 +32,7 @@ export type PaidAuditRow = {
 };
 
 export async function ensurePaidAuditsTable(sql: SqlClient): Promise<void> {
+  await sql(paymentLifecycleSchema);
   for (const stmt of paidAuditsSchemaSql.split(";").map((s) => s.trim()).filter(Boolean)) await sql(stmt);
 }
 
@@ -49,6 +51,7 @@ export async function upsertPaidAudit(
      on conflict (stripe_session_id) do nothing`,
     [newPaidAuditId(), order.stripeSessionId, order.email, order.targetUrl, order.tier, order.amountCents],
   );
+  await reconcilePaymentState(sql, order.stripeSessionId);
   const row = await getPaidAuditBySession(sql, order.stripeSessionId);
   if (!row) throw new Error("paid_audits insert did not persist");
   return row;

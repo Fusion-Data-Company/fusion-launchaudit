@@ -14136,6 +14136,25 @@ shared_preload_libraries=${r.join(",")}`;
   }
 });
 
+// src/lib/payment-lifecycle.ts
+var paymentLifecycleSchema = `create table if not exists paid_audit_payment_state (
+  stripe_session_id text primary key,
+  status text not null check(status in ('payment_failed','refunded','disputed')),
+  updated_at timestamptz not null default now()
+)`;
+async function reconcilePaymentState(sql, session) {
+  await sql(`update paid_audits a set status=p.status
+    from paid_audit_payment_state p where a.stripe_session_id=$1 and p.stripe_session_id=a.stripe_session_id`, [session]);
+}
+async function recordPaymentState(sql, session, status) {
+  await sql(`insert into paid_audit_payment_state(stripe_session_id,status) values($1,$2)
+    on conflict(stripe_session_id) do update set status=case
+      when paid_audit_payment_state.status='disputed' or excluded.status='disputed' then 'disputed'
+      when paid_audit_payment_state.status='refunded' or excluded.status='refunded' then 'refunded'
+      else 'payment_failed' end, updated_at=now()`, [session, status]);
+  await reconcilePaymentState(sql, session);
+}
+
 // src/lib/db.ts
 var cachedClient = null;
 async function getSqlClient(env = process.env) {
@@ -14366,6 +14385,7 @@ ${scansSchemaSql}`;
 
 // src/lib/paid-audits.ts
 async function ensurePaidAuditsTable(sql) {
+  await sql(paymentLifecycleSchema);
   for (const stmt of paidAuditsSchemaSql.split(";").map((s5) => s5.trim()).filter(Boolean)) await sql(stmt);
 }
 function newPaidAuditId() {
@@ -14378,6 +14398,7 @@ async function upsertPaidAudit(sql, order) {
      on conflict (stripe_session_id) do nothing`,
     [newPaidAuditId(), order.stripeSessionId, order.email, order.targetUrl, order.tier, order.amountCents]
   );
+  await reconcilePaymentState(sql, order.stripeSessionId);
   const row = await getPaidAuditBySession(sql, order.stripeSessionId);
   if (!row) throw new Error("paid_audits insert did not persist");
   return row;
@@ -14456,7 +14477,7 @@ async function handler(req, res) {
       if (sessionId) {
         try {
           await ensurePaidAuditsTable(sql0);
-          await sql0(`update paid_audits set status = $2 where stripe_session_id = $1`, [sessionId, next]);
+          await recordPaymentState(sql0, sessionId, next);
         } catch {
           res.status(500).json({ error: "Could not persist lifecycle event; Stripe should retry." });
           return;

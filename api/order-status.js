@@ -14168,6 +14168,13 @@ async function getSqlClient(env = process.env) {
   return null;
 }
 
+// src/lib/payment-lifecycle.ts
+var paymentLifecycleSchema = `create table if not exists paid_audit_payment_state (
+  stripe_session_id text primary key,
+  status text not null check(status in ('payment_failed','refunded','disputed')),
+  updated_at timestamptz not null default now()
+)`;
+
 // src/lib/paid-audits.ts
 import { randomUUID } from "node:crypto";
 
@@ -15232,6 +15239,7 @@ async function stripeGet(secretKey, path) {
 
 // src/lib/paid-audits.ts
 async function ensurePaidAuditsTable(sql) {
+  await sql(paymentLifecycleSchema);
   for (const stmt of paidAuditsSchemaSql.split(";").map((s5) => s5.trim()).filter(Boolean)) await sql(stmt);
 }
 async function getPaidAuditBySession(sql, stripeSessionId) {

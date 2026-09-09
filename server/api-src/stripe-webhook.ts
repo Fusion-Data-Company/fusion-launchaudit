@@ -1,3 +1,4 @@
+import { recordPaymentState, type ClosedPaymentStatus } from "../../src/lib/payment-lifecycle.ts";
 /**
  * /api/stripe-webhook — Stripe → us. Raw body, signature verified with
  * STRIPE_WEBHOOK_SECRET. On checkout.session.completed (or async_payment_succeeded):
@@ -52,7 +53,7 @@ export default async function handler(req: Req, res: Res) {
   if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") {
     // Lifecycle events. A session-shaped object carries the cs_ id directly; a refund or
     // dispute arrives as a Charge, which we map back to the session via its payment_intent.
-    const lifecycle: Record<string, string> = {
+    const lifecycle: Record<string, ClosedPaymentStatus> = {
       "checkout.session.async_payment_failed": "payment_failed",
       "charge.refunded": "refunded",
       "charge.dispute.created": "disputed",
@@ -76,7 +77,7 @@ export default async function handler(req: Req, res: Res) {
       if (sessionId) {
         try {
           await ensurePaidAuditsTable(sql0);
-          await sql0(`update paid_audits set status = $2 where stripe_session_id = $1`, [sessionId, next]);
+          await recordPaymentState(sql0, sessionId, next);
         } catch {
           res.status(500).json({ error: "Could not persist lifecycle event; Stripe should retry." }); return;
         }
