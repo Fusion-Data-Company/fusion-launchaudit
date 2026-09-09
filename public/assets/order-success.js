@@ -155,15 +155,15 @@
       }
       meta.innerHTML='Order for '+esc(d.target_url)+' &middot; '+tierName(d.tier)+' &middot; order link: '+esc(window.location.href);
       if(d.status==='blocked'){
-        setChip('chip-warn','Refunded');
-        setHead('We could not audit that site, so we refunded you.',
-                'The scanner could not read '+esc(d.target_url)+' as a normal page, and grading what it did get back would have been a report about somebody else&rsquo;s HTML. Refund policy applied automatically.');
+        setChip('chip-warn',d.refunded?'Refunded':'Refund pending');
+        setHead(d.refunded?'We could not audit that site, so we refunded you.':'We could not audit that site. Your refund needs confirmation.',
+                'The scanner could not read '+esc(d.target_url)+' as a normal page, and grading what it did get back would have been a report about somebody else&rsquo;s HTML. '+(d.refunded?'The refund has been issued.':'A completed refund has not yet been confirmed.'));
         stGraded.className='now'; if(stReport)stReport.hidden=true;
         grade.innerHTML=errBlock('We could not read '+esc(d.target_url)+', so we will not grade it.',
           esc(d.blocked||d.grade_error||'The site did not answer as a normal page.')+' Grading a bot wall would be a report full of failures about somebody else&rsquo;s HTML. That is a refund, not a report.',
           '<p style="margin:6px 0 0;font-size:13.5px;color:var(--ink-mut);max-width:52ch">'
           +(d.refunded?'Your payment has been refunded in full; allow up to 5 business days for it to show on your card.'
-                      :'Per the <a href="/refunds" style="color:var(--accent-ink)">refund policy</a> this run is refunded in full. If it has not shown on your card within 5 business days, reply to your Stripe receipt.')+'</p>');
+                      :'This run qualifies for a full refund under our <a href="/refunds" style="color:var(--accent-ink)">refund policy</a>, but we have not confirmed it was issued. <a href="/#contact">Contact us with this order link</a> so we can complete it.')+'</p>');
         report.hidden=false;
         report.innerHTML='<p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">Common causes: a bot wall or challenge page, a login wall on the home page, or the site being down. Once the public pages answer normally, order again and it will run. Or run it from your own machine, where there is nothing to block: <a href="/#connect" style="color:var(--accent-ink)">connect your agent</a>.</p>';
         refresh(); return;
