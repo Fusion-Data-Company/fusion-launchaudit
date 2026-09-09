@@ -7,6 +7,7 @@
  * functions don't have. Rows stay at 'graded' until a worker/human runs it and
  * sets report_url + status 'delivered'. Never claim otherwise in the UI.
  */
+import { randomUUID } from "node:crypto";
 import type { SqlClient } from "./db.ts";
 import { paidAuditsSchemaSql } from "./storage-contract.ts";
 import { parseTargetUrl, type InstantGrade } from "./instant-grade.ts";
@@ -64,23 +65,29 @@ export async function getPaidAuditBySession(sql: SqlClient, stripeSessionId: str
  */
 export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise<PaidAuditRow> {
   if (row.status !== "queued") return row;
+  const claim = randomUUID();
+  const owned = await sql(`update paid_audits set grade_claim_token=$2, grade_claimed_at=now()
+    where id=$1 and status='queued'
+      and (grade_claimed_at is null or grade_claimed_at < now() - interval '10 minutes')
+    returning id`, [row.id, claim]);
+  if (!owned.length) return (await getPaidAuditBySession(sql, row.stripe_session_id)) ?? row;
   const parsed = parseTargetUrl(row.target_url);
   const result = parsed.ok ? await runDeepGrade(parsed.url) : { ok: false as const, status: 400, error: parsed.error };
   if (result.ok) {
     // Single Run: the instant grade IS the deliverable, so the order completes here with no human step.
     if (row.tier === "single") {
-      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1`, [row.id, JSON.stringify(result)]);
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify(result), claim]);
     } else {
-      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1`, [row.id, JSON.stringify(result)]);
+      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify(result), claim]);
     }
   } else if ("blocked" in result && result.blocked) {
     // The target would not let us see it. That is a real outcome the buyer must
     // be told about, and it is the refund trigger the refund policy names.
     const refund = await refundBlockedOrder(row);
-    await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund })]);
+    await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund }), claim]);
   } else {
     // Keep status 'queued' so a retry (the next poll or the sweep) can grade it later.
-    await sql(`update paid_audits set grade_json = $2::jsonb where id = $1`, [row.id, JSON.stringify({ error: result.error })]);
+    await sql(`update paid_audits set grade_json = $2::jsonb, grade_claim_token=null, grade_claimed_at=null where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error }), claim]);
   }
   return (await getPaidAuditBySession(sql, row.stripe_session_id)) ?? row;
 }
