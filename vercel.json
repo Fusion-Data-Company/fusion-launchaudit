@@ -8,10 +8,10 @@
       "maxDuration": 15
     },
     "api/order-status.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "api/grade-order.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "api/grade.js": {
       "maxDuration": 30

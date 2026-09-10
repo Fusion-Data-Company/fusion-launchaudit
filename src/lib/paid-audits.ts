@@ -12,6 +12,7 @@ import { randomUUID } from "node:crypto";
 import type { SqlClient } from "./db.ts";
 import { paidAuditsSchemaSql } from "./storage-contract.ts";
 import { parseTargetUrl, type InstantGrade } from "./instant-grade.ts";
+import { withAuditDeadline } from "./audit-deadline.ts";
 import { runDeepGrade, type DeepGrade } from "./deep-grade.ts";
 import { stripeGet, stripeRequest } from "./stripe.ts";
 
@@ -75,7 +76,7 @@ export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise
     returning id`, [row.id, claim]);
   if (!owned.length) return (await getPaidAuditBySession(sql, row.stripe_session_id)) ?? row;
   const parsed = parseTargetUrl(row.target_url);
-  const result = parsed.ok ? await runDeepGrade(parsed.url) : { ok: false as const, status: 400, error: parsed.error };
+  const result = parsed.ok ? await withAuditDeadline(runDeepGrade(parsed.url)) : { ok: false as const, status: 400, error: parsed.error };
   if (result.ok) {
     // Single Run: the instant grade IS the deliverable, so the order completes here with no human step.
     if (row.tier === "single") {

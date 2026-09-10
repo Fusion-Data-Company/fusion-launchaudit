@@ -16,8 +16,8 @@
  *     SEO) through Google PageSpeed Insights when it answers in time
  *
  * Still no browser, no code, no login. Everything runs inside one serverless
- * invocation with a hard time budget so the buyer sees the result on the
- * success page within a minute of paying.
+ * invocation. The paid-order wrapper enforces a deadline within the
+ * serverless runtime budget; slow targets remain queued for retry.
  */
 import dns from "node:dns/promises";
 import tls from "node:tls";
