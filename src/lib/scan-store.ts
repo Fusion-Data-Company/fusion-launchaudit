@@ -118,9 +118,10 @@ export function diffScans(prev: { score: number; findings: Finding[] } | null, n
 }
 
 // ---- leads (unlock email capture) ------------------------------------------
-export async function recordLead(sql: SqlClient, email: string, scanId: string | null, origin: string | null): Promise<void> {
+export async function recordLead(sql: SqlClient, email: string, scanId: string | null, origin: string | null): Promise<string> {
   const id = "lead_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   await sql(`insert into scan_leads (id, email, scan_id, origin) values ($1, $2, $3, $4)`, [id, email, scanId, origin]);
+  return id;
 }
 
 // ---- monitors ---------------------------------------------------------------

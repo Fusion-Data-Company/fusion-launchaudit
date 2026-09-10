@@ -4,6 +4,7 @@
  * agent-ready fix). Also the door to weekly monitoring: pass monitor:true to
  * enrol the scanned URL. No email is ever sent from here.
  */
+import { deliverScanLeads } from "../../src/lib/crm-delivery.ts";
 import { getSqlClient } from "../../src/lib/db.ts";
 import { clientIp, consumeAttempt } from "../../src/lib/rate-limit.ts";
 import { ensureScanTables, getScan, recordLead, upsertMonitor } from "../../src/lib/scan-store.ts";
@@ -25,7 +26,8 @@ export default async function handler(req: Req, res: Res) {
   try {
     await ensureScanTables(sql);
     const scan = scanId ? await getScan(sql, scanId) : null;
-    await recordLead(sql, email, scanId, scan?.origin ?? null);
+    const leadId=await recordLead(sql, email, scanId, scan?.origin ?? null);
+    await deliverScanLeads(sql,leadId).catch(()=>{});
     if (req.body?.monitor && scan?.origin) await upsertMonitor(sql, { origin: scan.origin, email });
     res.status(200).json({
       ok: true,

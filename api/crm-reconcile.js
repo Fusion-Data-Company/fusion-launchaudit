@@ -14197,6 +14197,25 @@ ${row.message}` }),
   }
   return { delivered, examined: rows.length, pendingConfiguration: false };
 }
+async function deliverScanLeads(sql, onlyId) {
+  await sql(`CREATE TABLE IF NOT EXISTS submission_crm_receipts (submission_id text PRIMARY KEY, delivered_at timestamptz NOT NULL DEFAULT now())`);
+  const key = process.env.RONIN_API_KEY?.trim();
+  if (!key) return { delivered: 0, pendingConfiguration: true };
+  const exists = await sql("SELECT to_regclass('scan_leads') AS present");
+  if (!exists[0]?.present) return { delivered: 0, examined: 0 };
+  const rows = await sql(`SELECT s.* FROM scan_leads s LEFT JOIN submission_crm_receipts r ON r.submission_id=s.id WHERE r.submission_id IS NULL AND ($1::text IS NULL OR s.id=$1) ORDER BY s.created_at LIMIT 20`, [onlyId ?? null]);
+  let delivered = 0;
+  for (const row of rows) {
+    try {
+      const response = await fetch("https://fusiondataco.app/api/ronin/website-leads", { method: "POST", headers: { "Content-Type": "application/json", "x-ronin-key": key }, body: JSON.stringify({ sourceRecordKey: `launch-audit:scan:${row.id}`, email: row.email, source: "launch-audit", notes: `Free audit report request. Website: ${row.origin || "not supplied"}. Scan: ${row.scan_id || "not supplied"}.` }), signal: AbortSignal.timeout(5e3) });
+      if (!response.ok) continue;
+      await sql(`INSERT INTO submission_crm_receipts (submission_id) VALUES ($1) ON CONFLICT DO NOTHING`, [row.id]);
+      delivered++;
+    } catch {
+    }
+  }
+  return { delivered, examined: rows.length };
+}
 
 // server/api-src/crm-reconcile.ts
 async function handler(req, res) {
@@ -14208,7 +14227,7 @@ async function handler(req, res) {
   const sql = await getSqlClient();
   if (!sql) return res.status(503).json({ error: "Storage unavailable" });
   try {
-    return res.status(200).json(await deliverSubmissions(sql));
+    return res.status(200).json({ submissions: await deliverSubmissions(sql), scanLeads: await deliverScanLeads(sql) });
   } catch {
     return res.status(503).json({ error: "CRM reconciliation unavailable" });
   }
