@@ -10,7 +10,7 @@ export async function deliverSubmissions(sql: SQL, onlyId?: string) {
     try {
       const response = await fetch('https://fusiondataco.app/api/ronin/website-leads', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-ronin-key': key },
-        body: JSON.stringify({sourceRecordKey:`launch-audit:submission:${row.id}`, contact:row.name || row.email, email:row.email, company:'', source:'launch-audit', notes:`80/20 ${row.type || 'question'} enquiry\n${row.message}`}),
+        body: JSON.stringify({sourceRecordKey:`launch-audit:submission:${row.id}`, contact:row.name || row.email, email:row.email, source:'launch-audit', notes:`80/20 ${row.type || 'question'} enquiry\n${row.message}`}),
         signal: AbortSignal.timeout(5000),
       });
       if (!response.ok) continue;

@@ -14185,7 +14185,7 @@ async function deliverSubmissions(sql, onlyId) {
       const response = await fetch("https://fusiondataco.app/api/ronin/website-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-ronin-key": key },
-        body: JSON.stringify({ sourceRecordKey: `launch-audit:submission:${row.id}`, contact: row.name || row.email, email: row.email, company: "", source: "launch-audit", notes: `80/20 ${row.type || "question"} enquiry
+        body: JSON.stringify({ sourceRecordKey: `launch-audit:submission:${row.id}`, contact: row.name || row.email, email: row.email, source: "launch-audit", notes: `80/20 ${row.type || "question"} enquiry
 ${row.message}` }),
         signal: AbortSignal.timeout(5e3)
       });
