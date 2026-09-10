@@ -14149,7 +14149,7 @@ async function deliverScanLeads(sql, onlyId) {
   let delivered = 0;
   for (const row of rows) {
     try {
-      const response = await fetch("https://fusiondataco.app/api/ronin/website-leads", { method: "POST", headers: { "Content-Type": "application/json", "x-ronin-key": key }, body: JSON.stringify({ sourceRecordKey: `launch-audit:scan:${row.id}`, email: row.email, source: "launch-audit", notes: `Free audit report request. Website: ${row.origin || "not supplied"}. Scan: ${row.scan_id || "not supplied"}.` }), signal: AbortSignal.timeout(5e3) });
+      const response = await fetch("https://fusiondataco.app/api/ronin/website-leads", { method: "POST", headers: { "Content-Type": "application/json", "x-ronin-key": key }, body: JSON.stringify({ sourceRecordKey: `launch-audit:scan:${row.id}`, company: row.email, email: row.email, source: "launch-audit", notes: `Free audit report request. Website: ${row.origin || "not supplied"}. Scan: ${row.scan_id || "not supplied"}.` }), signal: AbortSignal.timeout(5e3) });
       if (!response.ok) continue;
       await sql(`INSERT INTO submission_crm_receipts (submission_id) VALUES ($1) ON CONFLICT DO NOTHING`, [row.id]);
       delivered++;
