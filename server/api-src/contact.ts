@@ -1,4 +1,5 @@
 /** /api/contact — store platform questions + test-idea submissions in Neon. */
+import { deliverSubmissions } from "../../src/lib/crm-delivery.ts";
 import { getSqlClient } from "../../src/lib/db.ts";
 import { clientIp, consumeAttempt } from "../../src/lib/rate-limit.ts";
 type Req = { method?: string; headers?: Record<string, string | string[] | undefined>; body?: unknown };
@@ -41,6 +42,7 @@ export default async function handler(req: Req, res: Res) {
       `insert into submissions (id, name, email, type, message) values ($1, $2, $3, $4, $5)`,
       [id, name || null, email, type, message],
     );
+    await deliverSubmissions(sql, id).catch(() => {});
     res.status(200).json({ ok: true });
   } catch (e) { res.status(500).json({ error: e instanceof Error ? e.message : "Could not save your message." }); }
 }

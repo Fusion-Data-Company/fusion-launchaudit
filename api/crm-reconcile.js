@@ -14138,30 +14138,8 @@ shared_preload_libraries=${r.join(",")}`;
   }
 });
 
-// src/lib/crm-delivery.ts
-async function deliverSubmissions(sql, onlyId) {
-  await sql(`CREATE TABLE IF NOT EXISTS submission_crm_receipts (submission_id text PRIMARY KEY, delivered_at timestamptz NOT NULL DEFAULT now())`);
-  const key = process.env.RONIN_API_KEY?.trim();
-  if (!key) return { delivered: 0, pendingConfiguration: true };
-  const rows = await sql(`SELECT s.* FROM submissions s LEFT JOIN submission_crm_receipts r ON r.submission_id=s.id WHERE r.submission_id IS NULL AND ($1::text IS NULL OR s.id=$1) ORDER BY s.created_at LIMIT 20`, [onlyId ?? null]);
-  let delivered = 0;
-  for (const row of rows) {
-    try {
-      const response = await fetch("https://fusiondataco.app/api/ronin/website-leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-ronin-key": key },
-        body: JSON.stringify({ sourceRecordKey: `launch-audit:submission:${row.id}`, contact: row.name || row.email, email: row.email, company: "", source: "launch-audit", notes: `80/20 ${row.type || "question"} enquiry
-${row.message}` }),
-        signal: AbortSignal.timeout(5e3)
-      });
-      if (!response.ok) continue;
-      await sql(`INSERT INTO submission_crm_receipts (submission_id) VALUES ($1) ON CONFLICT DO NOTHING`, [row.id]);
-      delivered++;
-    } catch {
-    }
-  }
-  return { delivered, examined: rows.length, pendingConfiguration: false };
-}
+// server/api-src/crm-reconcile.ts
+import { timingSafeEqual } from "node:crypto";
 
 // src/lib/db.ts
 var cachedClient = null;
@@ -14195,97 +14173,44 @@ async function getSqlClient(env = process.env) {
   return null;
 }
 
-// src/lib/rate-limit.ts
-var buckets = /* @__PURE__ */ new Map();
-var MAX_KEYS = 5e3;
-function consumeAttempt(opts) {
-  const now = opts.now ?? Date.now();
-  const id = `${opts.scope}:${opts.key}`;
-  let b5 = buckets.get(id);
-  if (!b5 || b5.resetAt <= now) {
-    if (buckets.size >= MAX_KEYS) sweep(now);
-    b5 = { count: 0, resetAt: now + opts.windowMs };
-    buckets.set(id, b5);
+// src/lib/crm-delivery.ts
+async function deliverSubmissions(sql, onlyId) {
+  await sql(`CREATE TABLE IF NOT EXISTS submission_crm_receipts (submission_id text PRIMARY KEY, delivered_at timestamptz NOT NULL DEFAULT now())`);
+  const key = process.env.RONIN_API_KEY?.trim();
+  if (!key) return { delivered: 0, pendingConfiguration: true };
+  const rows = await sql(`SELECT s.* FROM submissions s LEFT JOIN submission_crm_receipts r ON r.submission_id=s.id WHERE r.submission_id IS NULL AND ($1::text IS NULL OR s.id=$1) ORDER BY s.created_at LIMIT 20`, [onlyId ?? null]);
+  let delivered = 0;
+  for (const row of rows) {
+    try {
+      const response = await fetch("https://fusiondataco.app/api/ronin/website-leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-ronin-key": key },
+        body: JSON.stringify({ sourceRecordKey: `launch-audit:submission:${row.id}`, contact: row.name || row.email, email: row.email, company: "", source: "launch-audit", notes: `80/20 ${row.type || "question"} enquiry
+${row.message}` }),
+        signal: AbortSignal.timeout(5e3)
+      });
+      if (!response.ok) continue;
+      await sql(`INSERT INTO submission_crm_receipts (submission_id) VALUES ($1) ON CONFLICT DO NOTHING`, [row.id]);
+      delivered++;
+    } catch {
+    }
   }
-  b5.count += 1;
-  if (b5.count > opts.limit) return { ok: false, retryAfterSec: Math.max(1, Math.ceil((b5.resetAt - now) / 1e3)) };
-  return { ok: true, remaining: opts.limit - b5.count };
-}
-function sweep(now) {
-  for (const [k3, v5] of buckets) if (v5.resetAt <= now) buckets.delete(k3);
-  if (buckets.size >= MAX_KEYS) buckets.clear();
-}
-function clientIp(headers) {
-  const h3 = headers ?? {};
-  const pick = (name2) => {
-    const v5 = h3[name2] ?? h3[name2.toLowerCase()];
-    return Array.isArray(v5) ? v5[0] : v5;
-  };
-  const xff = pick("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim() || "unknown";
-  return pick("x-real-ip")?.trim() || "unknown";
+  return { delivered, examined: rows.length, pendingConfiguration: false };
 }
 
-// server/api-src/contact.ts
-var CONTACT_TYPES = /* @__PURE__ */ new Set(["question", "test", "feedback", "partnership"]);
-var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// server/api-src/crm-reconcile.ts
 async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "POST a JSON body { email, message }." });
-    return;
-  }
-  const rl = consumeAttempt({ scope: "contact", key: clientIp(req.headers), limit: 10, windowMs: 10 * 6e4 });
-  if (!rl.ok) {
-    res.status(429).json({ error: `Too many messages from this address. Try again in ${rl.retryAfterSec}s.` });
-    return;
-  }
-  const body2 = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
-  if (body2.name !== void 0 && typeof body2.name !== "string" || body2.email !== void 0 && typeof body2.email !== "string" || body2.message !== void 0 && typeof body2.message !== "string" || body2.type !== void 0 && typeof body2.type !== "string") {
-    res.status(400).json({ error: "name, email, message and type must be strings." });
-    return;
-  }
-  const name2 = body2.name?.trim() ?? "";
-  const email = body2.email?.trim() ?? "";
-  const message = body2.message?.trim() ?? "";
-  const type = body2.type ?? "question";
-  if (!email || !message) {
-    res.status(400).json({ error: "email and message are required." });
-    return;
-  }
-  if (!EMAIL_RE.test(email)) {
-    res.status(400).json({ error: "Enter a valid email." });
-    return;
-  }
-  if (!CONTACT_TYPES.has(type)) {
-    res.status(400).json({ error: "Choose a valid message type." });
-    return;
-  }
-  if (message.length > 5e3 || name2.length > 200 || email.length > 320) {
-    res.status(400).json({ error: "That's a bit long \u2014 trim it down." });
-    return;
-  }
+  const expected = process.env.CRON_SECRET?.trim();
+  const received = typeof req.headers?.authorization === "string" ? req.headers.authorization : "";
+  const a3 = Buffer.from(received), b5 = Buffer.from(`Bearer ${expected || ""}`);
+  if (!expected || a3.length !== b5.length || !timingSafeEqual(a3, b5)) return res.status(401).json({ error: "Unauthorized" });
+  if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const sql = await getSqlClient();
-  if (!sql) {
-    res.status(503).json({ error: "Submissions are temporarily unavailable." });
-    return;
-  }
+  if (!sql) return res.status(503).json({ error: "Storage unavailable" });
   try {
-    await sql(
-      `create table if not exists submissions (
-         id text primary key, name text, email text not null, type text,
-         message text not null, created_at timestamptz not null default now()
-       )`
-    );
-    const id = "sub_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-    await sql(
-      `insert into submissions (id, name, email, type, message) values ($1, $2, $3, $4, $5)`,
-      [id, name2 || null, email, type, message]
-    );
-    await deliverSubmissions(sql, id).catch(() => {
-    });
-    res.status(200).json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : "Could not save your message." });
+    return res.status(200).json(await deliverSubmissions(sql));
+  } catch {
+    return res.status(503).json({ error: "CRM reconciliation unavailable" });
   }
 }
 export {

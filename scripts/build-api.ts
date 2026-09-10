@@ -11,6 +11,7 @@ const entries: Array<[string, string]> = [
   ["server/api-src/waitlist.ts", "api/waitlist.js"],
   ["server/api-src/monitor.ts", "api/monitor.js"],
   ["server/api-src/rescan-cron.ts", "api/rescan-cron.js"],
+  ["server/api-src/crm-reconcile.ts", "api/crm-reconcile.js"],
   ["server/api-src/contact.ts", "api/contact.js"],
   ["server/api-src/checkout.ts", "api/checkout.js"],
   ["server/api-src/stripe-webhook.ts", "api/stripe-webhook.js"],
