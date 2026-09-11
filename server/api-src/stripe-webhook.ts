@@ -1,3 +1,4 @@
+import {validAuditPayment} from '../../src/lib/audit-payment-proof.ts';
 import { recordPaymentState, type ClosedPaymentStatus } from "../../src/lib/payment-lifecycle.ts";
 /**
  * /api/stripe-webhook — Stripe → us. Raw body, signature verified with
@@ -29,6 +30,7 @@ async function readRawBody(req: Req): Promise<Buffer> {
 
 type CheckoutSession = {
   id: string;
+  payment_intent?: {latest_charge?:{created?:number}};
   payment_status?: string;
   amount_total?: number | null;
   customer_email?: string | null;
@@ -85,7 +87,8 @@ export default async function handler(req: Req, res: Res) {
     }
     res.status(200).json({ received: true, ignored: event.type }); return;
   }
-  const session = event.data?.object;
+  let session = event.data?.object;
+  if(session?.id){try{const key=process.env.STRIPE_SECRET_KEY;if(!key)throw Error('notconfigured');session=await stripeGet<CheckoutSession>(key,`/v1/checkout/sessions/${encodeURIComponent(session.id)}?expand[]=payment_intent.latest_charge`);if(!validAuditPayment(session)){res.status(200).json({received:true,ignored:'not_verified_live_paid_audit'});return;}}catch{res.status(503).json({error:'Canonical payment verification unavailable; retry event'});return;}}
   if (!session?.id) { res.status(400).json({ error: "No session in event." }); return; }
   if (session.payment_status !== "paid") { res.status(200).json({ received: true, ignored: `payment_status=${session.payment_status ?? "missing"}` }); return; }
 
@@ -100,7 +103,7 @@ export default async function handler(req: Req, res: Res) {
   try {
     await ensurePaidAuditsTable(sql);
     const row = await upsertPaidAudit(sql, {
-      stripeSessionId: session.id, email, targetUrl, tier, amountCents: session.amount_total ?? 0,
+      stripeSessionId: session.id, email, targetUrl, tier, amountCents: session.amount_total ?? 0, paidAt:session.payment_intent?.latest_charge?.created?new Date(session.payment_intent.latest_charge.created*1000).toISOString():undefined,
     });
     // Ack Stripe inside a second. The grade itself runs in /api/order-status (the
     // success page polls it) or /api/grade-order (secret-gated sweep), each with

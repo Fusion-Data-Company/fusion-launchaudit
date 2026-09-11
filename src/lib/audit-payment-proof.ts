@@ -1,0 +1,2 @@
+import {AUDIT_TIERS,isAuditTier} from './checkout-input.ts';
+export function validAuditPayment(s:any){const tier=s?.metadata?.tier;const pi=s?.payment_intent,c=pi?.latest_charge;return Boolean(isAuditTier(tier)&&s.livemode===true&&s.mode==='payment'&&s.status==='complete'&&s.payment_status==='paid'&&s.currency==='usd'&&s.amount_total===AUDIT_TIERS[tier].amountCents&&pi?.livemode===true&&pi.status==='succeeded'&&c?.livemode===true&&c.paid===true&&c.amount_refunded===0&&!c.disputed);}

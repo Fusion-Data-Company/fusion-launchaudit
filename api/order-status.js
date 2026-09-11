@@ -32927,6 +32927,7 @@ var paidAuditsSchemaSql = `create table if not exists paid_audits (
 );
 
 create index if not exists paid_audits_status_idx on paid_audits (status, created_at);
+alter table paid_audits add column if not exists paid_at timestamptz;
 alter table paid_audits add column if not exists grade_claim_token text;
 alter table paid_audits add column if not exists grade_claimed_at timestamptz;`;
 var scansSchemaSql = `create table if not exists scans (

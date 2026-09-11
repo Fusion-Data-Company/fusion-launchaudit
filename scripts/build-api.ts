@@ -5,6 +5,7 @@
 import { build } from "esbuild";
 
 const entries: Array<[string, string]> = [
+ ["server/api-src/order-reporting.ts","api/order-reporting.js"],
   ["server/api-src/campaign.ts", "api/campaign.js"],
   ["server/api-src/campaigns.ts", "api/campaigns.js"],
   ["server/api-src/grade.ts", "api/grade.js"],

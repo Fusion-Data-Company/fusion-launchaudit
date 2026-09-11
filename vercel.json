@@ -38,6 +38,10 @@
     {
       "path": "/api/crm-reconcile",
       "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/order-reporting",
+      "schedule": "20 * * * *"
     }
   ],
   "redirects": [

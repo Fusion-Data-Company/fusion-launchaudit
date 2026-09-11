@@ -44,13 +44,13 @@ export function newPaidAuditId(): string {
 /** Idempotent insert keyed on the Stripe session id. Returns the current row either way. */
 export async function upsertPaidAudit(
   sql: SqlClient,
-  order: { stripeSessionId: string; email: string; targetUrl: string; tier: string; amountCents: number },
+  order: { stripeSessionId: string; email: string; targetUrl: string; tier: string; amountCents: number; paidAt?:string },
 ): Promise<PaidAuditRow> {
   await sql(
-    `insert into paid_audits (id, stripe_session_id, email, target_url, tier, amount_cents, status)
-     values ($1, $2, $3, $4, $5, $6, 'queued')
+    `insert into paid_audits (id, stripe_session_id, email, target_url, tier, amount_cents, status, paid_at)
+     values ($1, $2, $3, $4, $5, $6, 'queued', $7)
      on conflict (stripe_session_id) do nothing`,
-    [newPaidAuditId(), order.stripeSessionId, order.email, order.targetUrl, order.tier, order.amountCents],
+    [newPaidAuditId(), order.stripeSessionId, order.email, order.targetUrl, order.tier, order.amountCents,order.paidAt??null],
   );
   await reconcilePaymentState(sql, order.stripeSessionId);
   const row = await getPaidAuditBySession(sql, order.stripeSessionId);
