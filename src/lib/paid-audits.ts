@@ -93,6 +93,7 @@ export async function setPaidAuditUrl(sql: SqlClient, stripeSessionId: string, t
  * delivery is idempotent on the row.
  */
 export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise<PaidAuditRow> {
+  if (row.status === "delivered") return deliverPaidAudit(sql, row);
   if (row.status !== "queued") return row;
   const claim = randomUUID();
   const owned = await sql(`update paid_audits set grade_claim_token=$2, grade_claimed_at=now()

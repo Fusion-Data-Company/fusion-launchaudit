@@ -25,7 +25,7 @@ export default async function handler(req: Req, res: Res) {
     if (!row) { res.status(200).json({ ok: true, status: "pending", grade: null, report_url: null }); return; }
     // The webhook only records the order. The first poll that finds it queued
     // runs the grade right here, inside this function's own time budget.
-    if (row.status === "queued") row = await gradePaidAudit(sql, row);
+    if (row.status === "queued" || row.status === "delivered") row = await gradePaidAudit(sql, row);
     res.status(200).json({ ok: true, ...publicOrderStatus(row) });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Could not load order." });

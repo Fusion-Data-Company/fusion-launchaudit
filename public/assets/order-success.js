@@ -36,6 +36,7 @@
 
   if(!/^cs_[A-Za-z0-9_]{8,200}$/.test(sid)){
     setChip('chip-warn','No order id');
+    grade.classList.add('in'); // Terminal error must not wait for scroll-triggered reveal.
     grade.innerHTML=errBlock('This link has no order on it.',
       'The address is missing the session id Stripe adds after checkout. Open the link in your Stripe receipt, or send us the receipt number and we will find the order.',
       '<a class="btn ghost" href="/#contact">Contact us with your receipt &rarr;</a>');

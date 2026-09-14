@@ -12,6 +12,7 @@
  * from grade_json) unless a Blob copy uploaded, in which case the Blob URL is the
  * primary link and the route stays as the fallback.
  */
+import { randomUUID } from "node:crypto";
 import type { SqlClient } from "./db.ts";
 import type { DeepGrade } from "./deep-grade.ts";
 import type { InstantGrade } from "./instant-grade.ts";
@@ -23,6 +24,7 @@ import type { PaidAuditRow } from "./paid-audits.ts";
 export const SITE_URL = (process.env.PUBLIC_SITE_URL || "https://80-20.dev").replace(/\/$/, "");
 
 export type DeliveryRecord = {
+  attempt?: { token: string; state: "preparing" | "sending" | "done" | "retryable" | "uncertain"; started_at: string };
   delivered_at: string;
   pdf_bytes: number;
   blob: { url: string; pathname: string } | null;
@@ -94,37 +96,70 @@ async function uploadPdf(row: PaidAuditRow, host: string, pdf: Buffer): Promise<
   }
 }
 
-export async function deliverPaidAudit(sql: SqlClient, row: PaidAuditRow): Promise<PaidAuditRow> {
+/** Only pre-send work or a definite rejection can retry automatically. SMTP uncertainty stays held. */
+export const DELIVERY_RECOVERY_PREDICATE = `status = 'delivered' and delivered_email_at is null
+  and coalesce(delivery_json->'email'->>'status','') <> 'sent'
+  and (delivery_json is null
+    or (delivery_json->'attempt'->>'state' in ('preparing','retryable')
+      and (delivery_json->'attempt'->>'started_at')::timestamptz < now() - interval '10 minutes')
+    or (delivery_json->'attempt' is null and delivery_json->'email'->>'status' = 'skipped'))`;
+
+type DeliveryDependencies = { send?: typeof sendMail; upload?: typeof uploadPdf };
+function definitelyRejected(error: string): boolean {
+  const rejection = /^SMTP step (\d+) expected \d+, got: [45]\d\d(?:[ -]|$)/.exec(error);
+  // Step 9 is QUIT: DATA was already accepted, so its failure must never resend.
+  return Boolean(rejection && Number(rejection[1]) <= 8)
+    || /^(MONITOR_SMTP_URL is not a valid URL|Only smtps:\/\/)/.test(error);
+}
+
+export async function deliverPaidAudit(sql: SqlClient, row: PaidAuditRow, deps: DeliveryDependencies = {}): Promise<PaidAuditRow> {
+  if (row.status !== "delivered") return row;
   const grade = row.grade_json && "ok" in row.grade_json && row.grade_json.ok ? (row.grade_json as OkGrade) : null;
   if (!grade) return row;
-  if (row.delivery_json && row.delivery_json.email.status === "sent" && row.report_url) return row;
-
+  const token = randomUUID();
+  const at = new Date().toISOString();
+  const routeUrl = orderReportRouteUrl(row.stripe_session_id);
   const info = tierInfo(row.tier);
+  const record: DeliveryRecord = {
+    attempt: { token, state: 'preparing', started_at: at }, delivered_at: at, pdf_bytes: 0, blob: row.delivery_json?.blob ?? null,
+    email: { status: 'skipped', detail: 'Preparing report delivery.', to: row.email, at, subject: '', preview: '' },
+    hands_on: { required: info.handsOn, status: info.handsOn ? 'scheduled_by_email' : 'not_applicable' },
+  };
+  // Persist the regenerable PDF link and claim before upload/render/mail. A crash cannot hide the report.
+  const claimed = await sql(`update paid_audits set report_url=coalesce(report_url,$2), report_pdf_url=$2,
+    delivery_json=$3::jsonb where id=$1 and ${DELIVERY_RECOVERY_PREDICATE} returning *`,
+    [row.id, routeUrl, JSON.stringify(record)]);
+  if (!claimed.length) return ((await sql('select * from paid_audits where id=$1', [row.id]))[0] as PaidAuditRow) ?? row;
+  row = claimed[0] as PaidAuditRow;
   const host = hostOf(grade.url);
   const pdf = renderAuditReportPdf({
     grade,
     order: { id: row.id, tier: row.tier, tierLabel: info.label, amountCents: row.amount_cents, email: row.email, targetUrl: row.target_url, createdAt: row.created_at, completedAt: row.completed_at, includes: info.includes, next: info.next, handsOn: info.handsOn },
-    links: { page: orderPageUrl(row.stripe_session_id), report: orderReportRouteUrl(row.stripe_session_id) },
+    links: { page: orderPageUrl(row.stripe_session_id), report: routeUrl },
   });
-  const blob = await uploadPdf(row, host, pdf);
-  const routeUrl = orderReportRouteUrl(row.stripe_session_id);
-  const reportUrl = blob?.url ?? routeUrl;
+  const blob = record.blob ?? await (deps.upload ?? uploadPdf)(row, host, pdf);
+  const reportUrl = blob?.url ?? row.report_url ?? routeUrl;
   const mail = deliveryEmail(row, grade, { report: reportUrl, page: orderPageUrl(row.stripe_session_id) });
-  const at = new Date().toISOString();
-  const sent = await sendMail({ to: row.email, subject: mail.subject, text: mail.text, attachments: [{ filename: reportFilename(host), contentType: "application/pdf", content: pdf }] });
-  const email: DeliveryRecord["email"] = {
-    status: "ok" in sent ? (sent.ok ? "sent" : "error") : "skipped",
-    detail: "ok" in sent ? (sent.ok ? null : sent.error) : sent.skipped,
-    to: row.email, at, subject: mail.subject, preview: mail.text.slice(0, 900), captured: sent.captured ?? null,
-  };
-  const record: DeliveryRecord = {
-    delivered_at: at, pdf_bytes: pdf.length, blob, email,
-    hands_on: { required: info.handsOn, status: info.handsOn ? "scheduled_by_email" : "not_applicable" },
-  };
-  await sql(
-    `update paid_audits set report_url = $2, report_pdf_url = $3, delivery_json = $4::jsonb, delivered_email_at = case when $5::boolean then now() else delivered_email_at end where id = $1`,
-    [row.id, reportUrl, routeUrl, JSON.stringify(record), email.status === "sent"],
-  );
-  const rows = await sql(`select * from paid_audits where id = $1 limit 1`, [row.id]);
-  return (rows[0] as PaidAuditRow | undefined) ?? { ...row, report_url: reportUrl, report_pdf_url: routeUrl, delivery_json: record };
+  record.pdf_bytes = pdf.length; record.blob = blob;
+  record.attempt!.state = 'sending';
+  record.email = { status: 'error', detail: 'Email acceptance is unconfirmed. Hold for operator review; do not resend automatically.', to: row.email, at, subject: mail.subject, preview: mail.text.slice(0,900) };
+  const sending = await sql(`update paid_audits set report_url=$2, delivery_json=$3::jsonb
+    where id=$1 and status='delivered' and delivery_json->'attempt'->>'token'=$4 returning id`,
+    [row.id, reportUrl, JSON.stringify(record), token]);
+  if (sending.length) {
+    try {
+      const sent = await (deps.send ?? sendMail)({ to: row.email, subject: mail.subject, text: mail.text, attachments: [{ filename: reportFilename(host), contentType: 'application/pdf', content: pdf }] });
+      record.email.status = 'ok' in sent ? (sent.ok ? 'sent' : 'error') : 'skipped';
+      record.email.detail = 'ok' in sent ? (sent.ok ? null : sent.error) : sent.skipped;
+      record.email.captured = sent.captured ?? null;
+      record.attempt!.state = 'ok' in sent ? (sent.ok ? 'done' : definitelyRejected(sent.error) ? 'retryable' : 'uncertain') : 'retryable';
+    } catch {
+      record.attempt!.state = 'uncertain';
+    }
+    await sql(`update paid_audits set delivery_json=$2::jsonb,
+      delivered_email_at=case when $3::boolean then now() else delivered_email_at end
+      where id=$1 and status='delivered' and delivery_json->'attempt'->>'token'=$4`,
+      [row.id, JSON.stringify(record), record.email.status === 'sent', token]);
+  }
+  return ((await sql('select * from paid_audits where id=$1', [row.id]))[0] as PaidAuditRow) ?? row;
 }

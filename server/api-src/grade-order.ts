@@ -4,6 +4,7 @@
  * blocked row is left alone. Exists so an order whose buyer closed the tab
  * still gets graded by the hourly sweep instead of sitting queued forever.
  */
+import { DELIVERY_RECOVERY_PREDICATE } from "../../src/lib/audit-delivery.ts";
 import { getSqlClient } from "../../src/lib/db.ts";
 import { ensurePaidAuditsTable, getPaidAuditBySession, gradePaidAudit, type PaidAuditRow } from "../../src/lib/paid-audits.ts";
 
@@ -23,7 +24,7 @@ export default async function handler(req: Req, res: Res) {
   if (!sid && req.url) sid = new URL(req.url, "http://x").searchParams.get("session_id") ?? undefined;
   const rows = sid
     ? [await getPaidAuditBySession(sql, sid)].filter((r): r is PaidAuditRow => !!r)
-    : ((await sql(`select * from paid_audits where status = 'queued' and (grade_claimed_at is null or grade_claimed_at < now() - interval '10 minutes') order by created_at asc limit 1`)) as PaidAuditRow[]);
+    : ((await sql(`select * from paid_audits where (status = 'queued' and (grade_claimed_at is null or grade_claimed_at < now() - interval '10 minutes')) or (${DELIVERY_RECOVERY_PREDICATE}) order by created_at asc limit 1`)) as PaidAuditRow[]);
   const out: Array<{ id: string; status: string }> = [];
   for (const row of rows) {
     const g = await gradePaidAudit(sql, row);
