@@ -1,0 +1,54 @@
+[
+  {
+    "checked_at": "2026-09-14T21:14:51.908749+00:00",
+    "account_id": "acct_1TY8wwEkfFOXPr6D",
+    "account_name": "Fusion Invoicing",
+    "tier": "standard",
+    "amount_total": 14900,
+    "currency": "usd",
+    "livemode": true,
+    "metadata": {
+      "target_url": "https://fusiondataco.com",
+      "tier": "standard"
+    },
+    "success_url": "https://80-20.dev/order/success?session_id={CHECKOUT_SESSION_ID}",
+    "cancel_url": "https://80-20.dev/#order",
+    "status": "expired",
+    "payment_status": "unpaid",
+    "payment_intent": null,
+    "line_items": [
+      {
+        "description": "80/20 Launch Audit \u2014 Hosted deep audit (one URL)",
+        "amount_total": 14900,
+        "quantity": 1
+      }
+    ],
+    "private_reference_file": "/Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/audit-tier-checkout-proof/standard.json"
+  },
+  {
+    "checked_at": "2026-09-14T21:14:53.225893+00:00",
+    "account_id": "acct_1TY8wwEkfFOXPr6D",
+    "account_name": "Fusion Invoicing",
+    "tier": "pro",
+    "amount_total": 49900,
+    "currency": "usd",
+    "livemode": true,
+    "metadata": {
+      "target_url": "https://fusiondataco.com",
+      "tier": "pro"
+    },
+    "success_url": "https://80-20.dev/order/success?session_id={CHECKOUT_SESSION_ID}",
+    "cancel_url": "https://80-20.dev/#order",
+    "status": "expired",
+    "payment_status": "unpaid",
+    "payment_intent": null,
+    "line_items": [
+      {
+        "description": "80/20 Launch Audit \u2014 Pro (credentialed RBAC   re-run)",
+        "amount_total": 49900,
+        "quantity": 1
+      }
+    ],
+    "private_reference_file": "/Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/audit-tier-checkout-proof/pro.json"
+  }
+]
