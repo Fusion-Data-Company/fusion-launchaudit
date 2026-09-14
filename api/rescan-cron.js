@@ -2990,7 +2990,7 @@ var init_serverless = __esm({
         return /^(?:[a-zA-Z0-9+/]{4})*(?:[a-zA-Z0-9+/]{2}==|[a-zA-Z0-9+/]{3}=)?$/.test(r);
       }
       a(ls, "isBase64");
-      function fs2(r) {
+      function fs3(r) {
         if (typeof r != "string") throw new TypeError("SASL: attribute pairs text must be a string");
         return new Map(r.split(",").map((e) => {
           if (!/^.=/.test(e)) throw new Error("SASL: Invalid attribute pair entry");
@@ -2998,9 +2998,9 @@ var init_serverless = __esm({
           return [t2, n4];
         }));
       }
-      a(fs2, "parseAttributePairs");
+      a(fs3, "parseAttributePairs");
       function qu(r) {
-        let e = fs2(r), t2 = e.get("r");
+        let e = fs3(r), t2 = e.get("r");
         if (t2) {
           if (!Ou(t2)) throw new Error("SASL: SCRAM-SERVER-FIRST-MESSAGE: nonce must only contain printable characters");
         } else throw new Error("SASL: SCRAM-SERVER-FIRST-MESSAGE: nonce missing");
@@ -3017,7 +3017,7 @@ var init_serverless = __esm({
       }
       a(qu, "parseServerFirstMessage");
       function Qu(r) {
-        let t2 = fs2(r).get("v");
+        let t2 = fs3(r).get("v");
         if (t2) {
           if (!ls(t2)) throw new Error("SASL: SCRAM-SERVER-FINAL-MESSAGE: server signature must be base64");
         } else throw new Error("SASL: SCRAM-SERVER-FINAL-MESSAGE: server signature is missing");
@@ -14973,14 +14973,14 @@ var require_util = __commonJS({
         }
         const port = url.port != null ? url.port : url.protocol === "https:" ? 443 : 80;
         let origin = url.origin != null ? url.origin : `${url.protocol || ""}//${url.hostname || ""}:${port}`;
-        let path = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
+        let path2 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
         if (origin[origin.length - 1] === "/") {
           origin = origin.slice(0, origin.length - 1);
         }
-        if (path && path[0] !== "/") {
-          path = `/${path}`;
+        if (path2 && path2[0] !== "/") {
+          path2 = `/${path2}`;
         }
-        return new URL(`${origin}${path}`);
+        return new URL(`${origin}${path2}`);
       }
       if (!isHttpOrHttpsPrefixed(url.origin || url.protocol)) {
         throw new InvalidArgumentError("Invalid URL protocol: the URL must start with `http:` or `https:`.");
@@ -15431,39 +15431,39 @@ var require_diagnostics = __commonJS({
       });
       diagnosticsChannel.channel("undici:client:sendHeaders").subscribe((evt) => {
         const {
-          request: { method, path, origin }
+          request: { method, path: path2, origin }
         } = evt;
-        debuglog("sending request to %s %s/%s", method, origin, path);
+        debuglog("sending request to %s %s/%s", method, origin, path2);
       });
       diagnosticsChannel.channel("undici:request:headers").subscribe((evt) => {
         const {
-          request: { method, path, origin },
+          request: { method, path: path2, origin },
           response: { statusCode }
         } = evt;
         debuglog(
           "received response to %s %s/%s - HTTP %d",
           method,
           origin,
-          path,
+          path2,
           statusCode
         );
       });
       diagnosticsChannel.channel("undici:request:trailers").subscribe((evt) => {
         const {
-          request: { method, path, origin }
+          request: { method, path: path2, origin }
         } = evt;
-        debuglog("trailers received from %s %s/%s", method, origin, path);
+        debuglog("trailers received from %s %s/%s", method, origin, path2);
       });
       diagnosticsChannel.channel("undici:request:error").subscribe((evt) => {
         const {
-          request: { method, path, origin },
+          request: { method, path: path2, origin },
           error
         } = evt;
         debuglog(
           "request to %s %s/%s errored - %s",
           method,
           origin,
-          path,
+          path2,
           error.message
         );
       });
@@ -15512,9 +15512,9 @@ var require_diagnostics = __commonJS({
         });
         diagnosticsChannel.channel("undici:client:sendHeaders").subscribe((evt) => {
           const {
-            request: { method, path, origin }
+            request: { method, path: path2, origin }
           } = evt;
-          debuglog("sending request to %s %s/%s", method, origin, path);
+          debuglog("sending request to %s %s/%s", method, origin, path2);
         });
       }
       diagnosticsChannel.channel("undici:websocket:open").subscribe((evt) => {
@@ -15577,7 +15577,7 @@ var require_request = __commonJS({
     var kHandler = /* @__PURE__ */ Symbol("handler");
     var Request = class {
       constructor(origin, {
-        path,
+        path: path2,
         method,
         body: body2,
         headers,
@@ -15592,11 +15592,11 @@ var require_request = __commonJS({
         expectContinue,
         servername
       }, handler2) {
-        if (typeof path !== "string") {
+        if (typeof path2 !== "string") {
           throw new InvalidArgumentError("path must be a string");
-        } else if (path[0] !== "/" && !(path.startsWith("http://") || path.startsWith("https://")) && method !== "CONNECT") {
+        } else if (path2[0] !== "/" && !(path2.startsWith("http://") || path2.startsWith("https://")) && method !== "CONNECT") {
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
-        } else if (invalidPathRegex.test(path)) {
+        } else if (invalidPathRegex.test(path2)) {
           throw new InvalidArgumentError("invalid request path");
         }
         if (typeof method !== "string") {
@@ -15662,7 +15662,7 @@ var require_request = __commonJS({
         this.completed = false;
         this.aborted = false;
         this.upgrade = upgrade || null;
-        this.path = query ? buildURL(path, query) : path;
+        this.path = query ? buildURL(path2, query) : path2;
         this.origin = origin;
         this.idempotent = idempotent == null ? method === "HEAD" || method === "GET" : idempotent;
         this.blocking = blocking == null ? false : blocking;
@@ -20291,7 +20291,7 @@ var require_client_h1 = __commonJS({
       return method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && method !== "TRACE" && method !== "CONNECT";
     }
     function writeH1(client, request) {
-      const { method, path, host, upgrade, blocking, reset } = request;
+      const { method, path: path2, host, upgrade, blocking, reset } = request;
       let { body: body2, headers, contentLength } = request;
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH" || method === "QUERY" || method === "PROPFIND" || method === "PROPPATCH";
       if (util.isFormDataLike(body2)) {
@@ -20366,7 +20366,7 @@ var require_client_h1 = __commonJS({
       if (blocking) {
         socket[kBlocking] = true;
       }
-      let header = `${method} ${path} HTTP/1.1\r
+      let header = `${method} ${path2} HTTP/1.1\r
 `;
       if (typeof host === "string") {
         header += `host: ${host}\r
@@ -20892,7 +20892,7 @@ var require_client_h2 = __commonJS({
     }
     function writeH2(client, request) {
       const session = client[kHTTP2Session];
-      const { method, path, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
+      const { method, path: path2, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
       let { body: body2 } = request;
       if (upgrade) {
         util.errorRequest(client, request, new Error("Upgrade not supported for H2"));
@@ -20959,7 +20959,7 @@ var require_client_h2 = __commonJS({
         });
         return true;
       }
-      headers[HTTP2_HEADER_PATH] = path;
+      headers[HTTP2_HEADER_PATH] = path2;
       headers[HTTP2_HEADER_SCHEME] = "https";
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body2 && typeof body2.read === "function") {
@@ -21312,9 +21312,9 @@ var require_redirect_handler = __commonJS({
           return this.handler.onHeaders(statusCode, headers, resume, statusText);
         }
         const { origin, pathname, search } = util.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin)));
-        const path = search ? `${pathname}${search}` : pathname;
+        const path2 = search ? `${pathname}${search}` : pathname;
         this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin);
-        this.opts.path = path;
+        this.opts.path = path2;
         this.opts.origin = origin;
         this.opts.maxRedirections = 0;
         this.opts.query = null;
@@ -22549,10 +22549,10 @@ var require_proxy_agent = __commonJS({
         };
         const {
           origin,
-          path = "/",
+          path: path2 = "/",
           headers = {}
         } = opts;
-        opts.path = origin + path;
+        opts.path = origin + path2;
         if (!("host" in headers) && !("Host" in headers)) {
           const { host } = new URL2(origin);
           headers.host = host;
@@ -24524,20 +24524,20 @@ var require_mock_utils = __commonJS({
       }
       return true;
     }
-    function safeUrl(path) {
-      if (typeof path !== "string") {
-        return path;
+    function safeUrl(path2) {
+      if (typeof path2 !== "string") {
+        return path2;
       }
-      const pathSegments = path.split("?");
+      const pathSegments = path2.split("?");
       if (pathSegments.length !== 2) {
-        return path;
+        return path2;
       }
       const qp = new URLSearchParams(pathSegments.pop());
       qp.sort();
       return [...pathSegments, qp.toString()].join("?");
     }
-    function matchKey(mockDispatch2, { path, method, body: body2, headers }) {
-      const pathMatch = matchValue(mockDispatch2.path, path);
+    function matchKey(mockDispatch2, { path: path2, method, body: body2, headers }) {
+      const pathMatch = matchValue(mockDispatch2.path, path2);
       const methodMatch = matchValue(mockDispatch2.method, method);
       const bodyMatch = typeof mockDispatch2.body !== "undefined" ? matchValue(mockDispatch2.body, body2) : true;
       const headersMatch = matchHeaders(mockDispatch2, headers);
@@ -24559,7 +24559,7 @@ var require_mock_utils = __commonJS({
     function getMockDispatch(mockDispatches, key) {
       const basePath = key.query ? buildURL(key.path, key.query) : key.path;
       const resolvedPath = typeof basePath === "string" ? safeUrl(basePath) : basePath;
-      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path }) => matchValue(safeUrl(path), resolvedPath));
+      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path2 }) => matchValue(safeUrl(path2), resolvedPath));
       if (matchedMockDispatches.length === 0) {
         throw new MockNotMatchedError(`Mock dispatch not matched for path '${resolvedPath}'`);
       }
@@ -24597,9 +24597,9 @@ var require_mock_utils = __commonJS({
       }
     }
     function buildKey(opts) {
-      const { path, method, body: body2, headers, query } = opts;
+      const { path: path2, method, body: body2, headers, query } = opts;
       return {
-        path,
+        path: path2,
         method,
         body: body2,
         headers,
@@ -25062,10 +25062,10 @@ var require_pending_interceptors_formatter = __commonJS({
       }
       format(pendingInterceptors) {
         const withPrettyHeaders = pendingInterceptors.map(
-          ({ method, path, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
+          ({ method, path: path2, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
             Method: method,
             Origin: origin,
-            Path: path,
+            Path: path2,
             "Status code": statusCode,
             Persistent: persist ? PERSISTENT : NOT_PERSISTENT,
             Invocations: timesInvoked,
@@ -29946,9 +29946,9 @@ var require_util6 = __commonJS({
         }
       }
     }
-    function validateCookiePath(path) {
-      for (let i3 = 0; i3 < path.length; ++i3) {
-        const code = path.charCodeAt(i3);
+    function validateCookiePath(path2) {
+      for (let i3 = 0; i3 < path2.length; ++i3) {
+        const code = path2.charCodeAt(i3);
         if (code < 32 || // exclude CTLs (0-31)
         code > 126 || // exclude DEL and non-ascii
         code === 59) {
@@ -32790,11 +32790,11 @@ var require_undici = __commonJS({
           if (typeof opts.path !== "string") {
             throw new InvalidArgumentError("invalid opts.path");
           }
-          let path = opts.path;
+          let path2 = opts.path;
           if (!opts.path.startsWith("/")) {
-            path = `/${path}`;
+            path2 = `/${path2}`;
           }
-          url = new URL(util.parseOrigin(url).origin + path);
+          url = new URL(util.parseOrigin(url).origin + path2);
         } else {
           if (!opts) {
             opts = typeof url === "object" ? url : {};
@@ -33409,15 +33409,15 @@ async function runInstantGrade(target) {
     else passed.push("CORS does not reflect hostile origin");
   } catch {
   }
-  for (const path of ["/.env", "/.git/config", "/.git/HEAD", "/.env.local"]) {
+  for (const path2 of ["/.env", "/.git/config", "/.git/HEAD", "/.env.local"]) {
     try {
-      const r = await grab(new URL(path, u2.origin).toString(), {}, 5e3);
+      const r = await grab(new URL(path2, u2.origin).toString(), {}, 5e3);
       if (r.status === 200) {
         const ct3 = (r.headers.get("content-type") || "").toLowerCase();
         const body2 = (await r.text()).slice(0, 4e3);
         const looksReal = !ct3.includes("text/html") && !body2.trimStart().startsWith("<") && (/^\s*[A-Z0-9_]+\s*=/m.test(body2) || /\[core\]/.test(body2) || /^ref:\s/m.test(body2) || /-----BEGIN/.test(body2));
         if (looksReal) {
-          findings.push({ category: "Secrets", severity: "critical", title: `Exposed ${path}`, detail: `${path} is publicly downloadable \u2014 it can leak credentials, keys, or your full git history.` });
+          findings.push({ category: "Secrets", severity: "critical", title: `Exposed ${path2}`, detail: `${path2} is publicly downloadable \u2014 it can leak credentials, keys, or your full git history.` });
           break;
         }
       }
@@ -33691,11 +33691,11 @@ async function runDeepGrade(target) {
     ["/server-status", /Apache Server Status/i],
     ["/admin/config.yml", /(password|secret):/i]
   ];
-  await Promise.all(probes.map(async ([path, re2]) => {
-    const r = await grab2(new URL(path, origin).toString(), {}, 5e3);
+  await Promise.all(probes.map(async ([path2, re2]) => {
+    const r = await grab2(new URL(path2, origin).toString(), {}, 5e3);
     if (!r || r.status !== 200) return;
     const body2 = (await r.text()).slice(0, 4e3);
-    if (re2.test(body2)) exposed.push(path);
+    if (re2.test(body2)) exposed.push(path2);
   }));
   const maps = /* @__PURE__ */ new Set();
   for (const m6 of homeHtml.matchAll(/<script\b[^>]*\ssrc\s*=\s*["']([^"']+\.js)(\?[^"']*)?["']/gi)) {
@@ -33832,8 +33832,24 @@ var paidAuditsSchemaSql = `create table if not exists paid_audits (
 );
 
 create index if not exists paid_audits_status_idx on paid_audits (status, created_at);
+alter table paid_audits add column if not exists paid_at timestamptz;
 alter table paid_audits add column if not exists grade_claim_token text;
-alter table paid_audits add column if not exists grade_claimed_at timestamptz;`;
+alter table paid_audits add column if not exists grade_claimed_at timestamptz;
+alter table paid_audits add column if not exists report_pdf_url text;
+alter table paid_audits add column if not exists delivery_json jsonb;
+alter table paid_audits add column if not exists delivered_email_at timestamptz;`;
+var demoReportsSchemaSql = `create table if not exists demo_reports (
+  id text primary key,
+  url text not null,
+  tier text not null default 'single',
+  grade_json jsonb not null,
+  pdf_url text,
+  buyer_name text,
+  buyer_company text,
+  buyer_email text,
+  created_at timestamptz not null default now()
+);
+create index if not exists demo_reports_created_idx on demo_reports (created_at desc);`;
 var scansSchemaSql = `create table if not exists scans (
   id text primary key,
   url text not null,
@@ -33980,7 +33996,9 @@ alter table test_cards add column if not exists exec jsonb not null default '[]'
 
 ${paidAuditsSchemaSql}
 
-${scansSchemaSql}`;
+${scansSchemaSql}
+
+${demoReportsSchemaSql}`;
 
 // src/lib/scan-store.ts
 function countBySeverity(findings) {
@@ -34038,27 +34056,110 @@ async function markMonitorRun(sql, origin, scanId) {
 }
 
 // src/lib/mailer.ts
+import fs2 from "node:fs/promises";
+import path from "node:path";
 import tls2 from "node:tls";
+import { randomBytes } from "node:crypto";
 function mailerConfigured(env = process.env) {
   return Boolean(env.MONITOR_SMTP_URL && env.MONITOR_MAIL_FROM);
 }
 function b64(s5) {
   return Buffer.from(s5, "utf8").toString("base64");
 }
+function b64Lines(buf) {
+  return buf.toString("base64").replace(/(.{76})/g, "$1\r\n");
+}
+function safeHeader(s5) {
+  return s5.replace(/[\r\n]+/g, " ").trim();
+}
+function buildMessage(from, input, opts = {}) {
+  const date = (opts.date ?? /* @__PURE__ */ new Date()).toUTCString();
+  const domain = from.includes("@") ? from.split("@")[1] : "80-20.dev";
+  const messageId = opts.messageId ?? `<${Date.now().toString(36)}.${randomBytes(6).toString("hex")}@${domain}>`;
+  const head = [
+    `From: ${safeHeader(from)}`,
+    `To: ${safeHeader(input.to)}`,
+    `Subject: ${safeHeader(input.subject)}`,
+    `Date: ${date}`,
+    `Message-ID: ${messageId}`,
+    "MIME-Version: 1.0"
+  ];
+  const text = input.text.replace(/\r?\n/g, "\r\n");
+  const html = input.html ? input.html.replace(/\r?\n/g, "\r\n") : null;
+  const attachments = input.attachments ?? [];
+  if (!html && attachments.length === 0) {
+    return [...head, "Content-Type: text/plain; charset=utf-8", "Content-Transfer-Encoding: 8bit", "", text].join("\r\n");
+  }
+  const bodyPart = () => {
+    if (!html) return ["Content-Type: text/plain; charset=utf-8", "Content-Transfer-Encoding: 8bit", "", text].join("\r\n");
+    const alt = `alt_${randomBytes(8).toString("hex")}`;
+    return [
+      `Content-Type: multipart/alternative; boundary="${alt}"`,
+      "",
+      `--${alt}`,
+      "Content-Type: text/plain; charset=utf-8",
+      "Content-Transfer-Encoding: 8bit",
+      "",
+      text,
+      "",
+      `--${alt}`,
+      "Content-Type: text/html; charset=utf-8",
+      "Content-Transfer-Encoding: 8bit",
+      "",
+      html,
+      "",
+      `--${alt}--`
+    ].join("\r\n");
+  };
+  if (attachments.length === 0) {
+    return [...head, bodyPart()].join("\r\n");
+  }
+  const mixed = `mixed_${randomBytes(8).toString("hex")}`;
+  const parts2 = [...head, `Content-Type: multipart/mixed; boundary="${mixed}"`, "", `--${mixed}`, bodyPart(), ""];
+  for (const a3 of attachments) {
+    const name2 = safeHeader(a3.filename).replace(/"/g, "");
+    parts2.push(
+      `--${mixed}`,
+      `Content-Type: ${safeHeader(a3.contentType)}; name="${name2}"`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="${name2}"`,
+      "",
+      b64Lines(a3.content),
+      ""
+    );
+  }
+  parts2.push(`--${mixed}--`);
+  return parts2.join("\r\n");
+}
+async function captureMessage(message, env) {
+  const dir = env.MAIL_CAPTURE_DIR;
+  if (!dir) return null;
+  try {
+    await fs2.mkdir(dir, { recursive: true });
+    const file = path.join(dir, `${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}-${randomBytes(3).toString("hex")}.eml`);
+    await fs2.writeFile(file, message, "utf8");
+    return file;
+  } catch {
+    return null;
+  }
+}
 async function sendMail(input, env = process.env) {
-  if (!mailerConfigured(env)) return { skipped: "SMTP not configured (MONITOR_SMTP_URL / MONITOR_MAIL_FROM unset)" };
+  const from = env.MONITOR_MAIL_FROM || "no-reply@80-20.dev";
+  const message = buildMessage(from, input);
+  const captured = await captureMessage(message, env) ?? void 0;
+  if (!mailerConfigured(env)) return { skipped: "SMTP not configured (MONITOR_SMTP_URL / MONITOR_MAIL_FROM unset)", captured };
   let url;
   try {
     url = new URL(env.MONITOR_SMTP_URL);
   } catch {
-    return { ok: false, error: "MONITOR_SMTP_URL is not a valid URL" };
+    return { ok: false, error: "MONITOR_SMTP_URL is not a valid URL", captured };
   }
-  if (url.protocol !== "smtps:") return { ok: false, error: "Only smtps:// (implicit TLS, port 465) is supported" };
+  if (url.protocol !== "smtps:") return { ok: false, error: "Only smtps:// (implicit TLS, port 465) is supported", captured };
   const host = url.hostname;
   const port = Number(url.port || 465);
   const user = decodeURIComponent(url.username);
   const pass = decodeURIComponent(url.password);
-  const from = env.MONITOR_MAIL_FROM;
+  const wire = message.replace(/^\./gm, "..");
   return new Promise((resolve2) => {
     let settled = false;
     const done = (r) => {
@@ -34068,7 +34169,7 @@ async function sendMail(input, env = process.env) {
           socket.end();
         } catch {
         }
-        resolve2(r);
+        resolve2({ ...r, captured });
       }
     };
     const socket = tls2.connect({ host, port, servername: host, timeout: 12e3 }, () => {
@@ -34083,7 +34184,7 @@ async function sendMail(input, env = process.env) {
       { cmd: `MAIL FROM:<${from}>`, expect: 250 },
       { cmd: `RCPT TO:<${input.to}>`, expect: 250 },
       { cmd: "DATA", expect: 354 },
-      { cmd: buildMessage(from, input) + "\r\n.", expect: 250 },
+      { cmd: wire + "\r\n.", expect: 250 },
       { cmd: "QUIT", expect: 221 }
     ];
     let step = 0;
@@ -34112,18 +34213,6 @@ async function sendMail(input, env = process.env) {
     socket.on("error", (e) => done({ ok: false, error: e instanceof Error ? e.message : String(e) }));
     socket.on("timeout", () => done({ ok: false, error: "SMTP timeout" }));
   });
-}
-function buildMessage(from, input) {
-  const headers = [
-    `From: ${from}`,
-    `To: ${input.to}`,
-    `Subject: ${input.subject.replace(/[\r\n]/g, " ")}`,
-    "MIME-Version: 1.0",
-    "Content-Type: text/plain; charset=utf-8",
-    ""
-  ];
-  const body2 = input.text.replace(/\r?\n/g, "\r\n").replace(/^\./gm, "..");
-  return headers.join("\r\n") + body2;
 }
 
 // server/api-src/rescan-cron.ts

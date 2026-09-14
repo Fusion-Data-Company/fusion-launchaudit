@@ -304,6 +304,80 @@ function renderPage() {
 </html>`;
 }
 
+const MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg", ".webp": "image/webp", ".mp4": "video/mp4", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml", ".pdf": "application/pdf", ".woff2": "font/woff2",
+};
+
+async function serveStatic(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
+  const pathname = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
+  if (pathname.includes("..")) return false;
+  const publicDir = path.join(rootDir, "public");
+  const candidates = [pathname, `${pathname}.html`, `${pathname.replace(/\/$/, "")}/index.html`].map((p) => path.join(publicDir, p));
+  for (const file of candidates) {
+    if (!file.startsWith(publicDir)) continue;
+    try {
+      const stat = await fs.stat(file);
+      if (!stat.isFile()) continue;
+      const ext = path.extname(file).toLowerCase();
+      response.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream", "content-length": String(stat.size) });
+      if (request.method === "HEAD") { response.end(); return true; }
+      response.end(await fs.readFile(file));
+      return true;
+    } catch { /* try next candidate */ }
+  }
+  return false;
+}
+
+/** Vercel-shaped req/res adapter around server/api-src/<name>.ts. Returns false when no such handler exists. */
+async function serveApiHandler(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
+  const url = new URL(request.url ?? "/", "http://localhost");
+  const name = url.pathname.slice("/api/".length).replace(/\/+$/, "");
+  if (!/^[a-z0-9_-]+(\/[a-z0-9_-]+)?$/i.test(name)) return false;
+  const file = path.join(rootDir, "server", "api-src", `${name}.ts`);
+  try { await fs.access(file); } catch { return false; }
+  const mod = (await import(`./api-src/${name}.ts`)) as { default: (req: unknown, res: unknown) => Promise<void> | void; config?: { api?: { bodyParser?: boolean } } };
+  if (typeof mod.default !== "function") return false;
+
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  const raw = Buffer.concat(chunks);
+  const contentType = String(request.headers["content-type"] ?? "");
+  let body: unknown = undefined;
+  if (mod.config?.api?.bodyParser === false) body = raw.toString("utf8");
+  else if (raw.length && contentType.includes("application/json")) { try { body = JSON.parse(raw.toString("utf8")); } catch { body = {}; } }
+  else if (raw.length) body = raw.toString("utf8");
+
+  const query: Record<string, string> = {};
+  url.searchParams.forEach((v, k) => { query[k] = v; });
+  const req = { method: request.method, headers: request.headers, query, url: request.url, body };
+
+  let statusCode = 200;
+  const headers: Record<string, string> = {};
+  const res = {
+    status(code: number) { statusCode = code; return res; },
+    setHeader(k: string, v: string) { headers[k.toLowerCase()] = v; return res; },
+    json(data: unknown) {
+      response.writeHead(statusCode, { "content-type": "application/json; charset=utf-8", ...headers });
+      response.end(JSON.stringify(data));
+    },
+    send(data: unknown) { res.end(data as Buffer | string); },
+    end(data?: Buffer | string) {
+      if (!headers["content-type"]) headers["content-type"] = Buffer.isBuffer(data) ? "application/octet-stream" : "text/plain; charset=utf-8";
+      response.writeHead(statusCode, headers);
+      response.end(data);
+    },
+  };
+  try {
+    await mod.default(req, res);
+  } catch (error) {
+    if (!response.headersSent) json(response, 500, { error: error instanceof Error ? error.message : String(error) });
+  }
+  return true;
+}
+
 async function main() {
   // Load .env.local (POSTGRES_URL, RUNNER_SYNC_SECRET, etc.) so the dev server
   // mirrors production: when a secret is present, runner writes are enforced.
@@ -625,6 +699,23 @@ async function main() {
       });
       json(response, 200, { accepted: true });
       return;
+    }
+
+    // ---- Any other /api/<name>: the same handler Vercel deploys, through a
+    //      Vercel-shaped adapter. This is what makes `npm run dev` on one port a
+    //      faithful stand-in for production in the checkout rehearsal:
+    //      /api/checkout, /api/stripe-webhook (raw body), /api/order-status,
+    //      /api/order-url, /api/order-report (binary), /api/demo, /api/grade...
+    if (request.url.startsWith("/api/")) {
+      const served = await serveApiHandler(request, response);
+      if (served) return;
+    }
+
+    // ---- Static files from public/ with Vercel's cleanUrls semantics
+    //      (/order/success -> public/order/success.html, /demo -> public/demo.html).
+    if (request.method === "GET" || request.method === "HEAD") {
+      const served = await serveStatic(request, response);
+      if (served) return;
     }
 
     json(response, 404, { error: "Not found." });

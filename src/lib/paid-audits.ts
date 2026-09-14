@@ -1,11 +1,20 @@
 /**
- * paid_audits store — hosted deep-audit orders (see db/migrations/003_paid_audits.sql).
+ * paid_audits store: hosted audit orders (see db/migrations/003, 004, 007, 008).
  *
- * What is automatic today: on checkout.session.completed we insert the order and
- * immediately run the site-wide URL-only deep grade (grade_json; Single Run → delivered, others → graded).
- * What is NOT automatic: the Playwright deep audit needs Chromium, which Vercel
- * functions don't have. Rows stay at 'graded' until a worker/human runs it and
- * sets report_url + status 'delivered'. Never claim otherwise in the UI.
+ * Lifecycle:
+ *   webhook  -> queued          (or awaiting_url when the buyer paid before naming the site)
+ *   /api/order-url              awaiting_url -> queued
+ *   grade    -> delivered       every tier: automated site-wide URL grade stored in grade_json,
+ *                               PDF rendered, hosted link set (report_url), email attempted
+ *                               (delivery_json records the outcome). For standard/pro the
+ *                               hands-on browser audit is scheduled by a person from that email;
+ *                               the row keeps status 'delivered' for the automated report and
+ *                               hands_on tracking lives in delivery_json.hands_on.
+ *   blocked  -> automatic Stripe refund (refundBlockedOrder)
+ *   lifecycle webhooks -> payment_failed | refunded | disputed (report no longer served)
+ *
+ * The Playwright deep audit needs Chromium, which Vercel functions do not have; it is
+ * never claimed as automatic anywhere in the UI.
  */
 import { paymentLifecycleSchema, reconcilePaymentState } from "./payment-lifecycle.ts";
 import { randomUUID } from "node:crypto";
@@ -15,8 +24,10 @@ import { parseTargetUrl, type InstantGrade } from "./instant-grade.ts";
 import { withAuditDeadline } from "./audit-deadline.ts";
 import { runDeepGrade, type DeepGrade } from "./deep-grade.ts";
 import { stripeGet, stripeRequest } from "./stripe.ts";
+import { formatUsd, tierInfo } from "./checkout-input.ts";
+import { deliverPaidAudit, type DeliveryRecord } from "./audit-delivery.ts";
 
-export type PaidAuditStatus = "queued" | "graded" | "delivered" | "blocked" | "payment_failed" | "refunded" | "disputed";
+export type PaidAuditStatus = "awaiting_url" | "queued" | "graded" | "delivered" | "blocked" | "payment_failed" | "refunded" | "disputed";
 
 export type PaidAuditRow = {
   id: string;
@@ -30,6 +41,9 @@ export type PaidAuditRow = {
   created_at: string;
   completed_at: string | null;
   report_url: string | null;
+  report_pdf_url?: string | null;
+  delivery_json?: DeliveryRecord | null;
+  delivered_email_at?: string | null;
 };
 
 export async function ensurePaidAuditsTable(sql: SqlClient): Promise<void> {
@@ -41,16 +55,20 @@ export function newPaidAuditId(): string {
   return "pa_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-/** Idempotent insert keyed on the Stripe session id. Returns the current row either way. */
+/**
+ * Idempotent insert keyed on the Stripe session id. Returns the current row either way.
+ * An empty targetUrl means the buyer paid first and names the site on the success page.
+ */
 export async function upsertPaidAudit(
   sql: SqlClient,
-  order: { stripeSessionId: string; email: string; targetUrl: string; tier: string; amountCents: number; paidAt?:string },
+  order: { stripeSessionId: string; email: string; targetUrl: string; tier: string; amountCents: number; paidAt?: string },
 ): Promise<PaidAuditRow> {
+  const status: PaidAuditStatus = order.targetUrl ? "queued" : "awaiting_url";
   await sql(
     `insert into paid_audits (id, stripe_session_id, email, target_url, tier, amount_cents, status, paid_at)
-     values ($1, $2, $3, $4, $5, $6, 'queued', $7)
+     values ($1, $2, $3, $4, $5, $6, $7, $8)
      on conflict (stripe_session_id) do nothing`,
-    [newPaidAuditId(), order.stripeSessionId, order.email, order.targetUrl, order.tier, order.amountCents,order.paidAt??null],
+    [newPaidAuditId(), order.stripeSessionId, order.email, order.targetUrl, order.tier, order.amountCents, status, order.paidAt ?? null],
   );
   await reconcilePaymentState(sql, order.stripeSessionId);
   const row = await getPaidAuditBySession(sql, order.stripeSessionId);
@@ -63,9 +81,16 @@ export async function getPaidAuditBySession(sql: SqlClient, stripeSessionId: str
   return (rows[0] as PaidAuditRow | undefined) ?? null;
 }
 
+/** The success page names the site after a pay-first checkout. Only an awaiting_url row can be set, exactly once. */
+export async function setPaidAuditUrl(sql: SqlClient, stripeSessionId: string, targetUrl: string): Promise<PaidAuditRow | null> {
+  await sql(`update paid_audits set target_url = $2, status = 'queued' where stripe_session_id = $1 and status = 'awaiting_url'`, [stripeSessionId, targetUrl]);
+  return getPaidAuditBySession(sql, stripeSessionId);
+}
+
 /**
- * Run the paid (site-wide) grader for a queued order and persist the result. Safe to re-run.
- * Every paid tier gets the deep URL-only grade; the free /api/grade stays the single-URL surface scan.
+ * Run the paid (site-wide) grader for a queued order, persist the result, then deliver it
+ * (PDF + hosted link + email). Safe to re-run: the claim token fences concurrent graders and
+ * delivery is idempotent on the row.
  */
 export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise<PaidAuditRow> {
   if (row.status !== "queued") return row;
@@ -78,11 +103,12 @@ export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise
   const parsed = parseTargetUrl(row.target_url);
   const result = parsed.ok ? await withAuditDeadline(runDeepGrade(parsed.url)) : { ok: false as const, status: 400, error: parsed.error };
   if (result.ok) {
-    // Single Run: the instant grade IS the deliverable, so the order completes here with no human step.
-    if (row.tier === "single") {
-      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now() where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify(result), claim]);
-    } else {
-      await sql(`update paid_audits set grade_json = $2::jsonb, status = 'graded' where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify(result), claim]);
+    // Every tier: the automated report is the first deliverable and it completes here with no human step.
+    const landed = await sql(`update paid_audits set grade_json = $2::jsonb, status = 'delivered', completed_at = now()
+      where id = $1 and status='queued' and grade_claim_token=$3 returning id`, [row.id, JSON.stringify(result), claim]);
+    if (landed.length) {
+      const fresh = await getPaidAuditBySession(sql, row.stripe_session_id);
+      if (fresh) await deliverPaidAudit(sql, fresh);
     }
   } else if ("blocked" in result && result.blocked) {
     // The target would not let us see it. That is a real outcome the buyer must
@@ -130,6 +156,13 @@ export async function refundBlockedOrder(sql: SqlClient, row: PaidAuditRow, clai
   }
 }
 
+/** "r***@fusiondataco.com": enough for the buyer to recognise the inbox, never the address itself. */
+export function emailHint(email: string | null | undefined): string | null {
+  if (!email || !email.includes("@")) return null;
+  const [local, domain] = email.split("@");
+  return `${local.slice(0, 1)}***@${domain}`;
+}
+
 /** Public-safe projection for the success page (no email, no internal ids). */
 export function publicOrderStatus(row: PaidAuditRow) {
   const closed = row.status === "refunded" || row.status === "disputed";
@@ -137,15 +170,26 @@ export function publicOrderStatus(row: PaidAuditRow) {
   const gj = row.grade_json as { blocked?: boolean; error?: string; refund?: { id?: string; error?: string; skipped?: string } } | null;
   const blocked = gj && gj.blocked ? gj.error ?? null : null;
   const refunded = !!(gj && gj.refund && gj.refund.id);
+  const info = tierInfo(row.tier);
+  const delivery = row.delivery_json ?? null;
   return {
     status: row.status,
     blocked,
     refunded,
     tier: row.tier,
-    target_url: row.target_url,
+    tier_label: info.label,
+    hands_on: info.handsOn,
+    includes: info.includes,
+    next: info.next,
+    amount_cents: row.amount_cents,
+    amount_display: formatUsd(row.amount_cents),
+    target_url: row.target_url || null,
+    email_hint: emailHint(row.email),
     created_at: row.created_at,
     completed_at: row.completed_at,
     report_url: closed ? null : row.report_url,
+    report_pdf_url: closed ? null : row.report_pdf_url ?? null,
+    email_delivery: closed || !delivery ? null : { status: delivery.email.status, at: delivery.email.at, detail: delivery.email.status === "sent" ? null : delivery.email.detail },
     grade: g
       ? {
           url: g.url, score: g.score, band: g.band, passed: g.passed, summary: g.summary, findings: g.findings,

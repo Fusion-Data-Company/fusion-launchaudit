@@ -1,0 +1,50 @@
+{
+  "id": "evt_rehearsal_1789396161",
+  "object": "event",
+  "api_version": "2026-02-25.clover",
+  "created": 1789396161,
+  "livemode": false,
+  "pending_webhooks": 1,
+  "request": {
+    "id": null,
+    "idempotency_key": null
+  },
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test_rehearsal_mu1c9v21",
+      "object": "checkout.session",
+      "livemode": false,
+      "mode": "payment",
+      "status": "complete",
+      "payment_status": "paid",
+      "currency": "usd",
+      "amount_subtotal": 7900,
+      "amount_total": 7900,
+      "created": 1789396161,
+      "expires_at": 1789482561,
+      "customer": null,
+      "customer_email": "rob@fusiondataco.com",
+      "customer_details": {
+        "email": "rob@fusiondataco.com",
+        "name": "Rob Yeager",
+        "address": null,
+        "phone": null,
+        "tax_exempt": "none",
+        "tax_ids": []
+      },
+      "metadata": {
+        "target_url": "https://fusiondataco.com",
+        "tier": "single"
+      },
+      "payment_method_types": [
+        "card",
+        "link"
+      ],
+      "payment_intent": "pi_rehearsal_1789396161",
+      "success_url": "http://127.0.0.1:3003/order/success?session_id={CHECKOUT_SESSION_ID}",
+      "cancel_url": "http://127.0.0.1:3003/#order",
+      "url": null
+    }
+  }
+}

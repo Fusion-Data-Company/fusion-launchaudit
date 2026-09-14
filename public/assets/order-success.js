@@ -1,25 +1,20 @@
-/* /order/success — THE DELIVERABLE.
+/* /order/success: THE DELIVERABLE.
  *
  * Polls /api/order-status for the paid audit and renders it at the level the
- * buyer paid for: a drawn score gauge, severity chips carrying a colour AND a
- * glow, an elite findings table with tabular-nums, and designed states for
- * every way this can end — still running, blocked, refunded, clean, failed.
- * The polling contract and the API shape are untouched; only the rendering is.
- * (External file, because script-src is 'self'.)
+ * buyer paid for. Confirms the tier, the price and what happens next; collects
+ * the site URL when the buyer paid before naming it (pay-first checkout);
+ * shows the PDF download and the hosted link the moment they exist; and has a
+ * designed state for every way this can end: still running, waiting for a URL,
+ * blocked, refunded, clean, failed. External file because script-src is 'self'.
  */
 (function(){
   var sid=new URLSearchParams(window.location.search).get('session_id')||'';
   var grade=document.getElementById('grade'), report=document.getElementById('report'), meta=document.getElementById('meta');
   var stGraded=document.getElementById('st-graded'), stReport=document.getElementById('st-report');
-  var chipEl=document.getElementById('order-chip');
+  var chipEl=document.getElementById('order-chip'), summary=document.getElementById('order-summary'), urlCard=document.getElementById('url-card');
+  var actions=document.getElementById('report-actions');
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function lhv(v){return v==null?'&mdash;':v;}
-  var SEV={critical:['chip-crit','Critical','la-row-crit',0],high:['chip-bad','High','la-row-high',1],
-           medium:['chip-warn','Medium','la-row-med',2],low:['chip-info','Low','la-row-low',3]};
-
   function setChip(cls,text){ if(chipEl){ chipEl.className='chip '+cls+' sev-chip'; chipEl.textContent=text; } }
-  /* The headline is part of the report. A page that still reads "your Single
-     Run is underway" over a refund notice is a second thing gone wrong. */
   function setHead(title, lead){
     var h=document.querySelector('h1'), l=document.querySelector('.lead'), pr=document.getElementById('promise');
     if(h) h.textContent=title;
@@ -27,69 +22,14 @@
     if(pr && /refund/i.test(lead)) pr.hidden=true;
   }
   function refresh(){ if(window.eliteMotionRefresh) window.eliteMotionRefresh(); }
-
-  function gauge(score,band){ return window.eliteGauge?window.eliteGauge(score,band):''; }
-
-  function counts(list){
-    var c={critical:0,high:0,medium:0,low:0};
-    (list||[]).forEach(function(f){ if(c[f.severity]!=null) c[f.severity]++; });
-    return c;
-  }
-  function chips(c){
-    return ['critical','high','medium','low'].filter(function(k){return c[k]>0;}).map(function(k){
-      return '<span class="chip '+SEV[k][0]+' sev-chip">'+c[k]+' '+SEV[k][1]+'</span>';
-    }).join('');
-  }
-  function sevbar(c){
-    var t=c.critical+c.high+c.medium+c.low; if(!t) return '';
-    function w(n){return (n/t*100).toFixed(1)+'%';}
-    return '<div class="la-sevbar" aria-hidden="true"><i class="s-crit" style="width:'+w(c.critical)+'"></i>'
-      +'<i class="s-high" style="width:'+w(c.high)+'"></i><i class="s-med" style="width:'+w(c.medium)+'"></i>'
-      +'<i class="s-low" style="width:'+w(c.low)+'"></i></div>';
-  }
-  function table(list){
-    var rows=(list||[]).slice().sort(function(a,b){
-      return ((SEV[a.severity]||SEV.low)[3])-((SEV[b.severity]||SEV.low)[3]);
-    }).map(function(f){
-      var m=SEV[f.severity]||SEV.low;
-      return '<tr class="'+m[2]+'"><td><span class="chip '+m[0]+' sev-chip">'+m[1]+'</span></td>'
-        +'<td class="la-cat">'+esc(f.category||'')+'</td>'
-        +'<td class="la-what"><b>'+esc(f.title)+'</b><span>'+esc(f.detail)+'</span></td></tr>';
-    }).join('');
-    if(!rows) return '';
-    return '<div class="elite-table-wrap"><table class="elite-table is-compact">'
-      +'<thead><tr><th scope="col">Severity</th><th scope="col">Category</th>'
-      +'<th scope="col">What we found, and why it costs you</th></tr></thead>'
-      +'<tbody>'+rows+'</tbody></table></div>';
-  }
-
-  /* A designed empty state. "No data" tells an operator nothing about whether
-     the query is wrong, the filter is wrong, or the work is done. */
-  function clean(){
-    return '<div class="elite-empty" style="padding:36px 24px;">'
-      +'<div class="elite-empty__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 8.3-7 9.5C8 19.3 5 15.4 5 11V6z"/><path d="M9 12l2 2 4-4"/></svg></div>'
-      +'<h4 style="font-family:var(--font-display);font-size:20px;margin:0;color:var(--ink)">Nothing to fix at the URL level.</h4>'
-      +'<p style="max-width:52ch;margin:0;color:var(--ink-soft);font-size:14.5px;line-height:1.6">Every check this run could answer from outside your app came back clean. That is the honest limit of a URL-only audit: it says nothing yet about broken access control, your admin API, or what your server hands a stranger who asks directly.</p>'
-      +'<a class="btn" href="/#connect">Run the deep audit in your own agent &rarr;</a></div>';
-  }
-
   function errBlock(title, body, extra){
-    return '<div class="la-error">'
-      +'<div class="la-error__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.5"/></svg></div>'
+    return '<div class="la-error"><div class="la-error__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.5"/></svg></div>'
       +'<h4>'+title+'</h4><p>'+body+'</p>'+(extra||'')+'</div>';
   }
-
-  /* Loading is a skeleton, not a spinner: text skeletons are text-shaped, and
-     the last line is short, because a stack of equal bars does not read as
-     loading text — it reads as a broken table. */
   function loading(msg){
     return '<div class="card"><div style="display:flex;gap:26px;align-items:center;flex-wrap:wrap">'
       +'<div class="skeleton" style="width:168px;height:168px;border-radius:50%;flex:none"></div>'
-      +'<div style="flex:1;min-width:260px;display:grid;gap:11px">'
-      +'<div class="skeleton skeleton-line" style="height:15px"></div>'
-      +'<div class="skeleton skeleton-line" style="height:12px"></div>'
-      +'<div class="skeleton skeleton-line" style="height:12px"></div>'
-      +'<div class="skeleton skeleton-line" style="height:12px"></div></div></div>'
+      +'<div style="flex:1;min-width:260px;display:grid;gap:11px"><div class="skeleton skeleton-line" style="height:15px"></div><div class="skeleton skeleton-line" style="height:12px"></div><div class="skeleton skeleton-line" style="height:12px"></div><div class="skeleton skeleton-line" style="height:12px"></div></div></div>'
       +'<div class="loadbar" style="margin-top:20px"></div>'
       +'<p style="margin:14px 0 0;font-size:13.5px;color:var(--ink-mut)">'+msg+'</p></div>';
   }
@@ -102,36 +42,64 @@
     refresh(); return;
   }
 
-  function renderGrade(g){
-    var c=counts(g.findings);
-    var pages=g.pages_scanned||1;
-    var note = g.kind==='deep'
-      ? 'Site-wide URL-only audit: <span class="tabular">'+pages+'</span> page'+(pages===1?'':'s')+' scanned, <span class="tabular">'+(g.checks_run||0)+'</span> check groups run, <span class="tabular">'+(g.passed||0)+'</span> passed. No browser, no login, no code left your machine. Broken access control, admin/RBAC, write-authz and authenticated flows need the deep audit &mdash; which is free in your own agent.'
-      : 'URL-only surface scan: <span class="tabular">'+(g.passed||0)+'</span> checks passed. Broken access control, admin/RBAC, write-authz and authenticated flows need the deep audit &mdash; which is free in your own agent.';
-    var lh = g.lighthouse ? '<div class="lh-strip">'
-        +'<div class="lh-cell"><div class="v">'+lhv(g.lighthouse.performance)+'</div><div class="k">Performance</div></div>'
-        +'<div class="lh-cell"><div class="v">'+lhv(g.lighthouse.accessibility)+'</div><div class="k">Accessibility</div></div>'
-        +'<div class="lh-cell"><div class="v">'+lhv(g.lighthouse.best_practices)+'</div><div class="k">Best practices</div></div>'
-        +'<div class="lh-cell"><div class="v">'+lhv(g.lighthouse.seo)+'</div><div class="k">SEO</div></div>'
-        +(g.lighthouse.lcp_ms!=null?'<div class="lh-cell"><div class="v">'+(Math.round(g.lighthouse.lcp_ms/100)/10)+'s</div><div class="k">LCP</div></div>':'')
-        +(g.lighthouse.cls!=null?'<div class="lh-cell"><div class="v">'+Number(g.lighthouse.cls).toFixed(2)+'</div><div class="k">CLS</div></div>':'')
-      +'</div>' : '';
-
-    grade.innerHTML='<div class="la-report">'
-      +'<div class="la-report__head">'+gauge(g.score,g.band)
-        +'<div class="la-report__meta">'
-          +'<p class="la-report__url">'+esc(g.url||'')+'</p>'
-          +'<p class="la-report__sub">'+esc(g.summary)+'</p>'
-          +'<div class="la-report__counts">'+chips(c)+'</div>'+sevbar(c)
-        +'</div>'
+  /* Order summary: tier, price, site, where the email goes, what happens next. */
+  function renderSummary(d){
+    if(!summary) return;
+    var emailLine = d.email_hint ? 'PDF copy emailed to <b>'+esc(d.email_hint)+'</b>' : 'PDF copy emailed to the address on your receipt';
+    var emailState = d.email_delivery
+      ? (d.email_delivery.status==='sent' ? '<span class="chip chip-ok sev-chip">Email sent</span>'
+        : d.email_delivery.status==='skipped' ? '<span class="chip chip-idle sev-chip" title="'+esc(d.email_delivery.detail||'')+'">Email pending: PDF below is your copy</span>'
+        : '<span class="chip chip-warn sev-chip" title="'+esc(d.email_delivery.detail||'')+'">Email failed, PDF below</span>')
+      : '';
+    summary.hidden=false;
+    summary.innerHTML='<div class="sum-grid">'
+      +'<div><span class="k">Tier</span><b>'+esc(d.tier_label)+(d.hands_on?' <span class="chip chip-info sev-chip" style="margin-left:6px">Hands-on included</span>':'')+'</b></div>'
+      +'<div><span class="k">Paid</span><b class="tabular">'+esc(d.amount_display)+'</b></div>'
+      +'<div><span class="k">Site</span><b>'+(d.target_url?esc(d.target_url):'<em>not named yet</em>')+'</b></div>'
+      +'<div><span class="k">Delivery</span><b>On this page, as a PDF, at a hosted link. '+emailLine+'.</b> '+emailState+'</div>'
       +'</div>'
-      +(table(g.findings)||clean())
-      +'<div style="padding:18px 24px 22px;box-shadow:inset 0 1px 0 var(--elite-rule)">'+lh
-      +'<p class="rep-note">'+note+'</p></div></div>';
-    refresh();
+      +'<p class="sum-includes"><b>Included:</b> '+esc(d.includes)+'</p>'
+      +'<p class="sum-next"><b>What happens next:</b> '+esc(d.next)+'</p>';
   }
 
-  function tierName(t){return t==='pro'?'Pro':t==='single'?'Single Run':'Deep Audit';}
+  function renderActions(d){
+    if(!actions) return;
+    if(!d.report_url && !d.report_pdf_url){ actions.hidden=true; return; }
+    actions.hidden=false;
+    actions.innerHTML=(d.report_pdf_url?'<a class="btn" href="'+esc(d.report_pdf_url)+'" target="_blank" rel="noopener">Download the PDF</a>':'')
+      +(d.report_url && d.report_url!==d.report_pdf_url?'<a class="btn ghost" href="'+esc(d.report_url)+'" target="_blank" rel="noopener">Open the hosted copy</a>':'')
+      +'<button type="button" class="btn ghost" id="copy-link">Copy this page link</button>';
+    var cl=document.getElementById('copy-link');
+    if(cl) cl.addEventListener('click', function(){ var t=window.location.href; function ok(){cl.textContent='Link copied'; setTimeout(function(){cl.textContent='Copy this page link';},1500);} if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok,ok);} else ok(); });
+  }
+
+  /* Pay-first checkout: the buyer names the site here, once. */
+  function renderUrlForm(d){
+    if(!urlCard) return;
+    urlCard.hidden=false;
+    urlCard.innerHTML='<h3>One thing left: which site should we audit?</h3>'
+      +'<p>Your payment for the <b>'+esc(d.tier_label)+'</b> ('+esc(d.amount_display)+') is confirmed. Enter the public URL of the app and the audit starts the moment you submit.</p>'
+      +'<form id="url-form" novalidate><input id="url-input" type="url" inputmode="url" autocomplete="url" placeholder="https://your-app.com" aria-label="App URL to audit" required />'
+      +'<label class="consent" for="url-authorized"><input type="checkbox" id="url-authorized" /><span>I own this site or I am authorised to test it. I have read the <a href="/terms">terms</a> and the <a href="/refunds">refund policy</a>.</span></label>'
+      +'<button class="btn" type="submit" id="url-btn">Start the audit &rarr;</button><div id="url-err" class="cf-result err" hidden></div></form>';
+    var f=document.getElementById('url-form'), btn=document.getElementById('url-btn'), err=document.getElementById('url-err');
+    f.addEventListener('submit', async function(e){
+      e.preventDefault();
+      var url=(document.getElementById('url-input').value||'').trim();
+      var ok=!!(document.getElementById('url-authorized')||{}).checked;
+      err.hidden=true;
+      if(!url){ err.hidden=false; err.textContent='Enter the URL of the app to audit.'; return; }
+      if(!ok){ err.hidden=false; err.textContent='Tick the box to confirm you own this site or are authorised to test it.'; return; }
+      var prev=btn.textContent; btn.disabled=true; btn.textContent='Starting...';
+      try{
+        var r=await fetch('/api/order-url',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({session_id:sid,url:url,authorized:true})});
+        var res=await r.json();
+        if(res&&res.ok){ urlCard.hidden=true; tries=0; poll(); return; }
+        err.hidden=false; err.textContent=(res&&res.error)||'Could not save the URL. Try again.';
+      }catch(ex){ err.hidden=false; err.textContent='Could not reach the order service. Try again.'; }
+      btn.disabled=false; btn.textContent=prev;
+    });
+  }
 
   var tries=0, delay=3000;
   async function poll(){
@@ -141,19 +109,29 @@
       var d=await r.json();
       if(!d||!d.ok){
         setChip('chip-bad','Not found');
-        grade.innerHTML=errBlock('We could not load your order.', esc((d&&d.error)||'The order lookup failed.'),
-          '<a class="btn ghost" href="/#contact">Contact us with your receipt &rarr;</a>');
+        grade.innerHTML=errBlock('We could not load your order.', esc((d&&d.error)||'The order lookup failed.'), '<a class="btn ghost" href="/#contact">Contact us with your receipt &rarr;</a>');
         refresh(); return;
       }
       if(d.status==='pending'){
         setChip('chip-info','Syncing');
         if(tries<40){ grade.innerHTML=loading('Waiting for Stripe to confirm the payment, then the audit starts. This usually takes 30 to 60 seconds.'); refresh(); setTimeout(poll, delay); return; }
         grade.innerHTML=errBlock('Your payment went through; the order has not synced yet.',
-          'Keep this link and reload it in a few minutes &mdash; it is permanent. If it is still empty after an hour, send us the Stripe receipt number and we will finish it by hand or refund it.',
+          'Keep this link and reload it in a few minutes; it is permanent. If it is still empty after an hour, send us the Stripe receipt number and we will finish it by hand or refund it.',
           '<a class="btn ghost" href="/#contact">Send us the receipt number &rarr;</a>');
         refresh(); return;
       }
-      meta.innerHTML='Order for '+esc(d.target_url)+' &middot; '+tierName(d.tier)+' &middot; order link: '+esc(window.location.href);
+      renderSummary(d);
+      renderActions(d);
+      meta.innerHTML='Order for '+(d.target_url?esc(d.target_url):'a site you have not named yet')+' &middot; '+esc(d.tier_label)+' &middot; '+esc(d.amount_display)+' &middot; order link: '+esc(window.location.href);
+
+      if(d.status==='awaiting_url'){
+        setChip('chip-info','Needs your URL');
+        setHead('Paid. Tell us which site to audit.','Your '+esc(d.tier_label)+' is paid for. Name the site below and the audit starts immediately; the report lands on this page and in your inbox.');
+        stGraded.className=''; renderUrlForm(d);
+        grade.innerHTML=''; refresh(); return;
+      }
+      if(urlCard) urlCard.hidden=true;
+
       if(d.status==='blocked'){
         setChip('chip-warn',d.refunded?'Refunded':'Refund pending');
         setHead(d.refunded?'We could not audit that site, so we refunded you.':'We could not audit that site. Your refund needs confirmation.',
@@ -172,51 +150,37 @@
         setChip('chip-idle',d.status==='refunded'?'Refunded':'Disputed');
         setHead('This order is closed.','The payment was '+esc(d.status)+', so the report is no longer served on this link.');
         stGraded.className=''; if(stReport)stReport.hidden=true;
-        grade.innerHTML=errBlock('This order was '+esc(d.status)+'.','The report is no longer available on this link. The free surface scan and the open-source deep audit are both still yours to run.',
-          '<a class="btn ghost" href="/#grade">Run the free scan &rarr;</a>');
+        grade.innerHTML=errBlock('This order was '+esc(d.status)+'.','The report is no longer available on this link. The free surface scan and the open-source deep audit are both still yours to run.', '<a class="btn ghost" href="/#grade">Run the free scan &rarr;</a>');
         refresh(); return;
       }
       if(d.grade){
         setChip('chip-ok','Report ready');
-        setHead('Your report is ready.','Below is everything the site-wide URL audit found on '+esc(d.target_url)+', worst first, with a plain-English line on why each one costs you. Bookmark this link &mdash; it <em>is</em> your report and it keeps working.');
+        setHead('Your report is ready.','Below is everything the site-wide URL audit found on '+esc(d.target_url)+', worst first, with a plain-English line on why each one costs you. The PDF is on its way to your inbox and stays at the links below; this page keeps working too.');
         stGraded.className='done'; if(stReport)stReport.className='done';
-        renderGrade(d.grade);
+        window.renderAuditReport(grade, d.grade, {});
+        report.hidden=false;
+        report.innerHTML=d.hands_on
+          ? '<p style="font-family:var(--font-display);font-size:18px;margin:0 0 6px">Automated report delivered. The hands-on part is next.</p><p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">'+esc(d.next)+' Reply to the report email with anything we should know first (staging URL, test login for Pro, areas you care most about).</p>'
+          : '<p style="font-family:var(--font-display);font-size:18px;margin:0 0 6px">Single Run complete.</p><p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">Want the deep audit in a real browser, with broken access control, admin/RBAC, accessibility and performance and evidence for every check? It is free in <a href="/#connect" style="color:var(--accent-ink)">your own agent</a>, or order the <a href="/#order" style="color:var(--accent-ink)">Deep Audit</a> and we do it by hand.</p>';
       }
       else if(d.grade_error){
         setChip('chip-bad','Scan failed');
         stGraded.className='now';
-        grade.innerHTML=errBlock('The scan could not finish for '+esc(d.target_url)+'.',
-          esc(d.grade_error)+' Reload this link in a few minutes; if it still fails, send us the order link and it is refunded in full.',
-          '<a class="btn ghost" href="/#contact">Send us this order link &rarr;</a>');
+        grade.innerHTML=errBlock('The scan could not finish for '+esc(d.target_url)+'.', esc(d.grade_error)+' Reload this link in a few minutes; if it still fails, send us the order link and it is refunded in full.', '<a class="btn ghost" href="/#contact">Send us this order link &rarr;</a>');
         refresh();
       }
       else {
         setChip('chip-info','Running');
         stGraded.className='now';
-        grade.innerHTML=loading('Running your site audit &mdash; up to eight pages, 30 to 60 seconds. This page updates itself; you do not need to reload.');
+        grade.innerHTML=loading('Running your site audit: up to eight pages, 30 to 60 seconds. This page updates itself; you do not need to reload.');
         refresh();
         if(tries<40) setTimeout(poll, delay);
-      }
-      if(d.tier==='single'){
-        report.hidden=false;
-        report.innerHTML=d.grade
-          ? '<p style="font-family:var(--font-display);font-size:18px;margin:0 0 6px">Single Run complete.</p><p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">This page is your deliverable and the link keeps working. Want the deep audit in a real browser &mdash; authorization, admin/RBAC, accessibility, performance, with evidence for every check? It is free in <a href="/#connect" style="color:var(--accent-ink)">your own agent</a>, or <a href="/#contact" style="color:var(--accent-ink)">ask for a quote</a> and we do it by hand.</p>'
-          : '<p style="margin:0;font-size:13.5px;color:var(--ink-mut)">Your grade will appear above as soon as the scan finishes.</p>';
-      } else if(d.status==='delivered' && d.report_url){
-        if(stReport){stReport.hidden=false;stReport.className='done';}
-        report.hidden=false;
-        report.innerHTML='<p style="font-family:var(--font-display);font-size:18px;margin:0 0 12px">Your full evidence report is ready.</p><a class="btn" href="'+esc(d.report_url)+'" target="_blank" rel="noopener">Open report</a>';
-      } else {
-        if(stReport){stReport.hidden=false;stReport.className=d.grade?'now':'';}
-        report.hidden=false;
-        report.innerHTML='<p style="font-family:var(--font-display);font-size:18px;margin:0 0 6px">Deep audit: done by hand.</p><p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">We will contact you at the order email to confirm scope and, for Pro, a test login. Your URL audit above is available now. Questions: rob@fusiondataco.com.</p>';
       }
       refresh();
     }catch(err){
       if(tries<40) setTimeout(poll, delay);
       else { setChip('chip-bad','Offline');
-        grade.innerHTML=errBlock('We could not reach the order service.','Your order is safe and this link is permanent &mdash; reload the page to try again.',
-          '<a class="btn ghost" href="">Reload &rarr;</a>');
+        grade.innerHTML=errBlock('We could not reach the order service.','Your order is safe and this link is permanent; reload the page to try again.', '<a class="btn ghost" href="">Reload &rarr;</a>');
         refresh(); }
     }
   }

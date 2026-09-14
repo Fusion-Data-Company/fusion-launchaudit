@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateCheckoutInput, AUDIT_TIERS } from "./checkout-input.ts";
+import { validateCheckoutInput, AUDIT_TIERS, formatUsd, tierInfo } from "./checkout-input.ts";
 import { parseTargetUrl } from "./instant-grade.ts";
 
 test("validateCheckoutInput accepts a Single Run order and normalizes the URL", () => {
@@ -19,11 +19,11 @@ test("validateCheckoutInput defaults tier to single", () => {
   if (r.ok) assert.equal(r.value.tier, "single");
 });
 
-test("validateCheckoutInput refuses the hand-fulfilled tiers until a fulfilment path exists", () => {
-  for (const tier of ["standard", "pro"]) {
+test("validateCheckoutInput sells all three tiers", () => {
+  for (const tier of ["single", "standard", "pro"] as const) {
     const r = validateCheckoutInput({ url: "https://example.com", email: "a@b.co", tier, authorized: true });
-    assert.equal(r.ok, false, `should refuse ${tier}`);
-    if (!r.ok) assert.match(r.error, /quoted by hand/);
+    assert.equal(r.ok, true, `should accept ${tier}`);
+    if (r.ok) assert.equal(r.value.tier, tier);
   }
 });
 
@@ -34,11 +34,21 @@ test("validateCheckoutInput requires the authorisation confirmation", () => {
   assert.equal(validateCheckoutInput({ url: "https://example.com", email: "a@b.co", tier: "single", authorized: "yes" }).ok, false);
 });
 
-test("validateCheckoutInput rejects bad email, tier, and missing URL", () => {
+test("validateCheckoutInput rejects bad email, tier, and missing URL by default", () => {
   assert.equal(validateCheckoutInput({ url: "https://example.com", email: "nope", authorized: true }).ok, false);
   assert.equal(validateCheckoutInput({ url: "https://example.com", email: "a@b.co", tier: "enterprise", authorized: true }).ok, false);
   assert.equal(validateCheckoutInput({ email: "a@b.co", authorized: true }).ok, false);
   assert.equal(validateCheckoutInput(null).ok, false);
+});
+
+test("defer_url lets a buyer pay first and add the URL on the success page; Stripe collects the email", () => {
+  const r = validateCheckoutInput({ tier: "pro", authorized: true, defer_url: true });
+  assert.equal(r.ok, true);
+  if (r.ok) { assert.equal(r.value.url, null); assert.equal(r.value.email, null); assert.equal(r.value.tier, "pro"); }
+  // A supplied URL is still validated even when deferral is allowed.
+  assert.equal(validateCheckoutInput({ url: "http://127.0.0.1", tier: "pro", authorized: true, defer_url: true }).ok, false);
+  // A supplied email is still validated.
+  assert.equal(validateCheckoutInput({ email: "nope", tier: "pro", authorized: true, defer_url: true }).ok, false);
 });
 
 test("validateCheckoutInput applies the same SSRF guard as the free grader", () => {
@@ -48,8 +58,15 @@ test("validateCheckoutInput applies the same SSRF guard as the free grader", () 
   }
 });
 
-test("tier price table matches the advertised prices", () => {
+test("tier price table matches the advertised prices and the Stripe env names", () => {
   assert.equal(AUDIT_TIERS.single.amountCents, 7900);
   assert.equal(AUDIT_TIERS.standard.amountCents, 14900);
   assert.equal(AUDIT_TIERS.pro.amountCents, 49900);
+  assert.equal(AUDIT_TIERS.single.priceEnv, "STRIPE_PRICE_AUDIT_SINGLE");
+  assert.equal(AUDIT_TIERS.standard.priceEnv, "STRIPE_PRICE_AUDIT");
+  assert.equal(AUDIT_TIERS.pro.priceEnv, "STRIPE_PRICE_AUDIT_PRO");
+  assert.equal(formatUsd(7900), "$79");
+  assert.equal(formatUsd(14950), "$149.50");
+  assert.equal(tierInfo("nonsense").label, "Single Run");
+  assert.equal(tierInfo("pro").handsOn, true);
 });

@@ -1,7 +1,9 @@
 /**
- * /api/checkout — POST { url, email, tier } → { url: <Stripe Checkout URL> }.
- * Creates a Stripe Checkout Session (payment mode) for a hosted Single Run audit.
+ * /api/checkout: POST { url, email, tier, authorized, defer_url? } -> { url: <Stripe Checkout URL> }.
+ * Creates a Stripe Checkout Session (payment mode) for a hosted audit, any of the three tiers.
  * The target URL goes through the same SSRF guard as the free grader.
+ * With defer_url:true the buyer pays first: Stripe collects the email, and the success page
+ * collects the site URL before the audit is queued.
  */
 import { validateCheckoutInput, AUDIT_TIERS } from "../../src/lib/checkout-input.ts";
 import { stripeRequest } from "../../src/lib/stripe.ts";
@@ -10,10 +12,10 @@ import { clientIp, consumeAttempt } from "../../src/lib/rate-limit.ts";
 type Req = { method?: string; headers?: Record<string, string | string[] | undefined>; body?: unknown };
 type Res = { status: (n: number) => Res; json: (b: unknown) => void };
 
-const SITE = "https://80-20.dev";
+const SITE = (process.env.PUBLIC_SITE_URL || "https://80-20.dev").replace(/\/$/, "");
 
 export default async function handler(req: Req, res: Res) {
-  if (req.method !== "POST") { res.status(405).json({ error: "POST a JSON body { url, email, tier }." }); return; }
+  if (req.method !== "POST") { res.status(405).json({ error: "POST a JSON body { url, email, tier, authorized }." }); return; }
   const rl = consumeAttempt({ scope: "checkout", key: clientIp(req.headers), limit: 6, windowMs: 10 * 60_000 });
   if (!rl.ok) { res.status(429).json({ error: `Too many checkout attempts. Try again in ${rl.retryAfterSec}s.` }); return; }
   const input = validateCheckoutInput(req.body);
@@ -34,9 +36,12 @@ export default async function handler(req: Req, res: Res) {
         price_data: {
           currency: "usd",
           unit_amount: tierInfo.amountCents,
-          product_data: { name: `80/20 Launch Audit — ${tierInfo.label}`, description: `Hosted deep audit of ${url}` },
+          product_data: { name: `80/20 Launch Audit - ${tierInfo.label}`, description: url ? `Hosted audit of ${url}` : "Hosted audit; site URL collected after payment" },
         },
       };
+
+  const metadata: Record<string, string> = { tier };
+  if (url) metadata.target_url = url;
 
   try {
     const session = await stripeRequest<{ id: string; url: string }>(secret, "/v1/checkout/sessions", {
@@ -46,9 +51,9 @@ export default async function handler(req: Req, res: Res) {
       // page with no report. The webhook handles async_payment_* anyway, belt and braces.
       payment_method_types: ["card", "link"],
       line_items: [lineItem],
-      customer_email: email,
-      metadata: { target_url: url, tier },
-      payment_intent_data: { metadata: { target_url: url, tier } },
+      ...(email ? { customer_email: email } : {}),
+      metadata,
+      payment_intent_data: { metadata },
       success_url: `${SITE}/order/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE}/#order`,
     });

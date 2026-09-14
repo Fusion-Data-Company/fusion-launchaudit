@@ -19,7 +19,9 @@
     "test:mutation": "node --experimental-strip-types scripts/mutation-test.ts",
     "benchmark": "node --experimental-strip-types scripts/calibrate.ts",
     "proof:elite": "node --experimental-strip-types scripts/elite-proof.ts",
-    "dashboard": "node --experimental-strip-types server/dashboard.ts"
+    "dashboard": "node --experimental-strip-types server/dashboard.ts",
+    "demo:seed": "node --experimental-strip-types scripts/seed-demo.ts",
+    "rehearse:checkout": "node --experimental-strip-types scripts/rehearse-checkout.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

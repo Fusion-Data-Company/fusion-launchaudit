@@ -18,6 +18,9 @@ const entries: Array<[string, string]> = [
   ["server/api-src/stripe-webhook.ts", "api/stripe-webhook.js"],
   ["server/api-src/order-status.ts", "api/order-status.js"],
   ["server/api-src/grade-order.ts", "api/grade-order.js"],
+  ["server/api-src/order-url.ts", "api/order-url.js"],
+  ["server/api-src/order-report.ts", "api/order-report.js"],
+  ["server/api-src/demo.ts", "api/demo.js"],
   ["server/api-src/runner/sync.ts", "api/runner/sync.js"],
   ["server/api-src/storage/register-artifact.ts", "api/storage/register-artifact.js"],
 ];

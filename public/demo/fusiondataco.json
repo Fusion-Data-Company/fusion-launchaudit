@@ -1,0 +1,74 @@
+{
+  "seeded": true,
+  "generated_by": "scripts/seed-demo.ts",
+  "report": {
+    "id": "demo_s5mcs13dmu1c376u",
+    "url": "https://fusiondataco.com",
+    "tier": "single",
+    "grade_json": {
+      "ok": true,
+      "url": "https://fusiondataco.com",
+      "score": 58,
+      "band": "yellow",
+      "passed": 36,
+      "summary": "Audited 8 pages on fusiondataco.com: 5 issues (1 critical/high).",
+      "findings": [
+        {
+          "category": "Launch",
+          "severity": "critical",
+          "title": "robots.txt blocks the whole site",
+          "detail": "User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch.",
+          "fix": "Address \"robots.txt blocks the whole site\": User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch."
+        },
+        {
+          "category": "Access control",
+          "severity": "medium",
+          "title": "Admin surface reachable without auth: /admin, /administrator, /dashboard",
+          "detail": "/admin served a 200 client shell (HTTP can't prove the client gate; verify the API); /administrator served a 200 client shell (HTTP can't prove the client gate; verify the API); /dashboard served a 200 client shell (HTTP can't prove the client gate; verify the API).",
+          "fix": "Add a SERVER-SIDE authorization check to these routes/APIs (/admin, /administrator, /dashboard). In the route handler or shared middleware, reject anonymous or non-admin requests with 401/403 BEFORE returning anything — hiding the link in the UI is not a control. For Next.js, guard in middleware.ts and re-check the role inside each /api/admin handler. Verify an unauthenticated curl to each path returns 401/403. Standard: OWASP WSTG-ATHZ / CWE-306."
+        },
+        {
+          "category": "Errors",
+          "severity": "medium",
+          "title": "Soft 404",
+          "detail": "Unknown URLs return 200 instead of 404 — search engines index junk pages and monitoring never sees the breakage.",
+          "fix": "Address \"Soft 404\": Unknown URLs return 200 instead of 404 — search engines index junk pages and monitoring never sees the breakage."
+        },
+        {
+          "category": "Auth hardening",
+          "severity": "low",
+          "title": "Verify rate limiting on the login endpoint",
+          "detail": "This app exposes a login / auth endpoint. We do not brute-force it, so we cannot confirm a limit exists — but AI builders almost never add one, and an unthrottled login invites credential-stuffing.",
+          "fix": "Add rate limiting to your login and password-reset endpoints (report-only finding — verify this yourself). Limit attempts per IP and per account (e.g. 5 per 15 minutes) and add exponential backoff or a captcha after repeated failures. On Vercel use @upstash/ratelimit; on Supabase Auth enable the built-in rate limits. Standard: OWASP WSTG-ATHN / API4:2023."
+        },
+        {
+          "category": "Content",
+          "severity": "low",
+          "title": "Placeholder copy still on the page: your company",
+          "detail": "The live page still shows scaffold text (your company). It reads as unfinished and can leak straight into search results and link previews.",
+          "fix": "Replace the placeholder copy (your company) with real content. Search the codebase for each phrase and write the actual headline/body/contact details. Standard: launch content hygiene."
+        }
+      ],
+      "note": "Single Run: a site-wide, URL-only audit (up to 8 pages) covering security headers, cookies, CORS, exposed files, accessibility basics, broken links, mixed content, SEO/launch blockers, error-page leaks, TLS, email DNS and Core Web Vitals. The hosted deep audit adds a real browser: broken access control, admin/RBAC, write-authz and authenticated flows.",
+      "kind": "deep",
+      "pages_scanned": 8,
+      "pages": [
+        "https://fusiondataco.com/",
+        "https://fusiondataco.com/portfolio",
+        "https://fusiondataco.com/products",
+        "https://fusiondataco.com/case-studies",
+        "https://fusiondataco.com/pricing",
+        "https://fusiondataco.com/founders",
+        "https://fusiondataco.com/about",
+        "https://fusiondataco.com/blog"
+      ],
+      "lighthouse": null,
+      "checks_run": 35
+    },
+    "pdf_url": "https://80-20.dev/demo/8020-launch-audit-fusiondataco.com.pdf",
+    "buyer_name": "Rob Yeager",
+    "buyer_company": "Fusion Data Company",
+    "buyer_email": "rob@fusiondataco.com",
+    "created_at": "2026-09-14T14:24:11.046Z"
+  }
+}

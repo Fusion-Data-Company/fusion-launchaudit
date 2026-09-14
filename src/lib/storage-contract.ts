@@ -173,7 +173,24 @@ export const paidAuditsSchemaSql = `create table if not exists paid_audits (
 create index if not exists paid_audits_status_idx on paid_audits (status, created_at);
 alter table paid_audits add column if not exists paid_at timestamptz;
 alter table paid_audits add column if not exists grade_claim_token text;
-alter table paid_audits add column if not exists grade_claimed_at timestamptz;`;
+alter table paid_audits add column if not exists grade_claimed_at timestamptz;
+alter table paid_audits add column if not exists report_pdf_url text;
+alter table paid_audits add column if not exists delivery_json jsonb;
+alter table paid_audits add column if not exists delivered_email_at timestamptz;`;
+
+/** db/migrations/008_order_delivery_and_demo.sql: the persisted public /demo report (one real run, served, never re-run per view). */
+export const demoReportsSchemaSql = `create table if not exists demo_reports (
+  id text primary key,
+  url text not null,
+  tier text not null default 'single',
+  grade_json jsonb not null,
+  pdf_url text,
+  buyer_name text,
+  buyer_company text,
+  buyer_email text,
+  created_at timestamptz not null default now()
+);
+create index if not exists demo_reports_created_idx on demo_reports (created_at desc);`;
 
 /** Free surface scans (history + the unlock gate + weekly monitoring). */
 export const scansSchemaSql = `create table if not exists scans (
@@ -324,7 +341,9 @@ alter table test_cards add column if not exists exec jsonb not null default '[]'
 
 ${paidAuditsSchemaSql}
 
-${scansSchemaSql}`;
+${scansSchemaSql}
+
+${demoReportsSchemaSql}`;
 
 export function getStorageRuntimeReadiness(env: Record<string, string | undefined>) {
   return storageReadiness.map((item) => {

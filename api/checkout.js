@@ -18822,9 +18822,30 @@ function parseTargetUrl(input) {
 
 // src/lib/checkout-input.ts
 var AUDIT_TIERS = {
-  single: { label: "Single Run", amountCents: 7900, priceEnv: "STRIPE_PRICE_AUDIT_SINGLE" },
-  standard: { label: "Hosted Deep Audit", amountCents: 14900, priceEnv: "STRIPE_PRICE_AUDIT" },
-  pro: { label: "Hosted Deep Audit \u2014 Pro", amountCents: 49900, priceEnv: "STRIPE_PRICE_AUDIT_PRO" }
+  single: {
+    label: "Single Run",
+    amountCents: 7900,
+    priceEnv: "STRIPE_PRICE_AUDIT_SINGLE",
+    handsOn: false,
+    includes: "Automated site-wide URL audit of up to 8 pages: security headers, cookies, CORS, exposed files, accessibility basics, broken links, mixed content, SEO and launch blockers, error leaks, TLS, email DNS, page weight.",
+    next: "The audit runs now, usually in 30 to 60 seconds. The report renders on this page, is emailed to you as a PDF, and stays at the hosted link below."
+  },
+  standard: {
+    label: "Deep Audit",
+    amountCents: 14900,
+    priceEnv: "STRIPE_PRICE_AUDIT",
+    handsOn: true,
+    includes: "Everything in Single Run, delivered now, plus a hands-on Playwright deep audit of the same app in a real browser: broken access control, admin and RBAC routes, write authorization, with evidence per check and a prioritised fix plan.",
+    next: "The automated report lands on this page and in your inbox now. Within one business day we email you from rob@fusiondataco.com to confirm scope and schedule the browser-based deep audit; that report follows by email within two business days of scope confirmation."
+  },
+  pro: {
+    label: "Pro",
+    amountCents: 49900,
+    priceEnv: "STRIPE_PRICE_AUDIT_PRO",
+    handsOn: true,
+    includes: "Everything in Deep Audit, plus credentialed testing with a test login you provide (two-identity IDOR and privilege checks), one re-audit after you ship the fixes, and a 30 minute call to walk the findings.",
+    next: "The automated report lands on this page and in your inbox now. Within one business day we email you from rob@fusiondataco.com to collect a test login and confirm scope; the credentialed deep audit follows within three business days, and the re-audit is yours whenever the fixes are live."
+  }
 };
 var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 function isAuditTier(value) {
@@ -18832,16 +18853,21 @@ function isAuditTier(value) {
 }
 function validateCheckoutInput(body) {
   const b = body && typeof body === "object" ? body : {};
-  const parsed = parseTargetUrl(b.url);
-  if (!parsed.ok) return { ok: false, error: parsed.error };
-  const email = typeof b.email === "string" ? b.email.trim() : "";
-  if (!email) return { ok: false, error: "Enter the email the report should go to." };
-  if (email.length > 320 || !EMAIL_RE.test(email)) return { ok: false, error: "Enter a valid email." };
   const tier = b.tier ?? "single";
   if (!isAuditTier(tier)) return { ok: false, error: 'tier must be "single", "standard" or "pro".' };
-  if (tier !== "single") return { ok: false, error: "Deep and Pro audits are quoted by hand. Use the contact form and we will reply with a scope and a price." };
   if (b.authorized !== true) return { ok: false, error: "Confirm that you own this site or are authorised to test it." };
-  return { ok: true, value: { url: parsed.url.origin + (parsed.url.pathname === "/" ? "" : parsed.url.pathname), email, tier } };
+  const defer = b.defer_url === true;
+  const rawUrl = typeof b.url === "string" ? b.url.trim() : "";
+  let url = null;
+  if (rawUrl || !defer) {
+    const parsed = parseTargetUrl(b.url);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    url = parsed.url.origin + (parsed.url.pathname === "/" ? "" : parsed.url.pathname);
+  }
+  const email = typeof b.email === "string" ? b.email.trim() : "";
+  if (!email && !defer) return { ok: false, error: "Enter the email the report should go to." };
+  if (email && (email.length > 320 || !EMAIL_RE.test(email))) return { ok: false, error: "Enter a valid email." };
+  return { ok: true, value: { url, email: email || null, tier } };
 }
 
 // src/lib/stripe.ts
@@ -18902,10 +18928,10 @@ function clientIp(headers) {
 }
 
 // server/api-src/checkout.ts
-var SITE = "https://80-20.dev";
+var SITE = (process.env.PUBLIC_SITE_URL || "https://80-20.dev").replace(/\/$/, "");
 async function handler(req, res) {
   if (req.method !== "POST") {
-    res.status(405).json({ error: "POST a JSON body { url, email, tier }." });
+    res.status(405).json({ error: "POST a JSON body { url, email, tier, authorized }." });
     return;
   }
   const rl = consumeAttempt({ scope: "checkout", key: clientIp(req.headers), limit: 6, windowMs: 10 * 6e4 });
@@ -18931,9 +18957,11 @@ async function handler(req, res) {
     price_data: {
       currency: "usd",
       unit_amount: tierInfo.amountCents,
-      product_data: { name: `80/20 Launch Audit \u2014 ${tierInfo.label}`, description: `Hosted deep audit of ${url}` }
+      product_data: { name: `80/20 Launch Audit - ${tierInfo.label}`, description: url ? `Hosted audit of ${url}` : "Hosted audit; site URL collected after payment" }
     }
   };
+  const metadata = { tier };
+  if (url) metadata.target_url = url;
   try {
     const session = await stripeRequest(secret, "/v1/checkout/sessions", {
       mode: "payment",
@@ -18942,9 +18970,9 @@ async function handler(req, res) {
       // page with no report. The webhook handles async_payment_* anyway, belt and braces.
       payment_method_types: ["card", "link"],
       line_items: [lineItem],
-      customer_email: email,
-      metadata: { target_url: url, tier },
-      payment_intent_data: { metadata: { target_url: url, tier } },
+      ...email ? { customer_email: email } : {},
+      metadata,
+      payment_intent_data: { metadata },
       success_url: `${SITE}/order/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE}/#order`
     });

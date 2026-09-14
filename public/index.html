@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-fonts="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,7 +26,8 @@
 <meta name="twitter:image" content="https://80-20.dev/og.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+<script src="/assets/fonts.js"></script>
 <link rel="stylesheet" href="/assets/elite.css" />
 <link rel="stylesheet" href="/assets/elite-tokens.css" />
 <style>
@@ -409,7 +410,7 @@
   .consent input{margin-top:3px;flex:none;width:16px;height:16px;accent-color:var(--accent);}
   .consent a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;}
   .consent-inline{margin-top:12px;justify-content:center;}
-  .tier-badge{position:absolute;top:14px;right:14px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:3px 9px;}
+  .tier-badge{display:inline-block;margin:0 0 12px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:3px 9px;}
   .order-form{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
   .order-form .cf-row input{width:100%;flex:1;min-width:200px;padding:13px 15px;border-radius:12px;border:1px solid var(--line-strong);background:rgba(0,0,0,.32);color:var(--ink);font-family:var(--font);font-size:15px;}
   .order-form input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
@@ -467,6 +468,7 @@
     border:1px solid var(--line-strong);background:rgba(139,146,255,.07);color:var(--accent-ink);
     font-size:11.5px;letter-spacing:.14em;}
 
+  @media(max-width:767px){.la-what{min-width:230px;} .la-cat{min-width:96px;}}
   /* The sample report and the split panels inherit the page maxw. */
   #sample .la-report{max-width:1000px;margin:0 auto;}
   #depth .la-split,#privacy-arg .la-split{max-width:1060px;margin:0 auto;}
@@ -528,6 +530,7 @@
       <a class="nlink" href="#grade">Grade my app</a>
       <a class="nlink" href="/monitor">Monitor</a>
       <a class="nlink" href="#order">Order an audit</a>
+      <a class="nlink" href="/demo">Sample report</a>
       <a class="nlink" href="#receipts">Receipts</a>
       <a class="nlink" href="#catches">What it catches</a>
       <a class="nlink" href="#how">How it works</a>
@@ -741,9 +744,9 @@
       </div>
 
       <div style="padding:18px 26px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;box-shadow:inset 0 1px 0 var(--elite-rule);">
-        <a class="btn btn-primary" href="#grade">Grade your own app free &rarr;</a>
-        <a class="btn btn-ghost" href="#connect">Run this exact audit in your agent</a>
-        <span style="font-size:12.5px;color:var(--ink-mut);">Sixteen more findings and every paste-ready fix are in the full report.</span>
+        <a class="btn btn-primary" href="/demo">Open a finished hosted report: fusiondataco.com &rarr;</a>
+        <a class="btn btn-ghost" href="#grade">Grade your own app free</a>
+        <span style="font-size:12.5px;color:var(--ink-mut);">The hosted report is a real run against our own site, with every finding and every paste-ready fix.</span>
       </div>
     </div>
   </div>
@@ -753,11 +756,11 @@
   <div class="wrap">
     <div class="sec-head reveal">
       <div class="sec-kicker">Don't want to run it yourself?</div>
-      <h2 class="sec-title">Order a hosted Single Run</h2>
-      <p class="sec-sub">The tool stays free and MIT: run the full deep audit in your own agent any time. If you would rather not, we run the site-wide URL audit for you, hosted, and the report is on your screen inside a minute. No install, no code upload, no human in the loop. The report lives at a private link tied to your order, so keep the link.</p>
+      <h2 class="sec-title">Order a hosted audit</h2>
+      <p class="sec-sub">The tool stays free and MIT: run the full deep audit in your own agent any time. If you would rather not, pick a tier below. Every tier runs the site-wide URL audit the moment you pay and delivers it three ways: on screen at a private link, as a PDF, and by email. Deep Audit and Pro add a person in a real browser. <a href="/demo">See a finished report first</a>.</p>
     </div>
     <form id="order-form" class="order-form" novalidate>
-      <div class="tiers tiers-2 reveal">
+      <div class="tiers reveal">
         <label class="tier selected" for="tier-single">
           <input type="radio" name="tier" id="tier-single" value="single" checked />
           <span class="tier-badge">Automated</span>
@@ -767,33 +770,47 @@
             <li>Site-wide URL audit: up to 8 pages, about 35 check groups</li>
             <li>Security headers, cookies, CORS, exposed files, source maps, TLS expiry</li>
             <li>Accessibility basics, broken links, mixed content, error-page leaks</li>
-            <li>Launch blockers (noindex, robots, sitemap, OG), SPF and DMARC, page weight and server response time</li>
-            <li>0-100 score with a plain-English "why this costs you" line per finding</li>
-            <li>If we cannot reach your site (bot wall, login wall, down), the page says so and the run is refunded</li>
+            <li>Launch blockers (noindex, robots, sitemap, OG), SPF and DMARC, page weight</li>
+            <li>0-100 score, a plain-English "why this costs you" line and a paste-ready fix per finding</li>
+            <li>Delivered in about a minute: on this site, as a PDF, by email</li>
           </ul>
         </label>
-        <div class="tier tier-ask">
-          <span class="tier-badge">By hand</span>
-          <p class="tier-name">Deep Audit and Pro</p>
-          <div class="tier-price">Quoted <small>per site</small></div>
+        <label class="tier" for="tier-standard">
+          <input type="radio" name="tier" id="tier-standard" value="standard" />
+          <span class="tier-badge">Automated + by hand</span>
+          <p class="tier-name">Deep Audit</p>
+          <div class="tier-price">$149 <small>one-time</small></div>
           <ul>
-            <li>Full Playwright deep audit of one live app in a real browser</li>
-            <li>Broken access control, admin/RBAC, write-authz, authenticated flows with a test login you provide</li>
-            <li>Evidence report with proof per check, a prioritised fix plan, and one re-audit after you ship</li>
-            <li>Done by a person, not a script, so it is scoped and priced per site</li>
+            <li>Everything in Single Run, delivered now</li>
+            <li>Then a hands-on Playwright deep audit of the same app in a real browser</li>
+            <li>Broken access control, admin and RBAC routes, write authorization</li>
+            <li>Evidence per check and a prioritised fix plan, by email within two business days of scope</li>
+            <li>We email from rob@fusiondataco.com within one business day to confirm scope</li>
           </ul>
-          <a class="btn btn-ghost tier-cta" href="#contact">Ask for a quote</a>
-        </div>
+        </label>
+        <label class="tier" for="tier-pro">
+          <input type="radio" name="tier" id="tier-pro" value="pro" />
+          <span class="tier-badge">Credentialed</span>
+          <p class="tier-name">Pro</p>
+          <div class="tier-price">$499 <small>one-time</small></div>
+          <ul>
+            <li>Everything in Deep Audit</li>
+            <li>Credentialed testing with a test login you provide: two-identity IDOR and privilege checks</li>
+            <li>One re-audit after you ship the fixes</li>
+            <li>A 30 minute call to walk the findings</li>
+            <li>Credentialed audit within three business days of scope</li>
+          </ul>
+        </label>
       </div>
       <div class="cf-row">
         <input id="order-url" type="url" inputmode="url" autocomplete="url" placeholder="https://your-app.com" aria-label="App URL to audit" required />
-        <input id="order-email" type="email" autocomplete="email" placeholder="you@email.com (order contact)" aria-label="Your email" required />
+        <input id="order-email" type="email" autocomplete="email" placeholder="you@email.com (report goes here)" aria-label="Your email" required />
       </div>
       <label class="consent" for="order-authorized"><input type="checkbox" id="order-authorized" /><span>I own this site or I am authorised to test it. I have read the <a href="/terms">terms</a> and the <a href="/refunds">refund policy</a>.</span></label>
       <button class="btn btn-primary" type="submit" id="order-btn">Continue to payment</button>
       <div id="order-result" class="cf-result" hidden></div>
     </form>
-    <p class="order-fine">Secure checkout by Stripe, card or Link. We only ever touch the public URL you give us. Prefer to keep it in-house? The same audit is free in your own agent: <a href="#connect">connect it above</a>.</p>
+    <p class="order-fine">Secure checkout by Stripe, card or Link. We only ever touch the public URL you give us. If we cannot reach your site (bot wall, login wall, down), the order page says so and the run is refunded automatically. Prefer to keep it in-house? The same audit is free in your own agent: <a href="#connect">connect it above</a>.</p>
   </div>
 </section>
 
@@ -1027,9 +1044,9 @@
       <p class="sec-sub">Real developers on why "your AI said it's done" isn't enough — and how 80/20 Launch Audit runs free, on your own machine and your own agent subscription.</p>
     </div>
     <div class="watch-grid reveal">
-      <figure class="watch-card"><video controls preload="metadata" playsinline poster="/launch-ugc-poster.jpg"><source src="/launch-ugc.mp4" type="video/mp4" /></video><figcaption>The short version</figcaption></figure>
-      <figure class="watch-card"><video controls preload="metadata" playsinline poster="/launch-ugc-2-poster.jpg"><source src="/launch-ugc-2.mp4" type="video/mp4" /></video><figcaption>Free, local, on your own subscription</figcaption></figure>
-      <figure class="watch-card"><video controls preload="metadata" playsinline poster="/launch-ugc-3-poster.jpg"><source src="/launch-ugc-3.mp4" type="video/mp4" /></video><figcaption>A template you make your own</figcaption></figure>
+      <figure class="watch-card"><video controls preload="none" playsinline poster="/launch-ugc-poster.jpg"><source src="/launch-ugc.mp4" type="video/mp4" /></video><figcaption>The short version</figcaption></figure>
+      <figure class="watch-card"><video controls preload="none" playsinline poster="/launch-ugc-2-poster.jpg"><source src="/launch-ugc-2.mp4" type="video/mp4" /></video><figcaption>Free, local, on your own subscription</figcaption></figure>
+      <figure class="watch-card"><video controls preload="none" playsinline poster="/launch-ugc-3-poster.jpg"><source src="/launch-ugc-3.mp4" type="video/mp4" /></video><figcaption>A template you make your own</figcaption></figure>
     </div>
   </div>
 </section>

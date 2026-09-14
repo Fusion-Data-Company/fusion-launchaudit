@@ -1,14 +1,24 @@
-import {validAuditPayment} from '../../src/lib/audit-payment-proof.ts';
-import { recordPaymentState, type ClosedPaymentStatus } from "../../src/lib/payment-lifecycle.ts";
 /**
- * /api/stripe-webhook — Stripe → us. Raw body, signature verified with
+ * /api/stripe-webhook: Stripe -> us. Raw body, signature verified with
  * STRIPE_WEBHOOK_SECRET. On checkout.session.completed (or async_payment_succeeded):
- *   insert the order into paid_audits (idempotent on stripe_session_id, status 'queued')
- *   and ack Stripe at once. The grade runs in /api/order-status on the buyer's first poll,
- *   or in /api/grade-order (the sweep) if nobody polls.
+ *   1. re-fetch the canonical session from Stripe (never trust the event's copy),
+ *   2. require validAuditPayment (exact tier amount, settled, livemode matching our key),
+ *   3. insert the order into paid_audits (idempotent on stripe_session_id):
+ *        status 'queued' when metadata.target_url is present,
+ *        status 'awaiting_url' when the buyer paid first and names the site on the success page,
+ *   4. ack Stripe at once. The grade + delivery run in /api/order-status on the buyer's first
+ *      poll, or in /api/grade-order (the hourly sweep) if nobody polls.
  * Lifecycle: async_payment_failed -> payment_failed; charge.refunded -> refunded;
  * charge.dispute.created -> disputed. Refunded/disputed orders stop serving the report.
+ *
+ * Rehearsal hook: outside production only, STRIPE_SESSION_FIXTURE_DIR makes step 1 read
+ * <dir>/<session id>.json instead of calling Stripe, so a signed synthetic event can be
+ * driven through this exact handler with no Stripe key. In production the env is ignored.
  */
+import fs from "node:fs/promises";
+import path from "node:path";
+import { validAuditPayment } from "../../src/lib/audit-payment-proof.ts";
+import { recordPaymentState, type ClosedPaymentStatus } from "../../src/lib/payment-lifecycle.ts";
 import { getSqlClient } from "../../src/lib/db.ts";
 import { stripeGet, verifyStripeSignature } from "../../src/lib/stripe.ts";
 import { ensurePaidAuditsTable, upsertPaidAudit } from "../../src/lib/paid-audits.ts";
@@ -28,15 +38,31 @@ async function readRawBody(req: Req): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-type CheckoutSession = {
+export type CheckoutSession = {
   id: string;
-  payment_intent?: {latest_charge?:{created?:number}};
+  livemode?: boolean;
+  mode?: string;
+  status?: string;
+  currency?: string;
+  payment_intent?: { latest_charge?: { created?: number } } | string | null;
   payment_status?: string;
   amount_total?: number | null;
   customer_email?: string | null;
   customer_details?: { email?: string | null } | null;
   metadata?: Record<string, string> | null;
 };
+
+/** The canonical session, expanded so the charge can be inspected. Stripe in production; a fixture file only in rehearsal. */
+export async function loadCanonicalSession(id: string): Promise<CheckoutSession> {
+  const fixtureDir = process.env.STRIPE_SESSION_FIXTURE_DIR;
+  if (fixtureDir && process.env.VERCEL_ENV !== "production") {
+    const safe = id.replace(/[^A-Za-z0-9_]/g, "");
+    return JSON.parse(await fs.readFile(path.join(fixtureDir, `${safe}.json`), "utf8")) as CheckoutSession;
+  }
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY not configured");
+  return stripeGet<CheckoutSession>(key, `/v1/checkout/sessions/${encodeURIComponent(id)}?expand[]=payment_intent.latest_charge`);
+}
 
 export default async function handler(req: Req, res: Res) {
   if (req.method !== "POST") { res.status(405).json({ error: "Stripe webhook endpoint." }); return; }
@@ -60,7 +86,7 @@ export default async function handler(req: Req, res: Res) {
       "charge.refunded": "refunded",
       "charge.dispute.created": "disputed",
     };
-    const next = lifecycle[event.type];
+    const next = lifecycle[event.type ?? ""];
     if (next) {
       const obj = event.data?.object as { id?: string; object?: string; payment_intent?: string | null } | undefined;
       const sql0 = await getSqlClient();
@@ -87,25 +113,36 @@ export default async function handler(req: Req, res: Res) {
     }
     res.status(200).json({ received: true, ignored: event.type }); return;
   }
-  let session = event.data?.object;
-  if(session?.id){try{const key=process.env.STRIPE_SECRET_KEY;if(!key)throw Error('notconfigured');session=await stripeGet<CheckoutSession>(key,`/v1/checkout/sessions/${encodeURIComponent(session.id)}?expand[]=payment_intent.latest_charge`);if(!validAuditPayment(session)){res.status(200).json({received:true,ignored:'not_verified_live_paid_audit'});return;}}catch{res.status(503).json({error:'Canonical payment verification unavailable; retry event'});return;}}
-  if (!session?.id) { res.status(400).json({ error: "No session in event." }); return; }
+
+  const eventSession = event.data?.object;
+  if (!eventSession?.id) { res.status(400).json({ error: "No session in event." }); return; }
+
+  let session: CheckoutSession;
+  try {
+    session = await loadCanonicalSession(eventSession.id);
+  } catch {
+    res.status(503).json({ error: "Canonical payment verification unavailable; retry event" }); return;
+  }
+  if (!validAuditPayment(session)) { res.status(200).json({ received: true, ignored: "not_verified_paid_audit" }); return; }
   if (session.payment_status !== "paid") { res.status(200).json({ received: true, ignored: `payment_status=${session.payment_status ?? "missing"}` }); return; }
 
-  const targetUrl = session.metadata?.target_url?.trim();
+  const targetUrl = (session.metadata?.target_url ?? "").trim();
   const tier = session.metadata?.tier;
   const email = (session.customer_details?.email || session.customer_email || "").trim();
-  if (!targetUrl || !isAuditTier(tier) || !email) { res.status(400).json({ error: "Session is missing target_url / tier / email." }); return; }
+  if (!isAuditTier(tier) || !email) { res.status(400).json({ error: "Session is missing tier / email." }); return; }
 
   const sql = await getSqlClient();
-  if (!sql) { res.status(503).json({ error: "Database not configured — Stripe will retry." }); return; }
+  if (!sql) { res.status(503).json({ error: "Database not configured; Stripe will retry." }); return; }
 
   try {
     await ensurePaidAuditsTable(sql);
+    const pi = session.payment_intent;
+    const charged = pi && typeof pi === "object" ? pi.latest_charge?.created : undefined;
     const row = await upsertPaidAudit(sql, {
-      stripeSessionId: session.id, email, targetUrl, tier, amountCents: session.amount_total ?? 0, paidAt:session.payment_intent?.latest_charge?.created?new Date(session.payment_intent.latest_charge.created*1000).toISOString():undefined,
+      stripeSessionId: session.id, email, targetUrl, tier, amountCents: session.amount_total ?? 0,
+      paidAt: charged ? new Date(charged * 1000).toISOString() : undefined,
     });
-    // Ack Stripe inside a second. The grade itself runs in /api/order-status (the
+    // Ack Stripe inside a second. The grade + delivery run in /api/order-status (the
     // success page polls it) or /api/grade-order (secret-gated sweep), each with
     // its own time budget, so a slow or blocked target never times out the webhook.
     res.status(200).json({ received: true, id: row.id, status: row.status });

@@ -24,6 +24,15 @@
     },
     "api/crm-reconcile.js": {
       "maxDuration": 300
+    },
+    "api/order-report.js": {
+      "maxDuration": 60
+    },
+    "api/order-url.js": {
+      "maxDuration": 15
+    },
+    "api/demo.js": {
+      "maxDuration": 300
     }
   },
   "crons": [

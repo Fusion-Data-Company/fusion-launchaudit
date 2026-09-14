@@ -1,0 +1,17 @@
+STEP 1  canonical session fixture written (what Stripe would return on re-fetch)
+        {"path":"/private/tmp/claude-501/-Users-robertyeager-Projects-think-rcm-platform/3366f825-8260-48c9-ae58-f68b32bc3157/scratchpad/stripe-fixtures/cs_test_rehearsal_mu1c9v21.json","tier":"single","amount_total":7900,"target_url":"https://fusiondataco.com","email":"rob@fusiondataco.com"}
+STEP 2  signed checkout.session.completed POSTed to /api/stripe-webhook
+        {"http":200,"stripe_signature":"t=1789396161,v1=7505fa1b655ab9ef6d78a231...","ack":{"received":true,"id":"pa_sazv3y8amu1c9v9q","status":"queued"}}
+STEP 3  same signature over a tampered body is rejected
+        {"http":400,"body":{"error":"Invalid signature."}}
+STEP 4  audit ran against https://fusiondataco.com via /api/order-status
+        {"status":"delivered","score":58,"findings":5,"pages":8,"report_url":"https://qlmln6guxs8t4ttd.public.blob.vercel-storage.com/launchaudit/orders/pa_sazv3y8amu1c9v9q/8020-launch-audit-fusiondataco.com-ry5MEEligMfu9XEitBlqOfbQI3LOWm.pdf","page":"http://127.0.0.1:3003/order/success?session_id=cs_test_rehearsal_mu1c9v21"}
+STEP 5  hosted report link opens
+        {"url":"https://qlmln6guxs8t4ttd.public.blob.vercel-storage.com/launchaudit/orders/pa_sazv3y8amu1c9v9q/8020-launch-audit-fusiondataco.com-ry5MEEligMfu9XEitBlqOfbQI3LOWm.pdf","http":200,"content_type":"application/pdf","bytes":11631,"is_pdf":true}
+STEP 6  PDF route opens
+        {"url":"http://127.0.0.1:3003/api/order-report?session_id=cs_test_rehearsal_mu1c9v21","http":200,"content_type":"application/pdf","bytes":11631,"is_pdf":true}
+STEP 7  PDF saved
+        {"path":"docs/proof/2026-09-14/handler-rehearsal/single/report-single.pdf","bytes":11631}
+STEP 8  email outcome
+        {"status":"skipped","at":"2026-09-14T14:29:28.228Z","detail":"SMTP not configured (MONITOR_SMTP_URL / MONITOR_MAIL_FROM unset)"}
+SUCCESS session cs_test_rehearsal_mu1c9v21
