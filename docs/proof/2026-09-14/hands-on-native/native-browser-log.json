@@ -1,0 +1,171 @@
+[
+  {
+    "command": [
+      "goto",
+      "http://127.0.0.1:4319/login"
+    ],
+    "stdout": "Navigated to http://127.0.0.1:4319/login (200)",
+    "stderr": "[browse] Starting server...\n"
+  },
+  {
+    "command": [
+      "snapshot",
+      "-i"
+    ],
+    "stdout": "--- BEGIN UNTRUSTED EXTERNAL CONTENT (source: http://127.0.0.1:4319/login) ---\n@e1 [link] \"Continue with your Fusion account\"\n@e2 [textbox] \"Email\"\n@e3 [textbox] \"Password\"\n@e4 [button] \"Sign in\"\n  @e5 [link] \"Create one free\"\n  @e6 [link] \"Forgot your password?\"\n  @e7 [link] \"Open the sample portfolio\"\n  @e8 [link] \"Terms\"\n  @e9 [link] \"Privacy\"\n  @e10 [link] \"Pricing\"\n--- END UNTRUSTED EXTERNAL CONTENT ---",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "click",
+      "@e4"
+    ],
+    "stdout": "Clicked @e4 \u2192 now at http://127.0.0.1:4319/login",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "goto",
+      "http://127.0.0.1:4319/settings"
+    ],
+    "stdout": "Navigated to http://127.0.0.1:4319/settings (200)",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "snapshot",
+      "-i"
+    ],
+    "stdout": "--- BEGIN UNTRUSTED EXTERNAL CONTENT (source: http://127.0.0.1:4319/settings) ---\n    @e1 [link] \"Home\"\n    @e2 [link] \"Rent\"\n    @e3 [link] \"Units\"\n    @e4 [link] \"Expenses\"\n    @e5 [link] \"Repairs\"\n    @e6 [link] \"Schedule E\"\n    @e7 [link] \"Settings\"\n  @e8 [link] \"Link your Fusion account\"\n  @e9 [button] \"Activate subscription\"\n  @e10 [button] \"Manage billing\"\n  @e11 [button] \"Refresh subscription\"\n  @e12 [link] \"Download all records\"\n    @e13 [radio] \"All current and future properties\"\n    @e14 [radio] \"Only selected properties\" [checked]\n    @e15 [checkbox] \"Native A original - 101 Isolated Lane\"\n    @e16 [checkbox] \"Native restricted original - 102 Isolated Lane\"\n    @e17 [button] \"Save property access\"\n    @e18 [radio] \"All current and future properties\"\n    @e19 [radio] \"Only selected properties\" [checked]\n    @e20 [checkbox] \"Native A original - 101 Isolated Lane\" [checked]\n    @e21 [checkbox] \"Native restricted original - 102 Isolated Lane\"\n    @e22 [button] \"Save property access\"\n  @e23 [switch] [checked]\n  @e24 [button] \"Replay welcome tour\"\n  @e25 [button] \"Bring back dismissed tips\"\n  @e26 [textbox] \"Property name\": ISOLATED Native Account A\n  @e27 [button] \"Save\"\n  @e28 [textbox]\n  @e29 [textbox]\n  @e30 [button] \"Update password\"\n      @e31 [button] \"Remove native-viewer@example.invalid\"\n      @e32 [button] \"Remove native-manager@example.invalid\"\n  @e33 [textbox] \"Dana\"\n  @e34 [textbox]\n  @e35 [textbox]\n  @e36 [combobox] \"Access\"\n    @e37 [option] \"Manager \u2014 can record rent, expenses and repairs\" [selected]\n    @e38 [option] \"Read-only \u2014 can look, cannot change\"\n  @e39 [button] \"Add person\"\n  @e40 [button] \"Sign out\"\n  @e41 [button] \"Sign out on every device\"\n@e42 [link] \"Owner's manual\"\n@e43 [button] \"Skip walkthrough\"\n@e44 [button] \"Skip\"\n@e45 [button] \"Next\"\n--- END UNTRUSTED EXTERNAL CONTENT ---",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "js",
+      "window.nativeCalls=[]; const orig=window.fetch; window.fetch=async function(a,o){if(o?.headers?.['Next-Action'])window.nativeCalls.push({action:o.headers['Next-Action'],body:o.body});return orig.apply(this,arguments)}; 'capture installed'"
+    ],
+    "stdout": "capture installed",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "fill",
+      "@e26",
+      "ISOLATED Native Account A verified"
+    ],
+    "stdout": "Filled @e26",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "click",
+      "@e27"
+    ],
+    "stdout": "",
+    "stderr": "Selector matched multiple elements. Be more specific or use @refs from 'snapshot'.\n"
+  },
+  {
+    "command": [
+      "js",
+      "JSON.stringify(window.nativeCalls)"
+    ],
+    "stdout": "[]",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "screenshot",
+      "/Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-native/native-owner-settings.png"
+    ],
+    "stdout": "Screenshot saved: /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-native/native-owner-settings.png",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "js",
+      "(async()=>JSON.stringify(await Promise.all([101,201].map(async id=>{let r=await fetch('/api/receipts/'+id);return {receipt:id,status:r.status,cache:r.headers.get('cache-control'),body:(await r.text()).slice(0,150)}}))))()"
+    ],
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "js",
+      "(async()=>JSON.stringify(await (async()=>{let c=window.nativeCalls[0];let r=await fetch('/settings',{method:'POST',headers:{'Next-Action':c.action,'Content-Type':'text/plain','X-Forwarded-Host':'cross-origin.invalid'},body:c.body});return {status:r.status,body:(await r.text()).slice(0,180)}})()))()"
+    ],
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "snapshot",
+      "-i"
+    ],
+    "stdout": "--- BEGIN UNTRUSTED EXTERNAL CONTENT (source: about:blank) ---\n(no accessible elements found)\n--- END UNTRUSTED EXTERNAL CONTENT ---",
+    "stderr": "[browse] Starting server...\n"
+  },
+  {
+    "command": [
+      "click",
+      "@e40"
+    ],
+    "stdout": "",
+    "stderr": "Ref @e40 not found. Run 'snapshot' to get fresh refs.\n"
+  },
+  {
+    "command": [
+      "goto",
+      "http://127.0.0.1:4319/dashboard"
+    ],
+    "stdout": "Navigated to http://127.0.0.1:4319/dashboard (200)",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "snapshot",
+      "-i"
+    ],
+    "stdout": "--- BEGIN UNTRUSTED EXTERNAL CONTENT (source: http://127.0.0.1:4319/login?next=%2Fdashboard) ---\n@e1 [link] \"Continue with your Fusion account\"\n@e2 [textbox] \"Email\"\n@e3 [textbox] \"Password\"\n@e4 [button] \"Sign in\"\n  @e5 [link] \"Create one free\"\n  @e6 [link] \"Forgot your password?\"\n  @e7 [link] \"Open the sample portfolio\"\n  @e8 [link] \"Terms\"\n  @e9 [link] \"Privacy\"\n  @e10 [link] \"Pricing\"\n--- END UNTRUSTED EXTERNAL CONTENT ---",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "screenshot",
+      "/Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-native/native-logged-out.png"
+    ],
+    "stdout": "Screenshot saved: /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-native/native-logged-out.png",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "goto",
+      "http://127.0.0.1:4319/login"
+    ],
+    "stdout": "Navigated to http://127.0.0.1:4319/login (200)",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "snapshot",
+      "-i"
+    ],
+    "stdout": "--- BEGIN UNTRUSTED EXTERNAL CONTENT (source: http://127.0.0.1:4319/login) ---\n@e1 [link] \"Continue with your Fusion account\"\n@e2 [textbox] \"Email\"\n@e3 [textbox] \"Password\"\n@e4 [button] \"Sign in\"\n  @e5 [link] \"Create one free\"\n  @e6 [link] \"Forgot your password?\"\n  @e7 [link] \"Open the sample portfolio\"\n  @e8 [link] \"Terms\"\n  @e9 [link] \"Privacy\"\n  @e10 [link] \"Pricing\"\n--- END UNTRUSTED EXTERNAL CONTENT ---",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "click",
+      "@e4"
+    ],
+    "stdout": "Clicked @e4 \u2192 now at http://127.0.0.1:4319/login",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "js",
+      "(async()=>JSON.stringify(await Promise.all([101,201].map(async id=>{let r=await fetch('/api/receipts/'+id);return {receipt:id,status:r.status,body:(await r.text()).slice(0,150)}}))))()"
+    ],
+    "stdout": "",
+    "stderr": ""
+  }
+]

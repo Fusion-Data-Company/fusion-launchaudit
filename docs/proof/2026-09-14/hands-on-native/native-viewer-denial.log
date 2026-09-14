@@ -1,0 +1,18 @@
+[goto] Navigated to http://127.0.0.1:4319/login (200)
+
+[fill] Filled input[type=email]
+
+[fill] Filled input[type=password]
+
+[click] Clicked button[type=submit] → now at http://127.0.0.1:4319/login
+
+[js] 
+
+[click] Clicked button:text-is("Skip") → now at http://127.0.0.1:4319/dashboard
+
+[js] 
+
+[js] 
+
+[js] [{"status":200,"body":"0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"error\":\"Your access to this account is read-only.\"}\n"},{"status":403,"body":"{\"error\":\"Only the account owner can export all records.\"}"}]
+[browse] Starting server...

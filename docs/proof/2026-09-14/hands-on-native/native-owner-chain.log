@@ -1,0 +1,79 @@
+[goto] Navigated to http://127.0.0.1:4319/login (200)
+
+[fill] Filled input[type=email]
+
+[fill] Filled input[type=password]
+
+[click] Clicked button[type=submit] → now at http://127.0.0.1:4319/login
+
+[js] 
+
+[goto] Navigated to http://127.0.0.1:4319/settings (200)
+
+[js] ready
+
+[fill] Filled input[aria-label="Property name"]
+
+[js] clicked exact Save
+
+[js] 
+
+[js] []
+
+[screenshot] Screenshot saved (viewport): /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-native/native-owner-settings.png
+
+[js] 
+
+[js] 
+
+[js] [{"id":101,"status":200,"body":"ISOLATED NATIVE ACCOUNT A"},{"id":201,"status":404,"body":"not found"}]
+
+[js] ERROR: evaluate: TypeError: Cannot read properties of undefined (reading 'action')
+    at eval (eval at evaluate (:290:30), <anonymous>:2:98)
+    at eval (eval at evaluate (:290:30), <anonymous>:3:3)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:290:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+
+[js] 
+
+[js] null
+
+[js] ERROR: evaluate: TypeError: Cannot read properties of undefined (reading 'click')
+    at eval (eval at evaluate (:290:30), <anonymous>:1:84)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:290:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+
+[js] 
+
+[goto] Navigated to http://127.0.0.1:4319/dashboard (200)
+
+[snapshot] --- BEGIN UNTRUSTED EXTERNAL CONTENT (source: http://127.0.0.1:4319/dashboard) ---
+    @e1 [link] "Home"
+    @e2 [link] "Rent"
+    @e3 [link] "Units"
+    @e4 [link] "Expenses"
+    @e5 [link] "Repairs"
+    @e6 [link] "Schedule E"
+    @e7 [link] "Settings"
+  @e8 [button] "Dismiss tip"
+  @e9 [button] "Dismiss tip"
+  @e10 [link] "View all rent"
+  @e11 [link] "Go to units"
+  @e12 [link] "Log expense"
+  @e13 [link] "Add repair"
+  @e14 [link] "All units"
+@e15 [link] "Owner's manual"
+
+── cursor-interactive (not in ARIA tree) ──
+@c1 [cursor:pointer] "span"
+@c2 [cursor:pointer] "Log expense"
+@c3 [cursor:pointer] "span"
+@c4 [cursor:pointer] "Add repair"
+@c5 [cursor:pointer] "span"
+@c6 [cursor:pointer] "All units"
+--- END UNTRUSTED EXTERNAL CONTENT ---
+
+[screenshot] Screenshot saved (viewport): /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-native/native-logged-out.png
+[browse] Starting server...

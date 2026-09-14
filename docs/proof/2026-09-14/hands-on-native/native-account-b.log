@@ -1,0 +1,18 @@
+[goto] Navigated to http://127.0.0.1:4319/login (200)
+
+[fill] Filled input[type=email]
+
+[fill] Filled input[type=password]
+
+[click] Clicked button[type=submit] → now at http://127.0.0.1:4319/login
+
+[js] 
+
+[click] Clicked button:text-is("Skip") → now at http://127.0.0.1:4319/dashboard
+
+[js] 
+
+[js] 
+
+[js] [{"id":101,"status":404,"body":"not found"},{"id":201,"status":200,"body":"ISOLATED NATIVE ACCOUNT B"}]
+[browse] Starting server...

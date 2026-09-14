@@ -1,0 +1,55 @@
+[goto] Navigated to http://127.0.0.1:4319/login (200)
+
+[fill] Filled input[type=email]
+
+[fill] Filled input[type=password]
+
+[click] Clicked button[type=submit] → now at http://127.0.0.1:4319/login
+
+[js] 
+
+[click] Clicked button:text-is("Skip") → now at http://127.0.0.1:4319/dashboard
+
+[goto] Navigated to http://127.0.0.1:4319/settings (200)
+
+[js] 
+
+[js] ready
+
+[fill] Filled input[aria-label="Property name"]
+
+[click] Clicked button:text-is("Save") → now at http://127.0.0.1:4319/settings
+
+[js] 
+
+[js] [{"action":"40fa8bd2d02b16fbe96155554d8ed8e157ca8e613b","body":"[\"ISOLATED Native Account A verified\"]"}]
+
+[screenshot] Screenshot saved (viewport): /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-native/native-owner-settings.png
+
+[js] 
+
+[js] 
+
+[js] {"status":500,"body":"0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:E{\"digest\":\"3854388562@E80\",\"name\":\"Error\",\"message\":\"Invalid Server Actions request."}
+
+[click] Clicked button:text-is("Sign out") → now at http://127.0.0.1:4319/settings
+
+[js] 
+
+[goto] Navigated to http://127.0.0.1:4319/dashboard (200)
+
+[snapshot] --- BEGIN UNTRUSTED EXTERNAL CONTENT (source: http://127.0.0.1:4319/login?next=%2Fdashboard) ---
+@e1 [link] "Continue with your Fusion account"
+@e2 [textbox] "Email"
+@e3 [textbox] "Password"
+@e4 [button] "Sign in"
+  @e5 [link] "Create one free"
+  @e6 [link] "Forgot your password?"
+  @e7 [link] "Open the sample portfolio"
+  @e8 [link] "Terms"
+  @e9 [link] "Privacy"
+  @e10 [link] "Pricing"
+--- END UNTRUSTED EXTERNAL CONTENT ---
+
+[screenshot] Screenshot saved (viewport): /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-native/native-logged-out.png
+[browse] Starting server...

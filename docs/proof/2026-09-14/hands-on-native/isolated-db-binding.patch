@@ -1,0 +1,50 @@
+diff --git a/db/index.ts b/db/index.ts
+index 767f33b..3e709da 100644
+--- a/db/index.ts
++++ b/db/index.ts
+@@ -1,32 +1,15 @@
+-import { drizzle } from 'drizzle-orm/neon-http'
+-import { neon } from '@neondatabase/serverless'
++// Isolated native-Next verification only. Never deploy this database binding.
++import { drizzle } from 'drizzle-orm/neon-serverless'
++import { Pool, neonConfig } from '@neondatabase/serverless'
+ import * as schema from './schema'
+-
+-/**
+- * Built lazily. Constructing the client at module scope meant `next build`
+- * could not even collect page data without a live connection string, and a
+- * missing DATABASE_URL in production surfaced as a raw framework 500 rather
+- * than a sentence anyone could act on.
+- */
+-type DB = ReturnType<typeof drizzle<typeof schema>>
+-let instance: DB | null = null
+-
+-function connect(): DB {
+-  if (instance) return instance
+-  const url = process.env.DATABASE_URL
+-  if (!url) {
+-    throw new Error(
+-      'DATABASE_URL is not set. RentDesk needs a Postgres connection string (Neon) in the environment before it can start.',
+-    )
+-  }
+-  instance = drizzle(neon(url), { schema })
+-  return instance
+-}
+-
+-export const db = new Proxy({} as DB, {
+-  get(_target, prop, receiver) {
+-    return Reflect.get(connect() as object, prop, receiver)
+-  },
+-})
+-
++const url=process.env.DATABASE_URL
++if (!url || new URL(url).hostname !== '127.0.0.1' || new URL(url).port !== '55439' || new URL(url).pathname !== '/rentdesk_native') throw new Error('Disposable loopback database required')
++neonConfig.webSocketConstructor=WebSocket
++neonConfig.wsProxy=()=> '127.0.0.1:55440'
++neonConfig.useSecureWebSocket=false
++neonConfig.forceDisablePgSSL=true
++neonConfig.pipelineConnect=false
++neonConfig.poolQueryViaFetch=false
++const pool=new Pool({connectionString:url,max:4})
++export const db=drizzle(pool,{schema})
+ export * from './schema'
