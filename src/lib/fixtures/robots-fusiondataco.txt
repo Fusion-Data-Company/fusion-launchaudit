@@ -1,0 +1,362 @@
+# robots.txt for https://www.fusiondataco.com
+#
+# Intent, stated explicitly rather than left to a bare wildcard:
+#   Fusion Data Co is a service business that wants to be FOUND and CITED.
+#   Retrieval crawlers, user-triggered fetchers and training crawlers are all
+#   welcome on public marketing pages. Application surfaces (API, admin, CRM
+#   dashboards, client portal, checkout) are closed to everyone.
+#
+# Every named group below repeats the full Disallow list on purpose: a crawler
+# that matches a specific User-agent group ignores the "*" group entirely, so
+# omitting them here would silently OPEN /admin and /crm to exactly the bots we
+# are naming.
+#
+# Google-Extended and Applebot-Extended are deliberately NOT disallowed. They
+# are training-use opt-out tokens, not crawlers, and inclusion is wanted.
+
+# ─────────────────────────────────────────────────────────────
+# Default policy — every agent not named below
+# ─────────────────────────────────────────────────────────────
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+# ─────────────────────────────────────────────────────────────
+# AI RETRIEVAL / SEARCH INDEX CRAWLERS — explicitly allowed.
+# Blocking these removes this business from AI answers entirely.
+# ─────────────────────────────────────────────────────────────
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: Applebot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: Google-CloudVertexBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+# ─────────────────────────────────────────────────────────────
+# USER-TRIGGERED FETCHERS — a real person asked an assistant to
+# open this page. Highest-intent traffic there is. Allowed.
+# ─────────────────────────────────────────────────────────────
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: MistralAI-User
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+# ─────────────────────────────────────────────────────────────
+# TRAINING CRAWLERS — deliberately allowed. This is a service
+# business that wants to be discoverable inside AI systems.
+# ─────────────────────────────────────────────────────────────
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: CCBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: Amazonbot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /crm/dashboard
+Disallow: /crm/campaigns
+Disallow: /crm/email-center
+Disallow: /crm/telegram
+Disallow: /blog/admin
+Disallow: /campaign-builder
+Disallow: /ai-marketing-suite
+Disallow: /automations
+Disallow: /leads
+Disallow: /content-hub
+Disallow: /login
+Disallow: /portal
+Disallow: /portal/dashboard
+Disallow: /checkout/
+
+# ─────────────────────────────────────────────────────────────
+# BLOCKED — no published crawler documentation, no operator
+# contact, crawls aggressively. Nothing is lost by excluding it.
+# ─────────────────────────────────────────────────────────────
+User-agent: Bytespider
+Disallow: /
+
+Sitemap: https://www.fusiondataco.com/sitemap.xml

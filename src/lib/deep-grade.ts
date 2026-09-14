@@ -23,6 +23,7 @@ import dns from "node:dns/promises";
 import tls from "node:tls";
 import { ensureFix, runInstantGrade, type Finding, type GradeFailure, type InstantGrade, type Sev } from "./instant-grade.ts";
 import { publicFetch } from "./public-fetch.ts";
+import { robotsVerdict } from "./robots.ts";
 
 export const PAGE_BUDGET = 8;
 const PAGE_TIMEOUT = 7000;
@@ -205,11 +206,15 @@ export async function runDeepGrade(target: URL): Promise<DeepGrade | GradeFailur
   checks += 5;
   const robots = await grab(new URL("/robots.txt", origin).toString(), {}, 5000);
   const robotsTxt = robots && robots.status === 200 ? (await robots.text()).slice(0, 20000) : "";
-  if (/^\s*user-agent:\s*\*\s*$[\s\S]*?^\s*disallow:\s*\/\s*$/im.test(robotsTxt)) F("Launch", "critical", "robots.txt blocks the whole site", "User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch.");
+  // Group-aware (RFC 9309): only the group a search crawler actually obeys counts, and
+  // Allow: / beats path-specific Disallows. A named AI-crawler group with Disallow: /
+  // further down the file is never a site-wide block. See src/lib/robots.ts.
+  const rb = robotsVerdict(robotsTxt);
+  if (rb.blocked) F("Launch", "critical", "robots.txt blocks the whole site", `robots.txt keeps ${rb.blockedAgents.map((a) => (a === "*" ? "every crawler (User-agent: *)" : a)).join(", ")} out of "/". Fine for staging, fatal for launch.`);
   else passed++;
   if (/<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(homeHtml) || /noindex/i.test(home?.headers.get("x-robots-tag") || "")) F("Launch", "critical", "Home page is noindex", "A noindex tag or X-Robots-Tag header on the home page removes the site from search results.");
   else passed++;
-  const sitemapHinted = /sitemap:/i.test(robotsTxt);
+  const sitemapHinted = rb.sitemaps.length > 0 || /sitemap:/i.test(robotsTxt);
   const sm = await grab(new URL("/sitemap.xml", origin).toString(), { method: "HEAD" }, 5000);
   if (!(sm && sm.status === 200) && !sitemapHinted) F("SEO", "low", "No sitemap.xml", "A sitemap gets new pages discovered days faster. Most frameworks generate one in one line.");
   else passed++;

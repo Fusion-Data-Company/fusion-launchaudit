@@ -2,30 +2,23 @@
   "seeded": true,
   "generated_by": "scripts/seed-demo.ts",
   "report": {
-    "id": "demo_s5mcs13dmu1c376u",
+    "id": "demo_p5guq5mgmu1cz02w",
     "url": "https://fusiondataco.com",
     "tier": "single",
     "grade_json": {
       "ok": true,
       "url": "https://fusiondataco.com",
-      "score": 58,
-      "band": "yellow",
-      "passed": 36,
-      "summary": "Audited 8 pages on fusiondataco.com: 5 issues (1 critical/high).",
+      "score": 80,
+      "band": "green",
+      "passed": 37,
+      "summary": "Audited 8 pages on fusiondataco.com: 4 issues (0 critical/high).",
       "findings": [
-        {
-          "category": "Launch",
-          "severity": "critical",
-          "title": "robots.txt blocks the whole site",
-          "detail": "User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch.",
-          "fix": "Address \"robots.txt blocks the whole site\": User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch."
-        },
         {
           "category": "Access control",
           "severity": "medium",
-          "title": "Admin surface reachable without auth: /admin, /administrator, /dashboard",
-          "detail": "/admin served a 200 client shell (HTTP can't prove the client gate; verify the API); /administrator served a 200 client shell (HTTP can't prove the client gate; verify the API); /dashboard served a 200 client shell (HTTP can't prove the client gate; verify the API).",
-          "fix": "Add a SERVER-SIDE authorization check to these routes/APIs (/admin, /administrator, /dashboard). In the route handler or shared middleware, reject anonymous or non-admin requests with 401/403 BEFORE returning anything — hiding the link in the UI is not a control. For Next.js, guard in middleware.ts and re-check the role inside each /api/admin handler. Verify an unauthenticated curl to each path returns 401/403. Standard: OWASP WSTG-ATHZ / CWE-306."
+          "title": "Admin surface reachable without auth: /dashboard, /admin, /administrator",
+          "detail": "/dashboard served a 200 client shell (HTTP can't prove the client gate; verify the API); /admin served a 200 client shell (HTTP can't prove the client gate; verify the API); /administrator served a 200 client shell (HTTP can't prove the client gate; verify the API).",
+          "fix": "Add a SERVER-SIDE authorization check to these routes/APIs (/dashboard, /admin, /administrator). In the route handler or shared middleware, reject anonymous or non-admin requests with 401/403 BEFORE returning anything — hiding the link in the UI is not a control. For Next.js, guard in middleware.ts and re-check the role inside each /api/admin handler. Verify an unauthenticated curl to each path returns 401/403. Standard: OWASP WSTG-ATHZ / CWE-306."
         },
         {
           "category": "Errors",
@@ -54,12 +47,12 @@
       "pages_scanned": 8,
       "pages": [
         "https://fusiondataco.com/",
-        "https://fusiondataco.com/portfolio",
+        "https://fusiondataco.com/pricing",
         "https://fusiondataco.com/products",
         "https://fusiondataco.com/case-studies",
-        "https://fusiondataco.com/pricing",
-        "https://fusiondataco.com/founders",
+        "https://fusiondataco.com/portfolio",
         "https://fusiondataco.com/about",
+        "https://fusiondataco.com/founders",
         "https://fusiondataco.com/blog"
       ],
       "lighthouse": null,
@@ -69,6 +62,6 @@
     "buyer_name": "Rob Yeager",
     "buyer_company": "Fusion Data Company",
     "buyer_email": "rob@fusiondataco.com",
-    "created_at": "2026-09-14T14:24:11.046Z"
+    "created_at": "2026-09-14T14:48:54.824Z"
   }
 }

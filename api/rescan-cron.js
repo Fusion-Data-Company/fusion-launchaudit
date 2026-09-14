@@ -33465,6 +33465,86 @@ async function runInstantGrade(target) {
 // src/lib/deep-grade.ts
 import dns2 from "node:dns/promises";
 import tls from "node:tls";
+
+// src/lib/robots.ts
+function parseRobots(text) {
+  const groups = [];
+  const sitemaps = [];
+  let current = null;
+  let lastWasAgent = false;
+  for (const rawLine of text.replace(/^﻿/, "").split(/\r?\n/)) {
+    const line = rawLine.replace(/#.*$/, "").trim();
+    if (!line) continue;
+    const i3 = line.indexOf(":");
+    if (i3 < 0) continue;
+    const field = line.slice(0, i3).trim().toLowerCase();
+    const value = line.slice(i3 + 1).trim();
+    if (field === "user-agent") {
+      if (!current || !lastWasAgent) {
+        current = { agents: [], allow: [], disallow: [] };
+        groups.push(current);
+      }
+      current.agents.push(value.toLowerCase());
+      lastWasAgent = true;
+      continue;
+    }
+    lastWasAgent = false;
+    if (field === "sitemap") {
+      sitemaps.push(value);
+      continue;
+    }
+    if (!current) continue;
+    if (field === "disallow") current.disallow.push(value);
+    else if (field === "allow") current.allow.push(value);
+  }
+  return { groups, sitemaps };
+}
+function groupFor(groups, agent2) {
+  const name2 = agent2.toLowerCase();
+  let best = null;
+  let bestLen = -1;
+  for (const g5 of groups) {
+    for (const token of g5.agents) {
+      if (token === "*") continue;
+      if (name2.startsWith(token) && token.length > bestLen) {
+        best = g5;
+        bestLen = token.length;
+      }
+    }
+  }
+  if (best) return best;
+  return groups.find((g5) => g5.agents.includes("*")) ?? null;
+}
+function matchesRoot(pattern) {
+  const p6 = pattern.trim();
+  return p6 === "/" || p6 === "/*" || p6 === "/*$";
+}
+function groupBlocksRoot(group) {
+  const dis = group.disallow.filter((p6) => p6 !== "" && matchesRoot(p6));
+  if (!dis.length) return false;
+  const disLen = Math.max(...dis.map((p6) => p6.trim().length));
+  const allowLen = Math.max(-1, ...group.allow.filter(matchesRoot).map((p6) => p6.trim().length));
+  return allowLen < disLen;
+}
+var LAUNCH_AGENTS = ["*", "googlebot", "bingbot"];
+function robotsVerdict(text) {
+  const { groups, sitemaps } = parseRobots(text);
+  const blockedAgents = [];
+  for (const agent2 of LAUNCH_AGENTS) {
+    const g5 = agent2 === "*" ? groups.find((x5) => x5.agents.includes("*")) ?? null : groupFor(groups, agent2);
+    if (g5 && groupBlocksRoot(g5)) blockedAgents.push(agent2);
+  }
+  const otherBlockedAgents = [];
+  for (const g5 of groups) {
+    if (g5.agents.includes("*")) continue;
+    if (groupBlocksRoot(g5)) {
+      for (const a3 of g5.agents) if (!otherBlockedAgents.includes(a3)) otherBlockedAgents.push(a3);
+    }
+  }
+  return { blocked: blockedAgents.length > 0, blockedAgents, otherBlockedAgents, sitemaps };
+}
+
+// src/lib/deep-grade.ts
 var PAGE_BUDGET = 8;
 var PAGE_TIMEOUT = 7e3;
 var PSI_TIMEOUT = 28e3;
@@ -33655,11 +33735,12 @@ async function runDeepGrade(target) {
   checks += 5;
   const robots = await grab2(new URL("/robots.txt", origin).toString(), {}, 5e3);
   const robotsTxt = robots && robots.status === 200 ? (await robots.text()).slice(0, 2e4) : "";
-  if (/^\s*user-agent:\s*\*\s*$[\s\S]*?^\s*disallow:\s*\/\s*$/im.test(robotsTxt)) F5("Launch", "critical", "robots.txt blocks the whole site", "User-agent: * / Disallow: / tells every search engine to stay out. Fine for staging, fatal for launch.");
+  const rb = robotsVerdict(robotsTxt);
+  if (rb.blocked) F5("Launch", "critical", "robots.txt blocks the whole site", `robots.txt keeps ${rb.blockedAgents.map((a3) => a3 === "*" ? "every crawler (User-agent: *)" : a3).join(", ")} out of "/". Fine for staging, fatal for launch.`);
   else passed++;
   if (/<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(homeHtml) || /noindex/i.test(home?.headers.get("x-robots-tag") || "")) F5("Launch", "critical", "Home page is noindex", "A noindex tag or X-Robots-Tag header on the home page removes the site from search results.");
   else passed++;
-  const sitemapHinted = /sitemap:/i.test(robotsTxt);
+  const sitemapHinted = rb.sitemaps.length > 0 || /sitemap:/i.test(robotsTxt);
   const sm = await grab2(new URL("/sitemap.xml", origin).toString(), { method: "HEAD" }, 5e3);
   if (!(sm && sm.status === 200) && !sitemapHinted) F5("SEO", "low", "No sitemap.xml", "A sitemap gets new pages discovered days faster. Most frameworks generate one in one line.");
   else passed++;
