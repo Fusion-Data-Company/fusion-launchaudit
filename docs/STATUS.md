@@ -1,4 +1,52 @@
-# LaunchAudit — Production Status
+# 80/20 Launch Audit - Production Status
+
+Live: https://80-20.dev (Vercel project `launch-audit-platform`, prj_9eH8UtyCC5FMEX6wjIbP4kqZLe6P, deploy branch `main`).
+
+## What exists today (audited 2026-09-14, before any code was written this session)
+
+Every line below was read from the tree at origin/main `7199e30` or checked with a tool this session. File references are `path:line`.
+
+### Checkout path, as found
+
+- **Order form** `public/index.html:752-802` collects URL, email, an authorisation checkbox and a tier radio, but the only radio is `single` ($79). Deep Audit and Pro are a "Quoted per site, ask for a quote" card with no radio. `public/assets/landing.js:287-312` POSTs `{url,email,tier,authorized}` to `/api/checkout` and redirects to the returned Stripe URL.
+- **`/api/checkout`** `server/api-src/checkout.ts:15-58` creates a Stripe Checkout Session (payment mode, card + Link only) with `metadata.target_url` and `metadata.tier`, `success_url = https://80-20.dev/order/success?session_id={CHECKOUT_SESSION_ID}`. Uses the `STRIPE_PRICE_*` env for the tier, falling back to inline `price_data` at the same amount.
+- **Tier gate** `src/lib/checkout-input.ts:34` rejects any tier other than `single` with "Deep and Pro audits are quoted by hand". So the $149 and $499 prices exist in Stripe and in env but cannot be bought.
+- **Webhook** `server/api-src/stripe-webhook.ts:41-115` verifies the `Stripe-Signature` (HMAC-SHA256, 300 s tolerance, `src/lib/stripe.ts:55-72`), then on `checkout.session.completed` / `async_payment_succeeded` re-fetches the session from Stripe (`stripe-webhook.ts:91`) and requires `validAuditPayment` (`src/lib/audit-payment-proof.ts:2`): `livemode === true`, mode payment, status complete, payment_status paid, USD, `amount_total` equal to the tier amount, payment intent succeeded, charge paid, not refunded, not disputed. Then it upserts a `paid_audits` row with status `queued` (`src/lib/paid-audits.ts:45-59`) and acks 200. Lifecycle events (`async_payment_failed`, `charge.refunded`, `charge.dispute.created`) are persisted through `src/lib/payment-lifecycle.ts`.
+  - Consequence: the `livemode === true` check means a Stripe TEST-mode session can never fulfil, so a test-mode rehearsal would fail even with a test key. Fixed this session (see below).
+  - Consequence: the canonical re-fetch is unconditional, so the unit test `src/lib/stripe-webhook.test.ts:34` fails with 503 (no `STRIPE_SECRET_KEY` in the test). Baseline `npm test` this session: 368 pass, 1 fail (that test).
+- **The audit job** is not a queue worker. The row sits `queued`; the first `/api/order-status` poll from the success page runs the grade inside that function's 300 s budget (`server/api-src/order-status.ts:28`), and the hourly Vercel cron `/api/grade-order` (`vercel.json` crons, `server/api-src/grade-order.ts`) claims one eligible queued row if nobody polled. Claims use `grade_claim_token` / `grade_claimed_at` with a 10 minute lease (`src/lib/paid-audits.ts:70-97`). A 220 s deadline wraps the grade (`src/lib/audit-deadline.ts`).
+- **The audit generator** is `runDeepGrade` in `src/lib/deep-grade.ts:130` (site-wide URL-only grade, up to 8 pages, ~35 check groups, TLS, SPF/DMARC, PageSpeed when a key exists) built on `runInstantGrade` in `src/lib/instant-grade.ts:112` (the free scan plus the vibe-coder checks in `src/lib/vibe-checks.ts`). The Playwright runner (`runner/audit.ts`) is the local/agent deep audit and cannot run on Vercel functions (no Chromium), so the hosted product is the URL-only grade.
+- **Outcome by tier** `src/lib/paid-audits.ts:80-86`: `single` -> `delivered`; `standard`/`pro` -> `graded` and left for a human. Blocked targets -> `blocked` plus an automatic Stripe refund (`refundBlockedOrder`, `paid-audits.ts:104-131`).
+- **Success page** `public/order/success.html` + `public/assets/order-success.js` polls `/api/order-status` and renders the grade inline. Nothing is emailed ("Nothing is sent by email", `success.html:94`). No PDF. No hosted link. `report_url` is only shown for non-single tiers and is never set by any code path. It does not collect a URL: a session without `metadata.target_url` is rejected by the webhook with 400 (`stripe-webhook.ts:98`).
+- **Mailer** `src/lib/mailer.ts` is a dependency-free SMTPS (port 465, AUTH LOGIN) client, text/plain only, no attachments, only used by the weekly monitoring diff. Env: `MONITOR_SMTP_URL` + `MONITOR_MAIL_FROM`. Neither is set in Vercel production (checked with `vercel env ls production`), so every send is a documented no-op.
+- **CRM ledger**: the `audit_report_order` trigger (`db/migrations/007_order_reporting.sql`) writes each `paid_audits` change into `audit_crm_outbox`; `/api/order-reporting` (cron :20) pushes to `fusiondataco.app/api/ronin/estate/orders` with `FUSION_ORDER_CRM_KEY`.
+- **Demo**: `/demo` is 404 on production (checked). The landing page's "This is the report" section (`index.html:657-751`) is a hand-written HTML table describing a run against `fixtures/buggy-shop`, not a live report.
+- **Elite kit**: already vendored at `public/assets/elite.css`, `elite-tokens.css`, `elite-motion.js` (commit 49b02b8), register "Obsidian Iris / Titanium". Landing hero has a 1.1 MB autoplay `hero.mp4` plus three 7 MB UGC videos and a 1.17 MB `logo-80-20.png`.
+
+### Stripe, as found (read-only, live key)
+
+| Tier | Env var | Price id | unit_amount | Product |
+|---|---|---|---|---|
+| single ($79) | `STRIPE_PRICE_AUDIT_SINGLE` | `price_1UDG64EkfFOXPr6DosqxAIzx` | 7900 | prod_VDhVCwT2PzjIzc "80/20 Launch Audit - Single Run" |
+| standard ($149) | `STRIPE_PRICE_AUDIT` | `price_1UChuBEkfFOXPr6D3yMNbJeV` | 14900 | prod_VD8ADZVQbkjeBq "Hosted deep audit (one URL)" |
+| pro ($499) | `STRIPE_PRICE_AUDIT_PRO` | `price_1UChuCEkfFOXPr6D2ux1VTnU` | 49900 | prod_VD8AYxgkPZagc0 "Pro (credentialed RBAC + re-run)" |
+
+The mapping Rob gave matches what is already in Vercel production and `.env.local` exactly; nothing needed changing. No Stripe object was created or modified.
+
+Webhook endpoint `we_1UChuCEkfFOXPr6DRrxJbk1W` -> `https://80-20.dev/api/stripe-webhook`, enabled, livemode, events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `charge.refunded`, `charge.dispute.created`.
+
+There has never been a completed paid session: the last 100 live Checkout Sessions with tier metadata are all `expired / unpaid`. `paid_audits` in Neon has 0 rows.
+
+### Environment, as found
+
+Vercel production env (names): FUSION_ORDER_CRM_KEY, RONIN_API_KEY, CRON_SECRET, STRIPE_PRICE_AUDIT_SINGLE, STRIPE_PRICE_AUDIT_PRO, STRIPE_PRICE_AUDIT, STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY, BLOB_READ_WRITE_TOKEN, RUNNER_SYNC_SECRET, POSTGRES_URL, DATABASE_URL, DATABASE_URL_UNPOOLED. Not set: MONITOR_SMTP_URL, MONITOR_MAIL_FROM, PAGESPEED_API_KEY.
+
+Neon tables present: paid_audits (0 rows), paid_audit_payment_state, audit_crm_outbox (0), scans (7 free scans), scan_leads (1), monitors, submissions, submission_crm_receipts, plus the campaign tables.
+
+
+---
+
+## Earlier status (kept verbatim from before 2026-09-14)
 
 ## What's real and shipped
 - **Deep test engine** — FE / BE / admin-RBAC / middleware generators producing
