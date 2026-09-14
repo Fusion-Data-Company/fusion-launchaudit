@@ -44,6 +44,70 @@ Vercel production env (names): FUSION_ORDER_CRM_KEY, RONIN_API_KEY, CRON_SECRET,
 Neon tables present: paid_audits (0 rows), paid_audit_payment_state, audit_crm_outbox (0), scans (7 free scans), scan_leads (1), monitors, submissions, submission_crm_receipts, plus the campaign tables.
 
 
+## 2026-09-14 launch report (Ticket 3, 80/20 Launch Audit)
+
+Live: https://80-20.dev  |  Demo: https://80-20.dev/demo  |  Deploy branch: main  |  Production deployment: dpl_EEissN94dKqRrwJkkKoYS4Tjfb5T (commit 38ede0c, Ready 07:33 PT, aliased to 80-20.dev).
+
+### Ticket steps
+
+1. **Checkout for all three tiers: DONE.** `src/lib/checkout-input.ts` sells single / standard / pro; `public/index.html` order section shows the three tiers with radios; `server/api-src/checkout.ts` builds the session from the matching `STRIPE_PRICE_*` env. Verified live: one uncompleted Checkout Session per tier was created through `POST https://80-20.dev/api/checkout` (single `cs_live_a19RAOYb...`, standard `cs_live_a1AfVsnS...`, pro `cs_live_a1nmwvTm...`, plus a pay-first pro `cs_live_a1AjOFGU...`). None was paid; Stripe expires them unpaid after 24 h, the same as every earlier session on the account. Success page (`public/order/success.html`, `public/assets/order-success.js`) confirms tier, price, site and what happens next, collects the URL for a pay-first order through `POST /api/order-url` (`server/api-src/order-url.ts`), and offers the PDF and the hosted copy. Proof: `docs/proof/2026-09-14/live-home-order-desktop.png`, `handler-rehearsal/success-standard-awaiting-url-mobile.png`, `handler-rehearsal/success-single-delivered-desktop.png`.
+2. **Webhook enqueues the job, audit runs, PDF + hosted link + email: DONE.** `server/api-src/stripe-webhook.ts` re-fetches the canonical session, requires the exact tier amount and a settled charge, and inserts the `paid_audits` row (`queued`, or `awaiting_url` when no URL yet). The job is the existing generator `runDeepGrade` (`src/lib/deep-grade.ts`), run by the first `/api/order-status` poll or the hourly `/api/grade-order` cron, unchanged. New delivery layer `src/lib/audit-delivery.ts`: renders the PDF (`src/lib/pdf.ts` dependency-free writer + `src/lib/audit-report-pdf.ts`), uploads a copy to Vercel Blob (public store, random-suffix URL), serves it at `GET /api/order-report?session_id=` (`server/api-src/order-report.ts`, regenerated from `grade_json`), and emails it as an attachment through the existing operator SMTP mailer (`src/lib/mailer.ts`, now MIME multipart with attachments). **Email send path is real but NOT configured in production**: `MONITOR_SMTP_URL` / `MONITOR_MAIL_FROM` are unset in Vercel, so every send is recorded as `delivery_json.email.status = "skipped"` on the order and the success page says "Email pending: PDF below is your copy". The full outbound message (headers, body, base64 PDF) was captured with `MAIL_CAPTURE_DIR` during the rehearsal: `docs/proof/2026-09-14/handler-rehearsal/mail/*.eml` (3 files, one per rehearsal order).
+3. **Rehearsal: handler-level DONE; Stripe test-mode NOT VERIFIED - blocked: no Stripe test key on this machine; needs `stripe login` or an sk_test_ in Preview env.** Handler-level rehearsal ran three times against the dev server on port 3003 (`VERCEL_ENV=development`, local PGlite so no test order reached the CRM outbox, `sk_test_` placeholder key, throwaway webhook secret, fixture dir, mail capture): (a) single tier with URL, (b) pro tier pay-first (`--defer-url`), (c) standard tier pay-first driven through the real success-page form by Playwright. Each proved: signed synthetic `checkout.session.completed` -> 200 + row queued / awaiting_url; tampered body with the same signature -> 400; URL named via `/api/order-url` and a second URL refused 409; audit actually ran against https://fusiondataco.com (58/100, 5 findings, 8 pages); PDF produced (11.6 KB); hosted Blob link opened 200 `application/pdf`; `/api/order-report` opened 200 `application/pdf`; email attempted (skipped, captured to .eml). Logs: `handler-rehearsal/single/rehearsal-handler.log`, `handler-rehearsal/pro-defer-url/rehearsal-handler.log`; the signed events: `*/event.json`; PDFs: `*/report-*.pdf`; screenshots: `handler-rehearsal/success-*.png`. This is handler-level, not a Stripe test-mode run. One-command script: `npm run rehearse:checkout -- --mode handler ...` (no key) and `--mode live` (needs `STRIPE_SECRET_KEY=sk_test_...` and test price ids in the same `STRIPE_PRICE_*` vars; refuses to run on a live key). The `livemode` check now follows the key mode (`src/lib/audit-payment-proof.ts`), so a test key fulfils test sessions with no code change.
+4. **/demo: DONE.** https://80-20.dev/demo, public, no login. One real run of `runDeepGrade` against https://fusiondataco.com by `npm run demo:seed` (`scripts/seed-demo.ts`): 58/100, 5 findings, 8 pages, 35 check groups. Persisted three ways so the page never re-runs it: Neon `demo_reports` row `demo_s5mcs13dmu1c376u`, the committed snapshot `public/demo/fusiondataco.json`, and the PDF `public/demo/8020-launch-audit-fusiondataco.com.pdf` (plus a Blob copy). `/api/demo` (`server/api-src/demo.ts`) serves Postgres first, snapshot second; `POST /api/demo` with the runner secret refreshes it on demand. Example buyer shown: Rob Yeager, Fusion Data Company, rob@fusiondataco.com, Single Run $79. Proof: `live-demo-mobile.png`, `live-demo-desktop.png`, `demo-mobile-local.png`.
+5. **Polish + Lighthouse: DONE.** The repo already vendors the elite kit (`public/assets/elite*.css/js`, Obsidian Iris / Titanium register); the new pages reuse it (gauge, chips with glow, elite table, reveals, designed empty states). Lighthouse mobile on production after the push: `/` performance **95** (FCP 2.3 s, LCP 2.5 s, TBT 0 ms, CLS 0.043; page weight 26,120 KiB -> 2,123 KiB), `/demo` performance **98** (FCP 1.9 s, LCP 1.9 s, CLS 0.014). Baseline before this session was 82 on `/`. Fixes: nav logo 1,174 KB -> 112 KB, the three 6.4 MB UGC videos no longer preloaded, Google Fonts loaded without blocking first paint (`public/assets/fonts.js`, CSP-safe). JSON: `docs/proof/2026-09-14/lighthouse-mobile.json`, `lighthouse-mobile-demo.json`.
+6. **STATUS.md: this section.** Committed and pushed; production picked up the code push (deployment above). Live screenshots: `live-home-mobile.png`, `live-home-order-desktop.png`, `live-demo-mobile.png`, `live-demo-desktop.png`, `live-success-no-session-mobile.png`.
+
+### Six done-criteria
+
+| # | Criterion | Status |
+|---|---|---|
+| 1 | WORKS end to end on production, no console errors | DONE for the free scan, /demo, /order/success states and every API route (probed live: 400/401/404 on bad input, PDF route 404 until a report exists). Zero console errors in every Playwright capture. A real paid order has never been run on production (no completed session exists yet). |
+| 2 | CHECKOUT: session -> webhook -> provisioning -> email -> success page | DONE in code and rehearsed at handler level. Email step is real but skipped in production until SMTP env is set (see next action). |
+| 3 | PROVEN in Stripe TEST mode with 4242 | NOT VERIFIED - blocked: no Stripe test key on this machine; needs `stripe login` or an sk_test_ in Preview env. Handler-level proof in `docs/proof/2026-09-14/handler-rehearsal/`. |
+| 4 | DEMO, no login, Rob Yeager as the example user | DONE, https://80-20.dev/demo |
+| 5 | POLISH, Lighthouse mobile >= 90 | DONE, 95 on `/`, 98 on `/demo` |
+| 6 | REPORT | DONE, this section |
+
+### Stripe
+
+Price ids (unchanged, verified read-only): single $79 `price_1UDG64EkfFOXPr6DosqxAIzx` = `STRIPE_PRICE_AUDIT_SINGLE`; standard $149 `price_1UChuBEkfFOXPr6D3yMNbJeV` = `STRIPE_PRICE_AUDIT`; pro $499 `price_1UChuCEkfFOXPr6D2ux1VTnU` = `STRIPE_PRICE_AUDIT_PRO`. Webhook endpoint `we_1UChuCEkfFOXPr6DRrxJbk1W` -> `https://80-20.dev/api/stripe-webhook` (events: checkout.session.completed, async_payment_succeeded, async_payment_failed, charge.refunded, charge.dispute.created). No Stripe product, price or endpoint was created or changed. Four Checkout Sessions were created on the live key by the live probe and left unpaid to expire.
+
+### Assumptions made (Rob was away)
+
+- Every tier gets the automated site-wide URL audit delivered immediately; Deep Audit and Pro add the hands-on browser audit, which a person schedules from the delivery email (copy on the landing page, success page, email and PDF says: scope email within one business day, deep report within two business days of scope, Pro credentialed audit within three). There is no automated hands-on path and none is claimed.
+- The order row stays `delivered` for all tiers once the automated report is out; the hands-on part is tracked in `delivery_json.hands_on` and by email, not by a new status.
+- Pay-first checkout (`defer_url`) is supported by the API and the success page but the landing form still asks for the URL up front (fewer surprises for a first buyer).
+- Rehearsals used a local PGlite database on purpose, so no synthetic order hit Neon or the `audit_crm_outbox` trigger that reports orders to the Fusion CRM.
+
+### Commits pushed
+
+- `7d6afaa` docs: honest what-exists-today audit at the top of STATUS.md
+- `38ede0c` Sell all three tiers, deliver every paid audit as PDF + hosted link + email, add /demo
+- the docs/proof commit that carries this section (sha in `git log`)
+
+### Vercel env changed
+
+None. Nothing added, nothing removed. Names that would turn the email on: `MONITOR_SMTP_URL`, `MONITOR_MAIL_FROM`. Optional: `PUBLIC_SITE_URL` (defaults to https://80-20.dev).
+
+### Neon rows
+
+Created: `demo_reports` row `demo_s5mcs13dmu1c376u` (the /demo report; intended, kept). No `paid_audits` rows were created in Neon (rehearsals ran on local PGlite). Blob: three rehearsal PDFs under `launchaudit/orders/pa_*` were deleted after the run; the demo PDF copy under `launchaudit/demo/` is kept.
+
+### Extra (things that move a first stranger purchase forward)
+
+- Pay-first checkout: a buyer can pay before naming the site and add the URL on the success page (`defer_url`), with the order parked as `awaiting_url` and a one-shot URL form.
+- The success page now states tier, price, site, where the email goes (masked), what is included and what happens next, and has Download PDF / Open hosted copy / Copy link buttons.
+- The landing "This is the report" section links to the real finished report on /demo; nav has "Sample report"; sitemap lists /demo.
+- `npm run dev` now serves every `/api/*` handler and every static page exactly like Vercel (`server/dev-server.ts` adapter), so the whole purchase path can be run on one port.
+- The pre-existing failing webhook unit test now passes (382/382), and the webhook, payment-proof, mailer, PDF and report renderer all have tests.
+- Finding from the real demo run worth acting on: **fusiondataco.com's robots.txt disallows the whole site** (`User-agent: * / Disallow: /`). Fine for staging, fatal for launch; it is the top finding on the public sample report.
+
+### Exact next actions for Rob
+
+1. To turn on the report email: `vercel env add MONITOR_SMTP_URL production` (smtps://user:pass@host:465, your own SMTP) and `vercel env add MONITOR_MAIL_FROM production`, then redeploy. Nothing else changes; orders already record the skipped send.
+2. To finish the Stripe test-mode proof: put an `sk_test_` key and test price ids in the Preview env (same var names), then `npm run rehearse:checkout -- --mode live --base <preview-url> --tier single` and pay with 4242. The script polls to `delivered` and checks the links.
+3. Fix fusiondataco.com's robots.txt (it blocks all crawlers).
+
 ---
 
 ## Earlier status (kept verbatim from before 2026-09-14)
