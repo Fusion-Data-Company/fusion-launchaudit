@@ -1,0 +1,10 @@
+{
+  "fixture": true,
+  "customer_payment": false,
+  "external_email_sent": false,
+  "local_tls_smtp_accepted": 1,
+  "smtp_connections": 1,
+  "pdf_bytes": 4405,
+  "regenerated_pdf_http": 200,
+  "regenerated_pdf_bytes": 4405
+}
