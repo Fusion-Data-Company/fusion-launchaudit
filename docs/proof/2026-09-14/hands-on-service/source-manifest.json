@@ -1,0 +1,26 @@
+{
+  "at": "2026-09-14T20:45:00.393Z",
+  "commit": "51b055772ee4643e8a9999e0d3885ae2cb174c08",
+  "files": {
+    "app/actions.ts": "4910058649721a96a8e3f843f3daeb501eeb9ff2ad3e8cbdd4189e9f4b49b6e5",
+    "lib/auth.ts": "a2ebf84f75f2c42062c22ccd7a92b09a883125e2071b51d3f19166fce377a8b3",
+    "lib/session.ts": "8a0b262f6c4a5c8431c0d290e44a01347fc577626bf3b0f75152e3b4c75617a2",
+    "lib/property-scope.ts": "b46efcf7847faea6ee8233891767bb0c1e7df32ffe3c4c0a3f0c155bbe63c090",
+    "lib/account-export.ts": "af1b8198adb44dda648cb394a8c7a5241996cf9e860992a7c6d975e3bd76848c",
+    "app/api/receipts/[id]/route.ts": "be2bf492faeddd660816a7b9d38c39b585ffd6fa7262af794fddc96cf0b1950c",
+    "db/schema.ts": "712e759e33a4f5da9929b6c67eb8d125ef4c83d0d2bb66b66c428abce170714a"
+  },
+  "boundaries": [
+    "PGlite instead of Neon",
+    "Next cookies/headers request adapter",
+    "redirect becomes HTTP evidence response",
+    "revalidatePath no-op",
+    "mail/network forbidden"
+  ],
+  "identities": [
+    "Owner A account1",
+    "Owner B account2",
+    "Viewer A account1",
+    "Manager A account1 building101 only"
+  ]
+}

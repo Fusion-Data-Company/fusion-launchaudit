@@ -1,0 +1,223 @@
+[
+  {
+    "command": [
+      "goto",
+      "http://127.0.0.1:4318"
+    ],
+    "output": "Navigated to http://127.0.0.1:4318 (200)\n"
+  },
+  {
+    "command": [
+      "snapshot",
+      "-i"
+    ],
+    "output": "--- BEGIN UNTRUSTED EXTERNAL CONTENT (source: http://127.0.0.1:4318/) ---\n@e1 [combobox]\n  @e2 [option] \"owner-a@example.invalid\" [selected]\n  @e3 [option] \"owner-b@example.invalid\"\n  @e4 [option] \"viewer-a@example.invalid\"\n  @e5 [option] \"manager-a@example.invalid\"\n@e6 [textbox]: Isolated-check-2026\n@e7 [button] \"Sign in through actual RentDesk action\"\n@e8 [button] \"Current identity\"\n@e9 [button] \"Read account A receipt\"\n@e10 [button] \"Read account B receipt\"\n@e11 [button] \"Write building A\"\n@e12 [button] \"Attempt write building B\"\n@e13 [button] \"Owner-only rename\"\n@e14 [button] \"Verify persisted state\"\n--- END UNTRUSTED EXTERNAL CONTENT ---\n"
+  },
+  {
+    "command": [
+      "select",
+      "select[name=email]",
+      "owner-a@example.invalid"
+    ],
+    "output": "Selected \"owner-a@example.invalid\" in select[name=email]\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Sign in through actual RentDesk action\")"
+    ],
+    "output": "Clicked button:has-text(\"Sign in through actual RentDesk action\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Read account B receipt\")"
+    ],
+    "output": "Clicked button:has-text(\"Read account B receipt\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "screenshot",
+      "--viewport",
+      "/Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/01-owner-a-cross-account-read.png"
+    ],
+    "output": "Screenshot saved (viewport): /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/01-owner-a-cross-account-read.png\n"
+  },
+  {
+    "command": [
+      "js",
+      "document.querySelector(\"#result\").textContent"
+    ],
+    "output": "404 {\n  \"body\": \"not found\",\n  \"cache\": null\n}\n"
+  },
+  {
+    "result": "404 {\n  \"body\": \"not found\",\n  \"cache\": null\n}\n"
+  },
+  {
+    "command": [
+      "select",
+      "select[name=email]",
+      "owner-b@example.invalid"
+    ],
+    "output": "Selected \"owner-b@example.invalid\" in select[name=email]\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Sign in through actual RentDesk action\")"
+    ],
+    "output": "Clicked button:has-text(\"Sign in through actual RentDesk action\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Read account A receipt\")"
+    ],
+    "output": "Clicked button:has-text(\"Read account A receipt\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "screenshot",
+      "--viewport",
+      "/Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/02-owner-b-cross-account-read.png"
+    ],
+    "output": "Screenshot saved (viewport): /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/02-owner-b-cross-account-read.png\n"
+  },
+  {
+    "command": [
+      "js",
+      "document.querySelector(\"#result\").textContent"
+    ],
+    "output": "404 {\n  \"body\": \"not found\",\n  \"cache\": null\n}\n"
+  },
+  {
+    "result": "404 {\n  \"body\": \"not found\",\n  \"cache\": null\n}\n"
+  },
+  {
+    "command": [
+      "select",
+      "select[name=email]",
+      "viewer-a@example.invalid"
+    ],
+    "output": "Selected \"viewer-a@example.invalid\" in select[name=email]\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Sign in through actual RentDesk action\")"
+    ],
+    "output": "Clicked button:has-text(\"Sign in through actual RentDesk action\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Write building A\")"
+    ],
+    "output": "Clicked button:has-text(\"Write building A\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "screenshot",
+      "--viewport",
+      "/Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/03-viewer-write-refusal.png"
+    ],
+    "output": "Screenshot saved (viewport): /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/03-viewer-write-refusal.png\n"
+  },
+  {
+    "command": [
+      "js",
+      "document.querySelector(\"#result\").textContent"
+    ],
+    "output": "200 {\n  \"error\": \"Your access to this account is read-only.\"\n}\n"
+  },
+  {
+    "result": "200 {\n  \"error\": \"Your access to this account is read-only.\"\n}\n"
+  },
+  {
+    "command": [
+      "select",
+      "select[name=email]",
+      "manager-a@example.invalid"
+    ],
+    "output": "Selected \"manager-a@example.invalid\" in select[name=email]\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Sign in through actual RentDesk action\")"
+    ],
+    "output": "Clicked button:has-text(\"Sign in through actual RentDesk action\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Owner-only rename\")"
+    ],
+    "output": "Clicked button:has-text(\"Owner-only rename\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "screenshot",
+      "--viewport",
+      "/Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/04-manager-owner-action-refusal.png"
+    ],
+    "output": "Screenshot saved (viewport): /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/04-manager-owner-action-refusal.png\n"
+  },
+  {
+    "command": [
+      "js",
+      "document.querySelector(\"#result\").textContent"
+    ],
+    "output": "200 {\n  \"error\": \"Only the account owner can rename the account.\"\n}\n"
+  },
+  {
+    "result": "200 {\n  \"error\": \"Only the account owner can rename the account.\"\n}\n"
+  },
+  {
+    "command": [
+      "select",
+      "select[name=email]",
+      "owner-a@example.invalid"
+    ],
+    "output": "Selected \"owner-a@example.invalid\" in select[name=email]\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Sign in through actual RentDesk action\")"
+    ],
+    "output": "Clicked button:has-text(\"Sign in through actual RentDesk action\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Write building A\")"
+    ],
+    "output": "Clicked button:has-text(\"Write building A\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "click",
+      "button:has-text(\"Verify persisted state\")"
+    ],
+    "output": "Clicked button:has-text(\"Verify persisted state\") \u2192 now at http://127.0.0.1:4318/\n"
+  },
+  {
+    "command": [
+      "screenshot",
+      "--viewport",
+      "/Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/05-owned-write-persisted.png"
+    ],
+    "output": "Screenshot saved (viewport): /Volumes/FUSION OS/.fusion-cache/estate-offload-20260914/launchaudit-recovery-current/docs/proof/2026-09-14/hands-on-service/05-owned-write-persisted.png\n"
+  },
+  {
+    "command": [
+      "js",
+      "document.querySelector(\"#result\").textContent"
+    ],
+    "output": "200 [\n  {\n    \"id\": 101,\n    \"account_id\": 1,\n    \"label\": \"A verified write\"\n  },\n  {\n    \"id\": 102,\n    \"account_id\": 1,\n    \"label\": \"restricted original\"\n  },\n  {\n    \"id\": 201,\n    \"account_id\": 2,\n    \"label\": \"B original\"\n  }\n]\n"
+  },
+  {
+    "result": "200 [\n  {\n    \"id\": 101,\n    \"account_id\": 1,\n    \"label\": \"A verified write\"\n  },\n  {\n    \"id\": 102,\n    \"account_id\": 1,\n    \"label\": \"restricted original\"\n  },\n  {\n    \"id\": 201,\n    \"account_id\": 2,\n    \"label\": \"B original\"\n  }\n]\n"
+  }
+]

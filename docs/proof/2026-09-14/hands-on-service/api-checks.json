@@ -1,0 +1,284 @@
+{
+  "at": "2026-09-14T20:45:23.227732+00:00",
+  "scope": "isolated actual RentDesk application code; no production identities",
+  "checks": [
+    {
+      "check": "Anonymous receipt refused",
+      "passed": true,
+      "observed": [
+        401,
+        {
+          "body": "unauthorized",
+          "cache": null
+        }
+      ]
+    },
+    {
+      "check": "Anonymous write refused",
+      "passed": true,
+      "observed": [
+        401,
+        {
+          "redirect": "/login"
+        }
+      ]
+    },
+    {
+      "check": "owner-a real bcrypt sign-in",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "redirect": "/dashboard"
+        }
+      ]
+    },
+    {
+      "check": "owner-b real bcrypt sign-in",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "redirect": "/dashboard"
+        }
+      ]
+    },
+    {
+      "check": "viewer-a real bcrypt sign-in",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "redirect": "/dashboard"
+        }
+      ]
+    },
+    {
+      "check": "manager-a real bcrypt sign-in",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "redirect": "/dashboard"
+        }
+      ]
+    },
+    {
+      "check": "A own receipt private/no-store",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "body": "ISOLATED RECEIPT ACCOUNT A",
+          "cache": "private, no-store"
+        }
+      ]
+    },
+    {
+      "check": "A cannot read B receipt IDOR",
+      "passed": true,
+      "observed": [
+        404,
+        {
+          "body": "not found",
+          "cache": null
+        }
+      ]
+    },
+    {
+      "check": "B own receipt readable",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "body": "ISOLATED RECEIPT ACCOUNT B",
+          "cache": "private, no-store"
+        }
+      ]
+    },
+    {
+      "check": "B cannot read A receipt IDOR",
+      "passed": true,
+      "observed": [
+        404,
+        {
+          "body": "not found",
+          "cache": null
+        }
+      ]
+    },
+    {
+      "check": "A own building write accepted",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "ok": true
+        }
+      ]
+    },
+    {
+      "check": "A cross-account write refused",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "error": "Not found."
+        }
+      ]
+    },
+    {
+      "check": "B cross-account write refused",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "error": "Not found."
+        }
+      ]
+    },
+    {
+      "check": "Viewer write refused",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "error": "Your access to this account is read-only."
+        }
+      ]
+    },
+    {
+      "check": "Manager granted building write accepted",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "ok": true
+        }
+      ]
+    },
+    {
+      "check": "Manager ungranted same-account building refused",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "error": "Not found."
+        }
+      ]
+    },
+    {
+      "check": "Manager owner-only operation refused",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "error": "Only the account owner can rename the account."
+        }
+      ]
+    },
+    {
+      "check": "Viewer owner export refused",
+      "passed": true,
+      "observed": [
+        403,
+        {
+          "error": "Only the account owner can export all records."
+        }
+      ]
+    },
+    {
+      "check": "Owner cannot invite owner privilege escalation",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "error": "Pick manager or read-only."
+        }
+      ]
+    },
+    {
+      "check": "Foreign/restricted building state unchanged",
+      "passed": true,
+      "observed": [
+        200,
+        [
+          {
+            "id": 101,
+            "account_id": 1,
+            "label": "Manager authorized write"
+          },
+          {
+            "id": 102,
+            "account_id": 1,
+            "label": "restricted original"
+          },
+          {
+            "id": 201,
+            "account_id": 2,
+            "label": "B original"
+          }
+        ]
+      ]
+    },
+    {
+      "check": "Owner export excludes foreign account",
+      "passed": true,
+      "observed": [
+        200,
+        {
+          "notes": [],
+          "units": [],
+          "format": "rentdesk-account-export",
+          "leases": [],
+          "account": {
+            "id": 1,
+            "name": "ISOLATED Account A",
+            "createdAt": "2026-09-14T12:45:00.39-08:00"
+          },
+          "tenants": [],
+          "version": 1,
+          "expenses": [],
+          "receipts": [
+            {
+              "id": 101,
+              "mime": "text/plain",
+              "ocr_text": null,
+              "account_id": 1,
+              "confidence": 0,
+              "created_at": "2026-09-14T12:45:00.393-08:00",
+              "expense_id": null,
+              "image_data": "data:text/plain;base64,SVNPTEFURUQgUkVDRUlQVCBBQ0NPVU5UIEE=",
+              "detected_date": null,
+              "detected_vendor": null,
+              "detected_category": null,
+              "detected_total_cents": null
+            }
+          ],
+          "buildings": [
+            {
+              "id": 101,
+              "label": "Manager authorized write",
+              "address": "Fixture A",
+              "account_id": 1,
+              "created_at": "2026-09-14T12:45:00.392-08:00",
+              "sort_order": 0
+            },
+            {
+              "id": 102,
+              "label": "restricted original",
+              "address": "Fixture A restricted",
+              "account_id": 1,
+              "created_at": "2026-09-14T12:45:00.392-08:00",
+              "sort_order": 0
+            }
+          ],
+          "exportedAt": "2026-09-14T12:45:23.225-08:00",
+          "lease_units": [],
+          "work_orders": [],
+          "rent_payments": []
+        }
+      ]
+    }
+  ]
+}

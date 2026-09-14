@@ -1,0 +1,43 @@
+{"at":"2026-09-14T20:44:47.116Z","method":"GET","path":"/receipt/101","status":401,"result":{"body":"unauthorized","cache":null}}
+{"at":"2026-09-14T20:44:47.118Z","method":"POST","path":"/action","status":401,"result":{"redirect":"/login"}}
+{"at":"2026-09-14T20:44:47.347Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:44:47.572Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:44:47.795Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:44:48.019Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:44:48.022Z","method":"GET","path":"/receipt/101","status":200,"result":{"body":"ISOLATED RECEIPT ACCOUNT A","cache":"private, no-store"}}
+{"at":"2026-09-14T20:44:48.025Z","method":"GET","path":"/receipt/201","status":404,"result":{"body":"not found","cache":null}}
+{"at":"2026-09-14T20:44:48.026Z","method":"GET","path":"/receipt/201","status":200,"result":{"body":"ISOLATED RECEIPT ACCOUNT B","cache":"private, no-store"}}
+{"at":"2026-09-14T20:44:48.028Z","method":"GET","path":"/receipt/101","status":404,"result":{"body":"not found","cache":null}}
+{"at":"2026-09-14T20:44:48.029Z","method":"POST","path":"/action","status":200,"result":{"error":"Your account is read-only. Open billing in Settings to activate your subscription. You can still view and export your records."}}
+{"at":"2026-09-14T20:45:22.290Z","method":"GET","path":"/receipt/101","status":401,"result":{"body":"unauthorized","cache":null}}
+{"at":"2026-09-14T20:45:22.292Z","method":"POST","path":"/action","status":401,"result":{"redirect":"/login"}}
+{"at":"2026-09-14T20:45:22.520Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:45:22.744Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:45:22.967Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:45:23.190Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:45:23.194Z","method":"GET","path":"/receipt/101","status":200,"result":{"body":"ISOLATED RECEIPT ACCOUNT A","cache":"private, no-store"}}
+{"at":"2026-09-14T20:45:23.196Z","method":"GET","path":"/receipt/201","status":404,"result":{"body":"not found","cache":null}}
+{"at":"2026-09-14T20:45:23.198Z","method":"GET","path":"/receipt/201","status":200,"result":{"body":"ISOLATED RECEIPT ACCOUNT B","cache":"private, no-store"}}
+{"at":"2026-09-14T20:45:23.201Z","method":"GET","path":"/receipt/101","status":404,"result":{"body":"not found","cache":null}}
+{"at":"2026-09-14T20:45:23.203Z","method":"POST","path":"/action","status":200,"result":{"ok":true}}
+{"at":"2026-09-14T20:45:23.204Z","method":"POST","path":"/action","status":200,"result":{"error":"Not found."}}
+{"at":"2026-09-14T20:45:23.207Z","method":"POST","path":"/action","status":200,"result":{"error":"Not found."}}
+{"at":"2026-09-14T20:45:23.209Z","method":"POST","path":"/action","status":200,"result":{"error":"Your access to this account is read-only."}}
+{"at":"2026-09-14T20:45:23.212Z","method":"POST","path":"/action","status":200,"result":{"ok":true}}
+{"at":"2026-09-14T20:45:23.215Z","method":"POST","path":"/action","status":200,"result":{"error":"Not found."}}
+{"at":"2026-09-14T20:45:23.217Z","method":"POST","path":"/action","status":200,"result":{"error":"Only the account owner can rename the account."}}
+{"at":"2026-09-14T20:45:23.219Z","method":"GET","path":"/export","status":403,"result":{"error":"Only the account owner can export all records."}}
+{"at":"2026-09-14T20:45:23.221Z","method":"POST","path":"/action","status":200,"result":{"error":"Pick manager or read-only."}}
+{"at":"2026-09-14T20:45:23.222Z","method":"GET","path":"/state","status":200,"result":[{"id":101,"account_id":1,"label":"Manager authorized write"},{"id":102,"account_id":1,"label":"restricted original"},{"id":201,"account_id":2,"label":"B original"}]}
+{"at":"2026-09-14T20:45:23.227Z","method":"GET","path":"/export","status":200,"result":{"notes":[],"units":[],"format":"rentdesk-account-export","leases":[],"account":{"id":1,"name":"ISOLATED Account A","createdAt":"2026-09-14T12:45:00.39-08:00"},"tenants":[],"version":1,"expenses":[],"receipts":[{"id":101,"mime":"text/plain","ocr_text":null,"account_id":1,"confidence":0,"created_at":"2026-09-14T12:45:00.393-08:00","expense_id":null,"image_data":"data:text/plain;base64,SVNPTEFURUQgUkVDRUlQVCBBQ0NPVU5UIEE=","detected_date":null,"detected_vendor":null,"detected_category":null,"detected_total_cents":null}],"buildings":[{"id":101,"label":"Manager authorized write","address":"Fixture A","account_id":1,"created_at":"2026-09-14T12:45:00.392-08:00","sort_order":0},{"id":102,"label":"restricted original","address":"Fixture A restricted","account_id":1,"created_at":"2026-09-14T12:45:00.392-08:00","sort_order":0}],"exportedAt":"2026-09-14T12:45:23.225-08:00","lease_units":[],"work_orders":[],"rent_payments":[]}}
+{"at":"2026-09-14T20:45:37.354Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:45:37.577Z","method":"GET","path":"/receipt/201","status":404,"result":{"body":"not found","cache":null}}
+{"at":"2026-09-14T20:45:38.422Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:45:38.689Z","method":"GET","path":"/receipt/101","status":404,"result":{"body":"not found","cache":null}}
+{"at":"2026-09-14T20:45:39.542Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:45:39.768Z","method":"POST","path":"/action","status":200,"result":{"error":"Your access to this account is read-only."}}
+{"at":"2026-09-14T20:45:40.634Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:45:40.885Z","method":"POST","path":"/action","status":200,"result":{"error":"Only the account owner can rename the account."}}
+{"at":"2026-09-14T20:45:41.687Z","method":"POST","path":"/signin","status":200,"result":{"redirect":"/dashboard"}}
+{"at":"2026-09-14T20:45:41.942Z","method":"POST","path":"/action","status":200,"result":{"ok":true}}
+{"at":"2026-09-14T20:45:42.434Z","method":"GET","path":"/state","status":200,"result":[{"id":101,"account_id":1,"label":"A verified write"},{"id":102,"account_id":1,"label":"restricted original"},{"id":201,"account_id":2,"label":"B original"}]}

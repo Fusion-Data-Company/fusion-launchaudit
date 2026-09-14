@@ -1,0 +1,29 @@
+{
+  "at": "2026-09-14T20:46:05.921362+00:00",
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/api/admin/stats",
+      "status": 401,
+      "body": "{\"message\":\"Not authenticated\"}",
+      "no_credentials": true,
+      "empty_body_for_write_check": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/crm/contacts",
+      "status": 401,
+      "body": "{\"message\":\"Not authenticated\"}",
+      "no_credentials": true,
+      "empty_body_for_write_check": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/blog-posts",
+      "status": 401,
+      "body": "{\"message\":\"Not authenticated\"}",
+      "no_credentials": true,
+      "empty_body_for_write_check": true
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "url": "https://fusiondataco.app/admin",
+  "observation": "Public Clerk sign-in form visibly displays Development mode",
+  "evidence": "06-live-admin-entry.png",
+  "interpretation": "Verify intended production identity deployment; not an authorization bypass finding"
+}
