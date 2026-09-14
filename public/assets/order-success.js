@@ -106,6 +106,8 @@
     tries++;
     try{
       var r=await fetch('/api/order-status?session_id='+encodeURIComponent(sid),{cache:'no-store'});
+      // Retry service failures without stranding a buyer on an error page.
+      if(r.status>=500 || r.status===429) throw new Error('Order service temporarily unavailable');
       var d=await r.json();
       if(!d||!d.ok){
         setChip('chip-bad','Not found');
@@ -115,9 +117,28 @@
       if(d.status==='pending'){
         setChip('chip-info','Syncing');
         if(tries<40){ grade.innerHTML=loading('Waiting for Stripe to confirm the payment, then the audit starts. This usually takes 30 to 60 seconds.'); refresh(); setTimeout(poll, delay); return; }
-        grade.innerHTML=errBlock('Your payment went through; the order has not synced yet.',
+        grade.innerHTML=errBlock('We have not confirmed your order yet.',
           'Keep this link and reload it in a few minutes; it is permanent. If it is still empty after an hour, send us the Stripe receipt number and we will finish it by hand or refund it.',
           '<a class="btn ghost" href="/#contact">Send us the receipt number &rarr;</a>');
+        refresh(); return;
+      }
+      var paidStep=document.getElementById('st-paid');
+      if(paidStep){
+        var paymentConfirmed=['awaiting_url','queued','graded','delivered','blocked'].indexOf(d.status)!==-1;
+        paidStep.className=paymentConfirmed?'done':'';
+        paidStep.innerHTML=paymentConfirmed?'<b>Paid</b>Payment confirmed.':'<b>Payment</b>'+esc(d.status==='payment_failed'?'Payment failed.':d.status==='refunded'?'Refunded.':d.status==='disputed'?'Disputed.':'Checking status.');
+      }
+      if(d.status==='payment_failed'){
+        setChip('chip-bad','Payment failed');
+        setHead('Your payment did not complete.','This order cannot run because payment failed. Check your payment method before trying again.');
+        stGraded.className=''; if(stReport)stReport.hidden=true;
+        report.hidden=true;
+        if(summary) summary.hidden=true;
+        if(actions) actions.hidden=true;
+        if(urlCard) urlCard.hidden=true;
+        grade.innerHTML=errBlock('No report is available for this order.',
+          'You can return to checkout to try another payment method. If your bank shows a completed charge, contact us with this order link before paying again.',
+          '<a class="btn" href="/#order">Return to checkout &rarr;</a> <a class="btn ghost" href="/#contact">Contact support &rarr;</a>');
         refresh(); return;
       }
       renderSummary(d);
@@ -164,10 +185,14 @@
           : '<p style="font-family:var(--font-display);font-size:18px;margin:0 0 6px">Single Run complete.</p><p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">Want the deep audit in a real browser, with broken access control, admin/RBAC, accessibility and performance and evidence for every check? It is free in <a href="/#connect" style="color:var(--accent-ink)">your own agent</a>, or order the <a href="/#order" style="color:var(--accent-ink)">Deep Audit</a> and we do it by hand.</p>';
       }
       else if(d.grade_error){
-        setChip('chip-bad','Scan failed');
+        var retrying=d.status==='queued' && tries<40;
+        setChip(retrying?'chip-info':'chip-bad',retrying?'Retrying':'Scan delayed');
         stGraded.className='now';
-        grade.innerHTML=errBlock('The scan could not finish for '+esc(d.target_url)+'.', esc(d.grade_error)+' Reload this link in a few minutes; if it still fails, send us the order link and it is refunded in full.', '<a class="btn ghost" href="/#contact">Send us this order link &rarr;</a>');
+        grade.innerHTML=errBlock('The scan could not finish for '+esc(d.target_url)+'.',
+          esc(d.grade_error)+(retrying?' We will retry automatically; keep this order link.':' Keep this order link and reload in a few minutes. If it still fails, contact us so we can finish the report or arrange a refund under our refund policy.'),
+          '<a class="btn ghost" href="/#contact">Send us this order link &rarr;</a>');
         refresh();
+        if(retrying) setTimeout(poll, delay);
       }
       else {
         setChip('chip-info','Running');
