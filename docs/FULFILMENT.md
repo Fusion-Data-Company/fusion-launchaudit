@@ -16,7 +16,7 @@ All three tiers (Single Run $79, Deep Audit $149, Pro $499) go through the same 
 - A row sits at `queued` for more than an hour: run the sweep, `curl -X POST https://80-20.dev/api/grade-order -H "Authorization: Bearer $RUNNER_SYNC_SECRET"`.
 - `grade_json.refund.error` is set on a blocked row: the automatic refund failed. Refund it from the Stripe dashboard and reply to the buyer if they wrote in.
 - A buyer emails under the 14-day clause in `/refunds`: read the row, decide, refund from Stripe.
-- Deep Audit or Pro request via the contact form: that is a quoted, hands-on job. Scope it, price it, invoice it. There is no checkout for it on purpose.
+- Paid Deep Audit and Pro orders: use the hands-on queue below. The automated report's `delivered` status does not complete the human service. Contact-form requests remain separate until matched to a paid order.
 
 ## Where things are
 
@@ -32,3 +32,17 @@ All three tiers (Single Run $79, Deep Audit $149, Pro $499) go through the same 
 ## Operations check
 
 Run `node --experimental-strip-types scripts/operations-status.ts` with the production database connection supplied by the connected runtime. It is read-only and returns recent contact requests, queued orders older than one hour, and blocked orders without a confirmed refund ID. The attached hourly operations monitor alerts Rob to new/actionable items and deduplicates by submission/order ID. A successful database write is not evidence that a lead has been handled.
+
+## Deep Audit and Pro operator ledger
+
+Apply the reviewed additive `db/migrations/009_hands_on_work.sql` before recording work. It creates a separate table and does not alter paid orders, reports, or existing delivery history. The read-only queue works before migration and explicitly reports `schema_installed:false`; it still exposes outstanding paid Deep/Pro orders.
+
+Run `node --experimental-strip-types scripts/hands-on-work.ts` with the connected database runtime. The same queue is included in `operations-status.ts`. Claim each order once, contact the buyer within one business day of payment, and confirm scope. Deep Audit's evidenced report and fix plan are due within two business days of confirmed scope; Pro's credentialed audit is due within three. Pro also retains a 30 minute walkthrough and one re-audit after fixes.
+
+Record already-performed work with `node --experimental-strip-types scripts/hands-on-work.ts --record /absolute/command.json`. Commands contain `order_id`, `owner`, `expected_version`, and one `action`: `claim`, `contact`, `scope`, `report`, `call`, or `reaudit`. `claim` uses version zero; subsequent commands use the returned version and same owner. Concurrent or stale commands fail without overwriting history.
+
+Each non-claim step requires `evidence:{path,sha256}` pointing to a nonempty local artifact with its verified SHA-256. Contact/report/re-audit require the actual existing provider acceptance `receipt`; the CLI never sends email. Scope evidence must retain buyer authorization and agreed targets. Pro scope includes two distinct `identity_refs` to approved test identities, never passwords or credentials. Report/re-audit also require `fix_plan:{path,sha256}` and `checks`, each with `check`, `result` (`pass` or `fail`), and its own evidence artifact. Required checks are `access_control`, `admin_rbac`, `write_authorization`; Pro adds `two_identity_idor` and `privilege`. Untested or blocked checks cannot complete delivery. Call evidence requires `minutes` of at least 30.
+
+The ledger hashes actual files, fences mutations on paid status and version, and records an append-only step history. It does not establish the truth of operator-authored evidence or independently verify provider receipt IDs: the operator must retain authentic browser artifacts and acceptance evidence. No command runs an audit, handles customer credentials, sends a message, or claims completion from an automated grade. Refund/dispute/payment-failure records prevent updates. Deep Audit completes only after its evidenced manual report; Pro remains open until its report, walkthrough and re-audit are recorded. Existing automated report access is preserved throughout.
+
+`delivery_json.hands_on.status='scheduled_by_email'` in historical rows is a legacy label, not scheduling proof. New automated delivery snapshots the ledger state, defaulting to `pending_scope` when no scope exists. Authoritative human progress lives in `audit_hands_on_work` and survives automated PDF/email retries.

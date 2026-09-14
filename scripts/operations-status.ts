@@ -1,6 +1,7 @@
 /** Read-only operator snapshot. Run with the production POSTGRES_URL supplied by the connected runtime. */
 import { DELIVERY_ATTENTION_PREDICATE } from '../src/lib/audit-delivery.ts';
 import { getSqlClient } from '../src/lib/db.ts';
+import { handsOnQueue } from '../src/lib/hands-on-work.ts';
 const sql = await getSqlClient();
 if (!sql) throw new Error('Operations database unavailable');
 const orders = await sql(`select status, count(*)::int as count from paid_audits group by status`);
@@ -14,4 +15,5 @@ const attention = await sql(`select id, status, created_at, stripe_session_id, d
      or (${DELIVERY_ATTENTION_PREDICATE})
   order by created_at limit 50`);
 const submissions = await sql(`select id,name,email,type,message,created_at from submissions order by created_at desc limit 50`);
-console.log(JSON.stringify({checked_at:new Date().toISOString(),orders,attention,submissions},null,2));
+const hands_on = await handsOnQueue(sql);
+console.log(JSON.stringify({checked_at:new Date().toISOString(),orders,attention,submissions,hands_on},null,2));

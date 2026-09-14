@@ -7,9 +7,10 @@
  *   grade    -> delivered       every tier: automated site-wide URL grade stored in grade_json,
  *                               PDF rendered, hosted link set (report_url), email attempted
  *                               (delivery_json records the outcome). For standard/pro the
- *                               hands-on browser audit is scheduled by a person from that email;
+ *                               hands-on browser audit is scoped and performed by a person;
  *                               the row keeps status 'delivered' for the automated report and
- *                               hands_on tracking lives in delivery_json.hands_on.
+ *                               authoritative hands-on progress lives in audit_hands_on_work.
+ *                               delivery_json.hands_on is only a delivery-time snapshot.
  *   blocked  -> automatic Stripe refund (refundBlockedOrder)
  *   lifecycle webhooks -> payment_failed | refunded | disputed (report no longer served)
  *

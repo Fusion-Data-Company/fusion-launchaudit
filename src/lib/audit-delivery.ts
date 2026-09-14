@@ -20,6 +20,7 @@ import { sendMail } from "./mailer.ts";
 import { formatUsd, tierInfo } from "./checkout-input.ts";
 import { renderAuditReportPdf, reportFilename } from "./audit-report-pdf.ts";
 import type { PaidAuditRow } from "./paid-audits.ts";
+import { handsOnState } from './hands-on-work.ts';
 
 export const SITE_URL = (process.env.PUBLIC_SITE_URL || "https://80-20.dev").replace(/\/$/, "");
 
@@ -29,7 +30,7 @@ export type DeliveryRecord = {
   pdf_bytes: number;
   blob: { url: string; pathname: string } | null;
   email: { status: "sent" | "skipped" | "error"; detail: string | null; to: string; at: string; subject: string; preview: string; captured?: string | null };
-  hands_on: { required: boolean; status: "not_applicable" | "scheduled_by_email" } ;
+  hands_on: { required: boolean; status: "not_applicable" | "pending_scope" | "scoped" | "report_delivered" | "complete" | "scheduled_by_email" } ;
 };
 
 type OkGrade = (InstantGrade | DeepGrade) & { ok: true };
@@ -51,10 +52,16 @@ export function deliveryEmail(row: PaidAuditRow, grade: OkGrade, links: { report
   const host = hostOf(grade.url);
   const top = grade.findings.slice(0, 5).map((f, i) => `${i + 1}. [${f.severity.toUpperCase()}] ${f.title}`).join("\n");
   const pages = "pages_scanned" in grade ? grade.pages_scanned : 1;
+  const work = row.delivery_json?.hands_on?.status;
+  const next = work === 'complete' ? 'Your hands-on work is recorded as complete. Reply if you need help with the delivered findings.'
+    : work === 'report_delivered' ? 'Your hands-on report is delivered. The Pro walkthrough and re-audit remain tracked separately until completed.'
+    : work === 'scoped' ? 'Your hands-on scope is confirmed. The separately delivered browser report follows the agreed scope schedule.'
+    : info.next;
   const lines = [
     `Hi,`,
     ``,
-    `Your ${info.label} audit of ${grade.url} is finished.`,
+    info.handsOn ? `Your automated URL report for ${grade.url} is ready.`
+      : `Your ${info.label} audit of ${grade.url} is finished.`,
     ``,
     `Score: ${grade.score}/100 (${BAND_LABEL[grade.band] ?? grade.band}). ${grade.summary}`,
     `Pages scanned: ${pages}. Checks passed: ${grade.passed}. Findings: ${grade.findings.length}.`,
@@ -68,7 +75,7 @@ export function deliveryEmail(row: PaidAuditRow, grade: OkGrade, links: { report
     links.page,
     ``,
     info.handsOn
-      ? `What happens next: ${info.next}`
+      ? `What happens next: ${next}`
       : `What happens next: nothing you need to do. If we could not read part of the site, the report says so plainly rather than guessing.`,
     ``,
     `Order: ${row.id}, ${info.label}, ${formatUsd(row.amount_cents)}, site ${host}.`,
@@ -130,7 +137,7 @@ export async function deliverPaidAudit(sql: SqlClient, row: PaidAuditRow, deps: 
   const record: DeliveryRecord = {
     attempt: { token, state: 'preparing', started_at: at }, delivered_at: at, pdf_bytes: 0, blob: row.delivery_json?.blob ?? null,
     email: { status: 'skipped', detail: 'Preparing report delivery.', to: row.email, at, subject: '', preview: '' },
-    hands_on: { required: info.handsOn, status: info.handsOn ? 'scheduled_by_email' : 'not_applicable' },
+    hands_on: { required: info.handsOn, status: info.handsOn ? await handsOnState(sql,row.id) : 'not_applicable' },
   };
   // Persist the regenerable PDF link and claim before upload/render/mail. A crash cannot hide the report.
   const claimed = await sql(`update paid_audits set report_url=coalesce(report_url,$2), report_pdf_url=$2,
