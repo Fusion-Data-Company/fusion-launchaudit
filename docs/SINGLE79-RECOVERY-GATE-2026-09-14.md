@@ -22,9 +22,11 @@ Isolated PGlite tests deliberately exercise interruption before send, interrupti
 
 ## Still blocks a complete launch gate
 
-1. Production mail configuration: authenticated Vercel project environment metadata for prj_9eH8UtyCC5FMEX6wjIbP4kqZLe6P shows no production MONITOR_SMTP_URL or MONITOR_MAIL_FROM. SMTP_URL is also absent. Only key names/presence were printed; no values read. CRON_SECRET and RUNNER_SYNC_SECRET are present. Presence alone does not prove cron execution. The current advertised PDF email promise is not operationally verified and cannot be marked passed.
+1. Production mail configuration update: an earlier authenticated Vercel metadata check found the LaunchAudit SMTP fields absent. The parent subsequently recovered the already-owned Fusion Rapport SMTP relay, verified its connection without sending a message, and configured MONITOR_SMTP_URL plus MONITOR_MAIL_FROM for this deployment. A subsequent independent metadata read confirms both production variable names are now present. Do not treat the earlier missing-field snapshot as current after that update. Deployment pickup and actual authorized delivery remain separate evidence. CRON_SECRET and RUNNER_SYNC_SECRET were present; presence alone does not prove cron execution.
 2. Actual SMTP acceptance/delivery and operator support handling remain unverified. Local MIME capture is not delivery.
 3. Deployment and live acceptance of this new backend interruption repair belong to the parent task; this file does not claim them complete.
 4. The application PDF route blocks refunded/disputed orders, but existing public Blob copies are not revoked by that route. If report revocation after closure is a required contract, retained public Blob access needs separate reconciliation.
 
-Next concrete action: review/deploy the bounded recovery repair, then wire the already-owned SMTP identity and verify the promised PDF delivery with an explicitly authorized non-customer test. Do not mark Single Run fully green or start outbound based only on build success and a sample PDF.
+The existing read-only scripts/operations-status.ts now selects held ambiguous delivery records and provides an explicit operator action. In-flight sending is not escalated until ten minutes; uncertain and legacy ambiguous errors are surfaced without releasing their hold.
+
+Next concrete action: review/deploy the bounded recovery repair with the parent's existing SMTP configuration, then verify the promised PDF delivery with an explicitly authorized non-customer test. Do not mark Single Run fully green or start outbound based only on build success and a sample PDF.

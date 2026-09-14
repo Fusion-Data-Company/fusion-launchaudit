@@ -104,6 +104,13 @@ export const DELIVERY_RECOVERY_PREDICATE = `status = 'delivered' and delivered_e
       and (delivery_json->'attempt'->>'started_at')::timestamptz < now() - interval '10 minutes')
     or (delivery_json->'attempt' is null and delivery_json->'email'->>'status' = 'skipped'))`;
 
+/** Read-only operator queue: never release these records automatically. */
+export const DELIVERY_ATTENTION_PREDICATE = `status = 'delivered' and (
+  delivery_json->'attempt'->>'state' = 'uncertain'
+  or (delivery_json->'attempt'->>'state' = 'sending'
+    and (delivery_json->'attempt'->>'started_at')::timestamptz < now() - interval '10 minutes')
+  or (delivery_json->'attempt' is null and delivery_json->'email'->>'status' = 'error'))`;
+
 type DeliveryDependencies = { send?: typeof sendMail; upload?: typeof uploadPdf };
 function definitelyRejected(error: string): boolean {
   const rejection = /^SMTP step (\d+) expected \d+, got: [45]\d\d(?:[ -]|$)/.exec(error);

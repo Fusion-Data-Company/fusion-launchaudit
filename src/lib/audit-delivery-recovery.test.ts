@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PGlite} from '@electric-sql/pglite';
 import {ensurePaidAuditsTable, type PaidAuditRow} from './paid-audits.ts';
-import {deliverPaidAudit, DELIVERY_RECOVERY_PREDICATE} from './audit-delivery.ts';
+import {deliverPaidAudit, DELIVERY_RECOVERY_PREDICATE, DELIVERY_ATTENTION_PREDICATE} from './audit-delivery.ts';
 import type {SqlClient} from './db.ts';
 
 async function fixture() {
@@ -39,7 +39,9 @@ test('acceptance followed by persistence failure stays held without automatic re
   const failing:SqlClient=async(q,p)=>{if(q.startsWith('update paid_audits set delivery_json=$2'))throw Error('interruption after SMTP acceptance');return f.sql(q,p)};
   await assert.rejects(deliverPaidAudit(failing,await f.row(),{upload,send:async()=>{sends++;return {ok:true}}}));
   assert.equal((await f.row()).delivery_json?.attempt?.state,'sending');
+  assert.equal((await f.sql(`select id from paid_audits where ${DELIVERY_ATTENTION_PREDICATE}`)).length,0);
   await f.age();
+  assert.equal((await f.sql(`select id from paid_audits where ${DELIVERY_ATTENTION_PREDICATE}`)).length,1);
   assert.equal((await f.sql(`select id from paid_audits where ${DELIVERY_RECOVERY_PREDICATE}`)).length,0);
   await deliverPaidAudit(f.sql,await f.row(),{upload,send:async()=>{sends++;return {ok:true}}});
   assert.equal(sends,1);
