@@ -349,7 +349,7 @@
   .fade-up { animation: elite-fade-up var(--elite-dur-entrance) var(--elite-ease-editorial) both; }
   /* ScrollFadeSection sets --fade-delay; nothing else needs wiring. */
   .fade-up-lazy {
-    opacity: 0;
+    opacity: 1;
     animation: elite-fade-up var(--elite-dur-entrance) var(--elite-ease-editorial) forwards;
     animation-delay: var(--fade-delay, 0ms);
   }
@@ -391,10 +391,10 @@
 
   /* Reveal on scroll — once only, never on scroll-out. Driven by the shared
      rAF pass in motion/Reveal.tsx. */
-  .reveal { opacity: 0; transform: translateY(14px); }
+  .reveal { opacity: 1; transform: none; }
   .reveal.in {
     opacity: 1; transform: none;
-    transition: opacity 800ms var(--elite-ease), transform 800ms var(--elite-ease);
+    animation: elite-fade-up 800ms var(--elite-ease, ease) both;
   }
 
   /* The no-JavaScript reveal. At rest: visible. */
