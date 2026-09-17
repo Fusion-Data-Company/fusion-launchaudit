@@ -1,6 +1,11 @@
 import type { SqlClient } from './db.ts';
 export type ClosedPaymentStatus = 'payment_failed' | 'refunded' | 'disputed';
 
+/** Every terminal payment state closes customer report access. */
+export function isClosedPaymentStatus(status: unknown): status is ClosedPaymentStatus {
+  return status === 'payment_failed' || status === 'refunded' || status === 'disputed';
+}
+
 export const paymentLifecycleSchema = `create table if not exists paid_audit_payment_state (
   stripe_session_id text primary key,
   status text not null check(status in ('payment_failed','refunded','disputed')),
