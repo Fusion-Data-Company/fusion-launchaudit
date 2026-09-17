@@ -17,7 +17,7 @@
  * The Playwright deep audit needs Chromium, which Vercel functions do not have; it is
  * never claimed as automatic anywhere in the UI.
  */
-import { paymentLifecycleSchema, reconcilePaymentState } from "./payment-lifecycle.ts";
+import { paymentLifecycleSchema, reconcilePaymentState, isClosedPaymentStatus } from "./payment-lifecycle.ts";
 import { randomUUID } from "node:crypto";
 import type { SqlClient } from "./db.ts";
 import { paidAuditsSchemaSql } from "./storage-contract.ts";
@@ -167,7 +167,7 @@ export function emailHint(email: string | null | undefined): string | null {
 
 /** Public-safe projection for the success page (no email, no internal ids). */
 export function publicOrderStatus(row: PaidAuditRow) {
-  const closed = row.status === "refunded" || row.status === "disputed";
+  const closed = isClosedPaymentStatus(row.status);
   const g = !closed && row.grade_json && "ok" in row.grade_json && row.grade_json.ok ? row.grade_json : null;
   const gj = row.grade_json as { blocked?: boolean; error?: string; refund?: { id?: string; error?: string; skipped?: string } } | null;
   const blocked = gj && gj.blocked ? gj.error ?? null : null;
