@@ -1,6 +1,6 @@
 /**
  * Delivery of a graded paid audit: render the PDF, park a durable copy in Vercel
- * Blob (hosted link), and email the buyer with the PDF attached. Runs right after
+ * Blob (optional private backup), and email the buyer with the PDF attached. Runs right after
  * the grade lands, inside the same serverless invocation, and is idempotent on
  * the row: a second call after a successful send does nothing.
  *
@@ -8,9 +8,9 @@
  * the operator and STATUS.md can all say exactly what happened:
  *   email.status = "sent" | "skipped" (no SMTP configured) | "error"
  *
- * The hosted link is the platform's own PDF route (always works, regenerates
- * from grade_json) unless a Blob copy uploaded, in which case the Blob URL is the
- * primary link and the route stays as the fallback.
+ * Customer links always use the payment-guarded PDF route, regenerated from
+ * grade_json. Optional Blob copies are private and never customer-facing links.
+ * Legacy Blob metadata is retained for operator cleanup, not redistributed.
  */
 import { randomUUID } from "node:crypto";
 import type { SqlClient } from "./db.ts";
@@ -95,8 +95,9 @@ async function uploadPdf(row: PaidAuditRow, host: string, pdf: Buffer): Promise<
   try {
     const blob = await import("@vercel/blob");
     const pathname = `launchaudit/orders/${row.id}/${reportFilename(host)}`;
-    // The production store is public; a random suffix keeps the URL unguessable, like the evidence uploads.
-    const r = await blob.put(pathname, pdf, { access: "public", addRandomSuffix: true, contentType: "application/pdf", token });
+    // Never create an unguarded public copy of a paid report. An incompatible
+    // store rejects this optional backup; the guarded PDF route still works.
+    const r = await blob.put(pathname, pdf, { access: "private", addRandomSuffix: true, contentType: "application/pdf", token });
     return { url: r.url, pathname: r.pathname };
   } catch {
     return null;
@@ -140,7 +141,7 @@ export async function deliverPaidAudit(sql: SqlClient, row: PaidAuditRow, deps: 
     hands_on: { required: info.handsOn, status: info.handsOn ? await handsOnState(sql,row.id) : 'not_applicable' },
   };
   // Persist the regenerable PDF link and claim before upload/render/mail. A crash cannot hide the report.
-  const claimed = await sql(`update paid_audits set report_url=coalesce(report_url,$2), report_pdf_url=$2,
+  const claimed = await sql(`update paid_audits set report_url=$2, report_pdf_url=$2,
     delivery_json=$3::jsonb where id=$1 and ${DELIVERY_RECOVERY_PREDICATE} returning *`,
     [row.id, routeUrl, JSON.stringify(record)]);
   if (!claimed.length) return ((await sql('select * from paid_audits where id=$1', [row.id]))[0] as PaidAuditRow) ?? row;
@@ -152,7 +153,8 @@ export async function deliverPaidAudit(sql: SqlClient, row: PaidAuditRow, deps: 
     links: { page: orderPageUrl(row.stripe_session_id), report: routeUrl },
   });
   const blob = record.blob ?? await (deps.upload ?? uploadPdf)(row, host, pdf);
-  const reportUrl = blob?.url ?? row.report_url ?? routeUrl;
+  // Neither private storage URLs nor legacy public copies may bypass payment checks.
+  const reportUrl = routeUrl;
   const mail = deliveryEmail(row, grade, { report: reportUrl, page: orderPageUrl(row.stripe_session_id) });
   record.pdf_bytes = pdf.length; record.blob = blob;
   record.attempt!.state = 'sending';

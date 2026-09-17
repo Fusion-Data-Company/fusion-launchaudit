@@ -26,7 +26,7 @@ import { withAuditDeadline } from "./audit-deadline.ts";
 import { runDeepGrade, type DeepGrade } from "./deep-grade.ts";
 import { stripeGet, stripeRequest } from "./stripe.ts";
 import { formatUsd, tierInfo } from "./checkout-input.ts";
-import { deliverPaidAudit, type DeliveryRecord } from "./audit-delivery.ts";
+import { deliverPaidAudit, orderReportRouteUrl, type DeliveryRecord } from "./audit-delivery.ts";
 
 export type PaidAuditStatus = "awaiting_url" | "queued" | "graded" | "delivered" | "blocked" | "payment_failed" | "refunded" | "disputed";
 
@@ -189,8 +189,9 @@ export function publicOrderStatus(row: PaidAuditRow) {
     email_hint: emailHint(row.email),
     created_at: row.created_at,
     completed_at: row.completed_at,
-    report_url: closed ? null : row.report_url,
-    report_pdf_url: closed ? null : row.report_pdf_url ?? null,
+    // Do not redistribute a persisted legacy public Blob URL outside payment checks.
+    report_url: closed || !g ? null : orderReportRouteUrl(row.stripe_session_id),
+    report_pdf_url: closed || !g ? null : orderReportRouteUrl(row.stripe_session_id),
     email_delivery: closed || !delivery ? null : { status: delivery.email.status, at: delivery.email.at, detail: delivery.email.status === "sent" ? null : delivery.email.detail },
     grade: g
       ? {
