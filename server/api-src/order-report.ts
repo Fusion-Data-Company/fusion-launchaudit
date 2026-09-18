@@ -1,11 +1,12 @@
 /**
  * /api/order-report?session_id=cs_...: the hosted PDF for a delivered order, regenerated
  * from grade_json on every request so it never depends on Blob. Same access model as the
- * success page: the unguessable Stripe session id is the key. Closed orders (refunded,
- * disputed) return 410 and no report.
+ * success page: the unguessable Stripe session id is the key. Closed orders (payment_failed,
+ * refunded, disputed) return 410 and no report.
  */
 import { getSqlClient } from "../../src/lib/db.ts";
 import { tierInfo } from "../../src/lib/checkout-input.ts";
+import { isClosedPaymentStatus } from "../../src/lib/payment-lifecycle.ts";
 import { ensurePaidAuditsTable, getPaidAuditBySession } from "../../src/lib/paid-audits.ts";
 import { renderAuditReportPdf, reportFilename } from "../../src/lib/audit-report-pdf.ts";
 import { orderPageUrl, orderReportRouteUrl } from "../../src/lib/audit-delivery.ts";
@@ -26,7 +27,7 @@ export default async function handler(req: Req, res: Res) {
     await ensurePaidAuditsTable(sql);
     const row = await getPaidAuditBySession(sql, sid);
     if (!row) { res.status(404).json({ error: "No order for that session id." }); return; }
-    if (row.status === "refunded" || row.status === "disputed") { res.status(410).json({ error: `This order was ${row.status}; the report is no longer served.` }); return; }
+    if (isClosedPaymentStatus(row.status)) { res.status(410).json({ error: `This order was ${row.status}; the report is no longer served.` }); return; }
     const grade = row.grade_json && "ok" in row.grade_json && row.grade_json.ok ? row.grade_json : null;
     if (!grade) { res.status(404).json({ error: "The report is not ready yet. Open your order page; it updates itself.", status: row.status }); return; }
     const info = tierInfo(row.tier);
