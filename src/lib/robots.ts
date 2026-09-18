@@ -9,7 +9,8 @@
  *  - Comments (#) and a UTF-8 BOM are stripped; field names are case-insensitive;
  *    CRLF is fine; unknown fields (Sitemap, Crawl-delay) are ignored for matching.
  *  - A crawler obeys the most specific group that names it (longest matching
- *    token, case-insensitive) and otherwise the "*" group. It never merges groups.
+ *    token, case-insensitive) and otherwise the "*" group. Equally specific
+ *    matching groups are combined; named groups never inherit wildcard rules.
  *  - "Disallow:" with an empty value means allow everything.
  *  - Root is blocked only when a Disallow rule matches "/" and no Allow rule of
  *    equal or greater length also matches it. On a tie (Allow: / vs Disallow: /)
@@ -36,28 +37,38 @@ export function parseRobots(text: string): { groups: RobotsGroup[]; sitemaps: st
       lastWasAgent = true;
       continue;
     }
-    lastWasAgent = false;
     if (field === "sitemap") { sitemaps.push(value); continue; }
+    // Other records must not split consecutive User-agent declarations (RFC 9309 2.2.4).
+    if (field !== "disallow" && field !== "allow") continue;
     if (!current) continue; // rules before any User-agent line belong to nobody
+    lastWasAgent = false;
     if (field === "disallow") current.disallow.push(value);
     else if (field === "allow") current.allow.push(value);
   }
   return { groups, sitemaps };
 }
 
-/** The group a crawler named `agent` obeys: the longest agent token that is a prefix of its name, else "*", else null. */
+/** Combine equally most-specific matches; fall back to all wildcard groups. */
 export function groupFor(groups: RobotsGroup[], agent: string): RobotsGroup | null {
   const name = agent.toLowerCase();
-  let best: RobotsGroup | null = null;
+  let matching: RobotsGroup[] = [];
   let bestLen = -1;
   for (const g of groups) {
-    for (const token of g.agents) {
-      if (token === "*") continue;
-      if (name.startsWith(token) && token.length > bestLen) { best = g; bestLen = token.length; }
-    }
+    const length = Math.max(-1, ...g.agents
+      .filter((token) => token !== "*" && token.length > 0 && name.startsWith(token))
+      .map((token) => token.length));
+    if (length > bestLen) { matching = [g]; bestLen = length; }
+    else if (length >= 0 && length === bestLen) matching.push(g);
   }
-  if (best) return best;
-  return groups.find((g) => g.agents.includes("*")) ?? null;
+  if (!matching.length) matching = groups.filter((g) => g.agents.includes("*"));
+  if (!matching.length) return null;
+  if (matching.length === 1) return matching[0];
+  // Build a fresh group so repeated inspections cannot mutate the parsed file.
+  return {
+    agents: [...new Set(matching.flatMap((g) => g.agents))],
+    allow: [...new Set(matching.flatMap((g) => g.allow))],
+    disallow: [...new Set(matching.flatMap((g) => g.disallow))],
+  };
 }
 
 /** Does a single Allow/Disallow pattern match the site root "/"? Only "/" and "/*" (optionally "$"-anchored "/*$") do. */
@@ -93,13 +104,14 @@ export function robotsVerdict(text: string): RobotsVerdict {
   const { groups, sitemaps } = parseRobots(text);
   const blockedAgents: string[] = [];
   for (const agent of LAUNCH_AGENTS) {
-    const g = agent === "*" ? groups.find((x) => x.agents.includes("*")) ?? null : groupFor(groups, agent);
+    const g = groupFor(groups, agent);
     if (g && groupBlocksRoot(g)) blockedAgents.push(agent);
   }
   const otherBlockedAgents: string[] = [];
-  for (const g of groups) {
-    if (g.agents.includes("*")) continue;
-    if (groupBlocksRoot(g)) for (const a of g.agents) if (!otherBlockedAgents.includes(a)) otherBlockedAgents.push(a);
+  const otherAgents = new Set(groups.flatMap((g) => g.agents).filter((a) => a !== "*"));
+  for (const agent of otherAgents) {
+    const g = groupFor(groups, agent);
+    if (g && groupBlocksRoot(g)) otherBlockedAgents.push(agent);
   }
   return { blocked: blockedAgents.length > 0, blockedAgents, otherBlockedAgents, sitemaps };
 }
