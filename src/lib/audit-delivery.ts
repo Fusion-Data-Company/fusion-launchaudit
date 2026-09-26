@@ -44,7 +44,7 @@ export function orderReportRouteUrl(sessionId: string): string {
   return `${SITE_URL}/api/order-report?session_id=${encodeURIComponent(sessionId)}`;
 }
 
-const BAND_LABEL: Record<string, string> = { green: "launch ready", yellow: "needs work", red: "not ready" };
+const BAND_LABEL: Record<string, string> = { green: "URL checks clear", yellow: "needs work", red: "not ready" };
 
 /** Plain-text email body. Plain hyphens, straight quotes, no filler. */
 export function deliveryEmail(row: PaidAuditRow, grade: OkGrade, links: { report: string; page: string }): { subject: string; text: string } {
@@ -65,6 +65,7 @@ export function deliveryEmail(row: PaidAuditRow, grade: OkGrade, links: { report
     ``,
     `Score: ${grade.score}/100 (${BAND_LABEL[grade.band] ?? grade.band}). ${grade.summary}`,
     `Pages scanned: ${pages}. Checks passed: ${grade.passed}. Findings: ${grade.findings.length}.`,
+    `This automated URL report does not verify signed-in workflows, payments, or authorization. Hands-on work, when included, is delivered separately.`,
     ``,
     grade.findings.length ? `Top findings:\n${top}` : `No findings at the URL level. Every check that can be answered from outside the app came back clean.`,
     ``,

@@ -226,7 +226,7 @@ window.eliteGauge = function (score, band, opts) {
   var R = 74, C = 2 * Math.PI * R;
   var s = Math.max(0, Math.min(100, Number(score) || 0));
   var cls = band === "green" ? "is-green" : band === "yellow" ? "is-yellow" : band === "blocked" ? "is-blocked" : "is-red";
-  var label = band === "blocked" ? "Blocked" : band === "green" ? "Launch ready" : band === "yellow" ? "Needs work" : "Not ready";
+  var label = band === "blocked" ? "Blocked" : band === "green" ? "URL checks clear" : band === "yellow" ? "Needs work" : "Not ready";
   var ticks = "";
   for (var t = 0; t < 40; t++) {
     var a = (t / 40) * Math.PI * 2;
@@ -234,7 +234,7 @@ window.eliteGauge = function (score, band, opts) {
     ticks += '<line x1="' + (90 + Math.cos(a) * r1).toFixed(2) + '" y1="' + (90 + Math.sin(a) * r1).toFixed(2) +
              '" x2="' + (90 + Math.cos(a) * r2).toFixed(2) + '" y2="' + (90 + Math.sin(a) * r2).toFixed(2) + '"/>';
   }
-  return '<div class="la-gauge ' + cls + (opts.small ? " is-sm" : "") + '" role="img" aria-label="Readiness score ' + s + ' out of 100, ' + label + '">' +
+  return '<div class="la-gauge ' + cls + (opts.small ? " is-sm" : "") + '" role="img" aria-label="Automated URL score ' + s + ' out of 100, ' + label + '">' +
     '<svg viewBox="0 0 180 180" aria-hidden="true">' +
       '<g class="la-gauge__ticks">' + ticks + '</g>' +
       '<circle class="la-gauge__track" cx="90" cy="90" r="' + R + '"/>' +

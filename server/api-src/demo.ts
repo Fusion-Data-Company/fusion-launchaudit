@@ -9,6 +9,8 @@
  * the generator now and persists the new row (that is the refresh path; it is
  * never triggered by a page view).
  */
+import { renderAuditReportPdf, reportFilename, type ReportInput } from "../../src/lib/audit-report-pdf.ts";
+import { tierInfo } from "../../src/lib/checkout-input.ts";
 import { getSqlClient } from "../../src/lib/db.ts";
 import { demoReportsSchemaSql } from "../../src/lib/storage-contract.ts";
 import { runDeepGrade } from "../../src/lib/deep-grade.ts";
@@ -17,7 +19,7 @@ import { withAuditDeadline } from "../../src/lib/audit-deadline.ts";
 import snapshot from "../../public/demo/fusiondataco.json" with { type: "json" };
 
 type Req = { method?: string; headers?: Record<string, string | string[] | undefined>; query?: Record<string, string | string[] | undefined>; url?: string };
-type Res = { status: (n: number) => Res; setHeader?: (k: string, v: string) => void; json: (b: unknown) => void };
+type Res = { status: (n: number) => Res; setHeader?: (k: string, v: string) => void; json: (b: unknown) => void; end: (b?: Buffer | string) => void };
 
 export const DEMO_URL = "https://fusiondataco.com";
 export const DEMO_BUYER = { name: "Rob Yeager", company: "Fusion Data Company", email: "rob@fusiondataco.com" };
@@ -34,15 +36,48 @@ function shape(row: DemoRow, source: string) {
   return {
     ok: true, source,
     report: {
-      id: row.id, url: row.url, tier: row.tier, grade: row.grade_json, pdf_url: row.pdf_url,
+      id: row.id, url: row.url, tier: row.tier, grade: row.grade_json, pdf_url: `/api/demo?format=pdf&id=${encodeURIComponent(row.id)}`,
       buyer: { name: row.buyer_name, company: row.buyer_company, email: row.buyer_email },
       created_at: row.created_at,
     },
   };
 }
 
+function respond(row: DemoRow, source: string, pdf: boolean, res: Res) {
+  if (!pdf) { res.status(200).json(shape(row, source)); return; }
+  const grade = row.grade_json as ReportInput['grade'];
+  if (!grade?.ok || !Array.isArray(grade.findings)) {
+    res.setHeader?.('cache-control', 'no-store');
+    res.status(503).json({ error: 'This sample report cannot be rendered.' }); return;
+  }
+  const info = tierInfo(row.tier);
+  const bytes = renderAuditReportPdf({
+    grade, sample: true,
+    order: { id: row.id, tier: row.tier, tierLabel: info.label, amountCents: info.amountCents,
+      email: row.buyer_email || '', targetUrl: row.url, createdAt: row.created_at, completedAt: row.created_at,
+      includes: info.includes, next: 'This is a saved sample run, not a paid customer order. Choose a tier to audit your own application.', handsOn: false },
+    links: { page: 'https://80-20.dev/demo', report: `https://80-20.dev/api/demo?format=pdf&id=${encodeURIComponent(row.id)}` },
+    eyebrow: '80/20 LAUNCH AUDIT | SAMPLE REPORT (SAVED RUN)',
+  });
+  res.setHeader?.('content-type', 'application/pdf');
+  res.setHeader?.('content-disposition', `inline; filename="${reportFilename(new URL(row.url).host)}"`);
+  res.setHeader?.('content-length', String(bytes.length));
+  res.status(200).end(bytes);
+}
+
 export default async function handler(req: Req, res: Res) {
   res.setHeader?.("cache-control", "public, max-age=300, s-maxage=3600");
+  const params = new URL(req.url || '/api/demo', 'https://80-20.dev').searchParams;
+  const queryValue = (key: string) => {
+    const value = req.query?.[key];
+    return (Array.isArray(value) ? value[0] : value) ?? params.get(key);
+  };
+  const id = queryValue('id');
+  const pdf = queryValue('format') === 'pdf';
+  if (id && !/^demo_[A-Za-z0-9_]{1,100}$/.test(id)) {
+    res.setHeader?.('cache-control', 'no-store');
+    res.status(400).json({ error: 'Invalid sample report ID.' }); return;
+  }
   const sql = await getSqlClient();
 
   if (req.method === "POST") {
@@ -70,12 +105,14 @@ export default async function handler(req: Req, res: Res) {
   if (sql) {
     try {
       await ensureDemoTable(sql);
-      const rows = (await sql(`select * from demo_reports where url = $1 order by created_at desc limit 1`, [DEMO_URL])) as DemoRow[];
-      if (rows[0]) { res.status(200).json(shape(rows[0], "postgres")); return; }
+      const rows = (await sql(id
+        ? `select * from demo_reports where url=$1 and id=$2 limit 1`
+        : `select * from demo_reports where url=$1 order by created_at desc limit 1`, id ? [DEMO_URL, id] : [DEMO_URL])) as DemoRow[];
+      if (rows[0]) { respond(rows[0], 'postgres', pdf, res); return; }
     } catch { /* fall through to the committed snapshot */ }
   }
   const snap = snapshot as unknown as { seeded?: boolean; report?: DemoRow };
-  if (snap && snap.seeded && snap.report) { res.status(200).json(shape(snap.report, "snapshot")); return; }
+  if (snap && snap.seeded && snap.report && (!id || id === snap.report.id)) { respond(snap.report, "snapshot", pdf, res); return; }
   res.setHeader?.("cache-control", "no-store");
-  res.status(404).json({ ok: false, error: "The sample report has not been generated yet. Run `npm run demo:seed` (real audit of fusiondataco.com, persisted to Postgres and public/demo/fusiondataco.json)." });
+  res.status(404).json({ ok: false, error: "This saved sample is unavailable. Return to /demo to open the current published report." });
 }

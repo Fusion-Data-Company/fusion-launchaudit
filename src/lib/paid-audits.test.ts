@@ -18,11 +18,13 @@ test("publicOrderStatus never leaks the email and serves the grade for a deliver
   assert.equal(p.refunded, false);
 });
 
-test("publicOrderStatus reports a blocked run with its reason and whether the refund went through", () => {
+test("publicOrderStatus distinguishes a refund request from a confirmed refund", () => {
   const p = publicOrderStatus({ ...base, status: "blocked", grade_json: { error: "The site answered with a bot challenge (HTTP 403).", blocked: true, http_status: 403, refund: { id: "re_1" } } as never });
   assert.equal(p.status, "blocked");
   assert.match(p.blocked ?? "", /bot challenge/);
-  assert.equal(p.refunded, true);
+  assert.equal(p.refunded, false);
+  assert.equal(p.refund_requested, true);
+  assert.equal(publicOrderStatus({ ...base, status: "refunded" }).refunded, true);
   assert.equal(p.grade, null);
   const q = publicOrderStatus({ ...base, status: "blocked", grade_json: { error: "x", blocked: true, refund: { error: "no key" } } as never });
   assert.equal(q.refunded, false);

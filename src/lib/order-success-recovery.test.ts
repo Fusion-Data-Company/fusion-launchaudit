@@ -36,7 +36,7 @@ test('temporary order API failures retry and display the persisted report', asyn
     assert.equal(p.requests(), 2);
     assert.equal(p.node('order-chip').textContent, 'Report ready');
     assert.equal(p.node('st-paid').className, 'done');
-    assert.match(p.node('report').innerHTML, /Single Run complete/);
+    assert.match(p.node('report').innerHTML, /Single Run report ready/);
     assert.match(p.node('report-actions').innerHTML, /Download the PDF/);
     assert.match(p.node('report-actions').innerHTML, /Open the hosted copy/);
     assert.match(p.node('order-summary').innerHTML, /Email sent/);
@@ -91,7 +91,7 @@ test('paid-before-URL and hands-on tiers retain their current delivery workflow'
   for (const tier of ['standard', 'pro']) {
     const q = page([{body: {...delivered, tier, hands_on: true, next: 'Operator follows up'}}]);
     await q.settle();
-    assert.match(q.node('report').innerHTML, /hands-on part is next/);
+    assert.match(q.node('report').innerHTML, /Scope confirmation pending/);
     assert.match(q.node('report-actions').innerHTML, /Download the PDF/);
   }
 });

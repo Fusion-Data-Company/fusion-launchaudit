@@ -34,7 +34,7 @@ const id = "demo_" + Math.random().toString(36).slice(2, 10) + Date.now().toStri
 const createdAt = new Date().toISOString();
 const info = AUDIT_TIERS.single;
 const pdf = renderAuditReportPdf({
-  grade,
+  grade, sample: true,
   order: { id, tier: "single", tierLabel: info.label, amountCents: info.amountCents, email: BUYER.email, targetUrl: DEMO_URL, createdAt, completedAt: createdAt, includes: info.includes, next: info.next, handsOn: false },
   links: { page: "https://80-20.dev/demo", report: "https://80-20.dev/demo/8020-launch-audit-fusiondataco.com.pdf" },
   eyebrow: "80/20 LAUNCH AUDIT  |  SAMPLE REPORT (REAL RUN)",

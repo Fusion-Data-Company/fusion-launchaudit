@@ -33,13 +33,14 @@ export type ReportInput = {
   links: { page: string; report: string };
   /** Overrides the cover eyebrow, e.g. "Sample report" for /demo. */
   eyebrow?: string;
+  sample?: boolean;
 };
 
 const INK: RGB = [0.08, 0.08, 0.1];
 const MUTED: RGB = [0.38, 0.39, 0.44];
 const RULE: RGB = [0.82, 0.83, 0.86];
 const BAND: Record<string, RGB> = { green: [0.09, 0.55, 0.32], yellow: [0.72, 0.5, 0.05], red: [0.75, 0.16, 0.2] };
-const BAND_LABEL: Record<string, string> = { green: "Launch ready", yellow: "Needs work", red: "Not ready" };
+const BAND_LABEL: Record<string, string> = { green: "URL checks clear", yellow: "Needs work", red: "Not ready" };
 const SEV_COLOR: Record<string, RGB> = { critical: [0.75, 0.12, 0.18], high: [0.8, 0.3, 0.1], medium: [0.65, 0.45, 0.05], low: [0.2, 0.4, 0.65] };
 const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
@@ -94,7 +95,7 @@ export function renderAuditReportPdf(input: ReportInput): Buffer {
   const metaW = W - (metaX - doc.margin) - 14;
   const metaLines = [
     `${order.tierLabel}  |  ${formatUsd(order.amountCents)}  |  Order ${order.id}`,
-    `Paid ${fmtDate(order.createdAt)}${order.completedAt ? `  |  Audited ${fmtDate(order.completedAt)}` : ""}`,
+    input.sample ? `Sample generated ${fmtDate(order.completedAt || order.createdAt)}` : `Paid ${fmtDate(order.createdAt)}${order.completedAt ? `  |  Audited ${fmtDate(order.completedAt)}` : ""}`,
     deep ? `${deep.pages_scanned} page${deep.pages_scanned === 1 ? "" : "s"} scanned  |  ${deep.checks_run} check groups  |  ${grade.passed} passed` : `${grade.passed} checks passed`,
     `Findings: ${findings.length}  (${counts.critical} critical, ${counts.high} high, ${counts.medium} medium, ${counts.low} low)`,
   ];

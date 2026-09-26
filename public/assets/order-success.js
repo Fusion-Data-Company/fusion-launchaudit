@@ -155,15 +155,15 @@
       if(urlCard) urlCard.hidden=true;
 
       if(d.status==='blocked'){
-        setChip('chip-warn',d.refunded?'Refunded':'Refund pending');
-        setHead(d.refunded?'We could not audit that site, so we refunded you.':'We could not audit that site. Your refund needs confirmation.',
-                'The scanner could not read '+esc(d.target_url)+' as a normal page, and grading what it did get back would have been a report about somebody else&rsquo;s HTML. '+(d.refunded?'The refund has been issued.':'A completed refund has not yet been confirmed.'));
+        setChip('chip-warn',d.refund_requested?'Refund requested':'Refund pending');
+        setHead('We could not audit that site.',
+          'The scanner could not read '+esc(d.target_url)+' as a normal page. '+(d.refund_requested?'Your refund request has been accepted; completion is not yet confirmed.':'Your full refund is pending. Failed requests are retried automatically.'));
         stGraded.className='now'; if(stReport)stReport.hidden=true;
         grade.innerHTML=errBlock('We could not read '+esc(d.target_url)+', so we will not grade it.',
-          esc(d.blocked||d.grade_error||'The site did not answer as a normal page.')+' Grading a bot wall would be a report full of failures about somebody else&rsquo;s HTML. That is a refund, not a report.',
+          esc(d.blocked||d.grade_error||'The site did not answer as a normal page.'),
           '<p style="margin:6px 0 0;font-size:13.5px;color:var(--ink-mut);max-width:52ch">'
-          +(d.refunded?'Your payment has been refunded in full; allow up to 5 business days for it to show on your card.'
-                      :'This run qualifies for a full refund under our <a href="/refunds" style="color:var(--accent-ink)">refund policy</a>, but we have not confirmed it was issued. <a href="/#contact">Contact us with this order link</a> so we can complete it.')+'</p>');
+          +(d.refund_requested?'Keep this order link for the confirmed refund status. Your bank may take additional time to post the credit.'
+                      :'This run qualifies for a full refund under our <a href="/refunds" style="color:var(--accent-ink)">refund policy</a>. Keep this order link; <a href="/#contact">contact us</a> if you need help with the refund.')+'</p>');
         report.hidden=false;
         report.innerHTML='<p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">Common causes: a bot wall or challenge page, a login wall on the home page, or the site being down. Once the public pages answer normally, order again and it will run. Or run it from your own machine, where there is nothing to block: <a href="/#connect" style="color:var(--accent-ink)">connect your agent</a>.</p>';
         refresh(); return;
@@ -177,13 +177,16 @@
       }
       if(d.grade){
         setChip('chip-ok','Report ready');
-        setHead('Your report is ready.','Below is everything the site-wide URL audit found on '+esc(d.target_url)+', worst first, with a plain-English line on why each one costs you. The PDF is on its way to your inbox and stays at the links below; this page keeps working too.');
+        setHead('Your report is ready.','Below is everything the site-wide URL audit found on '+esc(d.target_url)+', worst first, with a plain-English line on why each one costs you. The PDF is available at the report link below. '+(d.email_delivery && d.email_delivery.status==='sent'?'The report email was accepted for delivery.':'Email delivery is not yet confirmed; you can download the PDF now.'));
         stGraded.className='done'; if(stReport)stReport.className='done';
         window.renderAuditReport(grade, d.grade, {});
         report.hidden=false;
+        var workLabels={pending_scope:'Scope confirmation pending',scoped:'Hands-on audit in progress',report_delivered:'Hands-on report delivered',complete:'Hands-on work complete',unavailable:'Hands-on status temporarily unavailable'};
+        var workNext={pending_scope:d.next,scoped:'Your scope is recorded. The hands-on report follows the agreed schedule.',report_delivered:'Your initial hands-on report is recorded as delivered. The Pro walkthrough and re-audit remain tracked until both are completed.',complete:'All required hands-on deliverables are recorded as complete. Contact us with this order link for delivery questions.',unavailable:'Your automated report remains available. Reload this page or contact us with this order link for hands-on progress.'};
+        var workState=d.hands_on_state||'pending_scope';
         report.innerHTML=d.hands_on
-          ? '<p style="font-family:var(--font-display);font-size:18px;margin:0 0 6px">Automated report delivered. The hands-on part is next.</p><p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">'+esc(d.next)+' Reply to the report email with anything we should know first (staging URL, test login for Pro, areas you care most about).</p>'
-          : '<p style="font-family:var(--font-display);font-size:18px;margin:0 0 6px">Single Run complete.</p><p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">Want the deep audit in a real browser, with broken access control, admin/RBAC, accessibility and performance and evidence for every check? It is free in <a href="/#connect" style="color:var(--accent-ink)">your own agent</a>, or order the <a href="/#order" style="color:var(--accent-ink)">Deep Audit</a> and we do it by hand.</p>';
+          ? '<p style="font-family:var(--font-display);font-size:18px;margin:0 0 6px">'+esc(workLabels[workState]||workLabels.unavailable)+'</p><p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">'+esc(workNext[workState]||workNext.unavailable)+'</p>'
+          : '<p style="font-family:var(--font-display);font-size:18px;margin:0 0 6px">Single Run report ready.</p><p style="margin:0;font-size:13.5px;color:var(--ink-mut);line-height:1.65">For a scoped browser assessment with evidence and a fix plan, see the <a href="/#order" style="color:var(--accent-ink)">Deep Audit</a>.</p>';
       }
       else if(d.grade_error){
         var retrying=d.status==='queued' && tries<40;

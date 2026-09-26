@@ -95,6 +95,7 @@ export async function setPaidAuditUrl(sql: SqlClient, stripeSessionId: string, t
  */
 export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise<PaidAuditRow> {
   if (row.status === "delivered") return deliverPaidAudit(sql, row);
+  if (row.status === "blocked") return retryBlockedRefund(sql, row);
   if (row.status !== "queued") return row;
   const claim = randomUUID();
   const owned = await sql(`update paid_audits set grade_claim_token=$2, grade_claimed_at=now()
@@ -118,8 +119,10 @@ export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise
     const refund = await refundBlockedOrder(sql, row, claim);
     await sql(`update paid_audits set grade_json = $2::jsonb, status = 'blocked', completed_at = now() where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error, blocked: true, http_status: result.http_status ?? null, refund }), claim]);
   } else {
-    // Keep status 'queued' so a retry (the next poll or the sweep) can grade it later.
-    await sql(`update paid_audits set grade_json = $2::jsonb, grade_claim_token=null, grade_claimed_at=null where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error }), claim]);
+    // Retain the attempt time for the cooldown and fair sweep ordering. Clearing it
+    // lets repeated browser polls retry immediately and an old failing order starve
+    // every newer order in the single-job scheduled sweep.
+    await sql(`update paid_audits set grade_json = $2::jsonb, grade_claim_token=null where id = $1 and status='queued' and grade_claim_token=$3`, [row.id, JSON.stringify({ error: result.error }), claim]);
   }
   return (await getPaidAuditBySession(sql, row.stripe_session_id)) ?? row;
 }
@@ -129,7 +132,7 @@ export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise
  * idempotent on the session id, and record the outcome in grade_json so the order page and
  * the operator can both see whether it went through. A failure never hides the blocked result.
  */
-export async function refundBlockedOrder(sql: SqlClient, row: PaidAuditRow, claim: string): Promise<{ id?: string; error?: string; skipped?: string }> {
+export async function refundBlockedOrder(sql: SqlClient, row: PaidAuditRow, claim: string, expectedStatus: 'queued' | 'blocked' = 'queued'): Promise<{ id?: string; error?: string; skipped?: string }> {
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return { skipped: "STRIPE_SECRET_KEY unset" };
   if (process.env.AUTO_REFUND_BLOCKED === "0") return { skipped: "AUTO_REFUND_BLOCKED=0" };
@@ -141,7 +144,7 @@ export async function refundBlockedOrder(sql: SqlClient, row: PaidAuditRow, clai
     const current = await sql(`select a.status, a.grade_claim_token
       from paid_audits a where a.id=$1 limit 1`, [row.id]);
     const currentRow = current[0] as { status?: PaidAuditStatus; grade_claim_token?: string | null } | undefined;
-    if (!currentRow || currentRow.status !== "queued" || currentRow.grade_claim_token !== claim) {
+    if (!currentRow || currentRow.status !== expectedStatus || currentRow.grade_claim_token !== claim) {
       return { skipped: `order is ${currentRow?.status ?? "missing"}` };
     }
     const session = await stripeGet<{ payment_intent?: string | null }>(secret, `/v1/checkout/sessions/${encodeURIComponent(row.stripe_session_id)}`);
@@ -158,6 +161,24 @@ export async function refundBlockedOrder(sql: SqlClient, row: PaidAuditRow, clai
   }
 }
 
+/** Retry a failed refund request, never a request already accepted by Stripe. */
+export const BLOCKED_REFUND_RECOVERY_PREDICATE = `status = 'blocked'
+  and grade_json->>'blocked' = 'true'
+  and coalesce(grade_json->'refund'->>'id','') = ''
+  and (grade_claimed_at is null or grade_claimed_at < now() - interval '10 minutes')`;
+
+async function retryBlockedRefund(sql: SqlClient, row: PaidAuditRow): Promise<PaidAuditRow> {
+  const claim = randomUUID();
+  const owned = await sql(`update paid_audits set grade_claim_token=$2,grade_claimed_at=now()
+    where id=$1 and ${BLOCKED_REFUND_RECOVERY_PREDICATE} returning id`, [row.id, claim]);
+  if (!owned.length) return (await getPaidAuditBySession(sql, row.stripe_session_id)) ?? row;
+  // Reuses the original Stripe idempotency key, including after an ambiguous timeout.
+  const refund = await refundBlockedOrder(sql, row, claim, 'blocked');
+  await sql(`update paid_audits set grade_json=jsonb_set(grade_json,'{refund}',$2::jsonb),grade_claim_token=null
+    where id=$1 and status='blocked' and grade_claim_token=$3`, [row.id, JSON.stringify(refund), claim]);
+  return (await getPaidAuditBySession(sql, row.stripe_session_id)) ?? row;
+}
+
 /** "r***@fusiondataco.com": enough for the buyer to recognise the inbox, never the address itself. */
 export function emailHint(email: string | null | undefined): string | null {
   if (!email || !email.includes("@")) return null;
@@ -171,13 +192,14 @@ export function publicOrderStatus(row: PaidAuditRow) {
   const g = !closed && row.grade_json && "ok" in row.grade_json && row.grade_json.ok ? row.grade_json : null;
   const gj = row.grade_json as { blocked?: boolean; error?: string; refund?: { id?: string; error?: string; skipped?: string } } | null;
   const blocked = gj && gj.blocked ? gj.error ?? null : null;
-  const refunded = !!(gj && gj.refund && gj.refund.id);
+  const refunded = row.status === 'refunded';
   const info = tierInfo(row.tier);
   const delivery = row.delivery_json ?? null;
   return {
     status: row.status,
     blocked,
     refunded,
+    refund_requested: !!gj?.refund?.id,
     tier: row.tier,
     tier_label: info.label,
     hands_on: info.handsOn,

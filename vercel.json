@@ -58,6 +58,11 @@
       "source": "/landing",
       "destination": "/#order",
       "permanent": true
+    },
+    {
+      "source": "/demo/8020-launch-audit-fusiondataco.com.pdf",
+      "destination": "/api/demo?format=pdf&id=demo_p5guq5mgmu1cz02w",
+      "permanent": false
     }
   ],
   "headers": [

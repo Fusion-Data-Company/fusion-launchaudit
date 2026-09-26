@@ -291,6 +291,11 @@
   var tiers=Array.prototype.slice.call(f.querySelectorAll('.tier'));
   function syncTiers(){ tiers.forEach(function(t){ var r=t.querySelector('input[type=radio]'); t.classList.toggle('selected', !!(r&&r.checked)); }); }
   tiers.forEach(function(t){ var r=t.querySelector('input[type=radio]'); if(r){ r.addEventListener('change', syncTiers); } });
+  var requestedTier=new URLSearchParams(window.location.search).get('tier');
+  if(['single','standard','pro'].indexOf(requestedTier)!==-1){
+    var requestedRadio=f.querySelector('input[name=tier][value="'+requestedTier+'"]');
+    if(requestedRadio) requestedRadio.checked=true;
+  }
   syncTiers();
   f.addEventListener('submit', async function(e){
     e.preventDefault();

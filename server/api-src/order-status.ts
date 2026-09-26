@@ -3,6 +3,7 @@
  * Returns { status, grade, report_url } for a paid audit. 'pending' means the
  * Stripe webhook hasn't landed yet (keep polling).
  */
+import { handsOnState } from "../../src/lib/hands-on-work.ts";
 import { getSqlClient } from "../../src/lib/db.ts";
 import { ensurePaidAuditsTable, getPaidAuditBySession, gradePaidAudit, publicOrderStatus } from "../../src/lib/paid-audits.ts";
 
@@ -26,7 +27,10 @@ export default async function handler(req: Req, res: Res) {
     // The webhook only records the order. The first poll that finds it queued
     // runs the grade right here, inside this function's own time budget.
     if (row.status === "queued" || row.status === "delivered") row = await gradePaidAudit(sql, row);
-    res.status(200).json({ ok: true, ...publicOrderStatus(row) });
+    const status = publicOrderStatus(row);
+    const workState = status.hands_on && row.status === 'delivered'
+      ? await handsOnState(sql, row.id).catch(() => 'unavailable') : null;
+    res.status(200).json({ ok: true, ...status, hands_on_state: workState });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Could not load order." });
   }
