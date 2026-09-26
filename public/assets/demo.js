@@ -30,7 +30,7 @@
       +'<p class="sum-note">Served from '+(d.source==='snapshot'?'the committed snapshot of the run':'the stored run')+' (id '+esc(rep.id)+'). This sample is not a customer purchase. Paid orders include a guarded report link and an email delivery attempt.</p>';
     actions.innerHTML=(rep.pdf_url?'<a class="btn" href="'+esc(rep.pdf_url)+'" target="_blank" rel="noopener">Download the PDF</a>':'')
       +'<a class="btn ghost" href="/#order">Order this for your app &rarr;</a>';
-    window.renderAuditReport(grade, g, {});
+    window.renderAuditReport(grade, g, {reportId:rep.id,reportedAt:rep.created_at});
     meta.innerHTML='Sample run &middot; Single Run &middot; $79 &middot; '+esc(rep.url)+' &middot; report id '+esc(rep.id);
     refresh();
   }).catch(function(){ empty('The report service did not answer. Reload to try again.'); });

@@ -17,15 +17,17 @@
     function w(n){return (n/t*100).toFixed(1)+'%';}
     return '<div class="la-sevbar" aria-hidden="true"><i class="s-crit" style="width:'+w(c.critical)+'"></i><i class="s-high" style="width:'+w(c.high)+'"></i><i class="s-med" style="width:'+w(c.medium)+'"></i><i class="s-low" style="width:'+w(c.low)+'"></i></div>';
   }
-  function table(list){
+  function table(list,state,all){
+    state=state||{};all=all||list;
     var rows=(list||[]).slice().sort(function(a,b){ return ((SEV[a.severity]||SEV.low)[3])-((SEV[b.severity]||SEV.low)[3]); }).map(function(f,i){
-      var m=SEV[f.severity]||SEV.low, fixId='rfx'+i;
+      var m=SEV[f.severity]||SEV.low, index=all.indexOf(f), fixId='rfx'+index;
       var fixCell=f.fix ? '<button type="button" class="fix-copy btn-flag" data-fix="'+esc(f.fix)+'" aria-describedby="'+fixId+'">'+copySvg()+'<span class="fc-label">Copy fix</span></button>' : '<span class="la-cat">&mdash;</span>';
       var detail='<tr class="'+m[2]+'"><td><span class="chip '+m[0]+' sev-chip">'+m[1]+'</span></td>'
         +'<td class="la-cat">'+esc(f.category||'')+'</td>'
         +'<td class="la-what"><b>'+esc(f.title)+'</b><span>'+esc(f.detail)+'</span></td>'
         +'<td class="num">'+fixCell+'</td></tr>';
-      var fixRow=f.fix ? '<tr class="la-fixrow"><td colspan="4"><details id="'+fixId+'"><summary>Show the paste-ready fix for Claude Code or Cursor</summary><pre class="fix-body">'+esc(f.fix)+'</pre></details></td></tr>' : '';
+      var status=window.AuditReportTools ? '<label class="la-work-status">Repair status for '+esc(f.title)+'<select data-issue="'+index+'">'+window.AuditReportTools.states.map(function(s){return '<option'+((state[window.AuditReportTools.identity(f)]||'Open')===s?' selected':'')+'>'+s+'</option>';}).join('')+'</select></label>':'';
+      var fixRow='<tr class="la-fixrow"><td colspan="4">'+status+(f.fix?'<details id="'+fixId+'"><summary>Show the suggested repair for your coding agent</summary><pre class="fix-body">'+esc(f.fix)+'</pre></details>':'')+'</td></tr>';
       return detail+fixRow;
     }).join('');
     if(!rows) return '';
@@ -56,9 +58,83 @@
         e.preventDefault();
         var text=b.getAttribute('data-fix')||'', lbl=b.querySelector('.fc-label');
         function ok(){ b.classList.add('copied'); if(lbl) lbl.textContent='Copied'; setTimeout(function(){b.classList.remove('copied'); if(lbl) lbl.textContent='Copy fix';},1500); }
-        if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok,ok); } else { ok(); }
+        function failed(){
+          if(lbl)lbl.textContent='Select text below';
+          var id=b.getAttribute('aria-describedby'),detail=id&&root.querySelector('#'+id);
+          if(detail)detail.open=true;
+        }
+        if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok,failed); } else { failed(); }
       });
     });
+  }
+
+  function workspace(container,g,opts){
+    var T=window.AuditReportTools, host=container.querySelector('[data-audit-workspace]'), findings=container.querySelector('[data-audit-findings]');
+    if(!T||!host||!findings)return;
+    var snap=T.snapshot(g,opts),state=Object.create(null),edited=false,key=null,canStore=true;
+    host.className='la-workspace';
+    host.innerHTML='<h3>Your repair workspace</h3><p>Find the issue, track the repair, and hand your developer the evidence. Status stays in this browser for this report; marking an item ready does not verify a fix.</p>'
+      +'<div class="la-workspace-controls"><label>Search findings<input type="search" data-search placeholder="Search issues, categories or evidence"></label>'
+      +'<label>Severity<select data-severity><option value="">All severities</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select></label>'
+      +'<label>Repair status<select data-status><option value="">All statuses</option>'+T.states.map(function(s){return '<option>'+s+'</option>';}).join('')+'</select></label></div>'
+      +'<div class="la-workspace-actions"><button class="btn" type="button" data-export="brief">Download repair brief</button>'
+      +'<button class="btn ghost" type="button" data-export="csv">Export issue CSV</button><button class="btn ghost" type="button" data-export="json">Save report JSON</button>'
+      +'<label class="btn ghost la-import">Compare earlier report<input type="file" data-baseline accept=".json,application/json" aria-label="Compare earlier report JSON"></label>'
+      +'<button class="la-workspace-reset" type="button" data-reset>Reset repair statuses</button></div>'
+      +'<p class="la-work-notice" role="status" aria-live="polite"></p><div class="la-comparison" aria-live="polite"></div>';
+    var notice=host.querySelector('.la-work-notice'),compareBox=host.querySelector('.la-comparison');
+    function say(message){notice.textContent=message;}
+    function save(){
+      if(!key)return;
+      try{
+        var packed=g.findings.map(function(f,i){return {index:i,status:state[T.identity(f)]||'Open'};}).filter(function(x){return x.status!=='Open';});
+        if(packed.length)localStorage.setItem(key,JSON.stringify(packed));else localStorage.removeItem(key);
+      }catch(e){canStore=false;say('Browser storage is unavailable. Status changes last for this visit only; export the issue CSV to keep them.');}
+    }
+    function draw(){
+      var q=host.querySelector('[data-search]').value.toLowerCase(),sev=host.querySelector('[data-severity]').value,st=host.querySelector('[data-status]').value;
+      var list=(g.findings||[]).filter(function(f){return (!sev||f.severity===sev)&&(!st||(state[T.identity(f)]||'Open')===st)&&(!q||[f.title,f.category,f.detail,f.fix].join(' ').toLowerCase().includes(q));});
+      findings.innerHTML=list.length?table(list,state,g.findings):g.findings.length?'<p class="la-workspace-empty">No findings match these filters. Change the filters to see the remaining issues.</p>':clean();
+      wireCopy(findings);
+      findings.querySelectorAll('[data-issue]').forEach(function(select){select.addEventListener('change',function(){
+        state[T.identity(g.findings[Number(select.dataset.issue)])]=select.value;edited=true;save();
+        if(canStore)say(key?'Repair status saved in this browser. Re-scan to verify the change.':'Repair status updated; browser storage is initializing.');
+        if(host.querySelector('[data-status]').value)draw();
+      });});
+      host.querySelector('[data-search]').setAttribute('aria-description',list.length+' of '+g.findings.length+' findings shown');
+    }
+    host.querySelector('[data-search]').addEventListener('input',draw);
+    host.querySelectorAll('[data-severity],[data-status]').forEach(function(el){el.addEventListener('change',draw);});
+    host.querySelector('[data-reset]').addEventListener('click',function(){state=Object.create(null);edited=true;save();draw();if(canStore)say('Manual repair statuses reset. Audit findings are unchanged.');});
+    host.querySelectorAll('[data-export]').forEach(function(b){b.addEventListener('click',function(){
+      var kind=b.dataset.export,content=kind==='brief'?T.brief(snap,state):kind==='csv'?T.csv(snap,state):JSON.stringify(snap,null,2);
+      var blob=new Blob([content],{type:kind==='csv'?'text/csv;charset=utf-8':kind==='json'?'application/json':'text/markdown;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download='8020-'+(kind==='brief'?'repair-brief.md':kind==='csv'?'issues.csv':'report.json');document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);
+      say('Export prepared from all '+snap.findings.length+' findings in this report, including hidden filter results. Review sensitive site details before sharing.');
+    });});
+    var importVersion=0;
+    host.querySelector('[data-baseline]').addEventListener('change',async function(e){
+      var file=e.target.files[0],version=++importVersion;e.target.value='';compareBox.innerHTML='';if(!file)return;
+      try{
+        if(file.size>2000000)throw new Error('Choose an 80/20 report JSON file smaller than 2 MB.');
+        var previous=T.parse(await file.text());if(version!==importVersion)return;var delta=T.compare(previous,snap);
+        function items(title,list){return list.length?'<h4>'+title+' ('+list.length+')</h4><ul>'+list.map(function(f){return '<li>'+esc(f.title)+' — '+esc(f.category)+'</li>';}).join('')+'</ul>':'';}
+        compareBox.innerHTML='<h4>Compared with '+esc(file.name)+'</h4><p>Score change: '+(delta.score_delta>0?'+':'')+delta.score_delta+'. '+delta.unchanged+' observations unchanged. No longer observed means absent from this run; it does not establish that a repair is verified. Matching counts do not guarantee identical page coverage.</p>'
+          +items('Newly observed',delta.added)+items('No longer observed',delta.no_longer_observed)
+          +(delta.severity_changes.length?'<h4>Severity changes</h4><ul>'+delta.severity_changes.map(function(x){return '<li>'+esc(x.after.title)+': '+esc(x.before.severity)+' → '+esc(x.after.severity)+'</li>';}).join('')+'</ul>':'');
+        say('Comparison ready. The selected file stayed in this browser; nothing was uploaded.');
+      }catch(err){if(version===importVersion)say(err.message||'Could not compare that report.');}
+    });
+    draw();
+    try{T.storageKey(snap).then(function(k){
+      key=k;
+      if(edited){save();return;}
+      try{
+        var saved=JSON.parse(localStorage.getItem(key)||'[]');
+        if(Array.isArray(saved))saved.forEach(function(x){if(x&&Number.isInteger(x.index)&&g.findings[x.index]&&T.states.includes(x.status))state[T.identity(g.findings[x.index])]=x.status;});
+        draw();
+      }catch(e){canStore=false;say('Browser storage is unavailable. Export the issue CSV to keep your repair statuses.');}
+    }).catch(function(){canStore=false;say('Browser storage is unavailable. Export the issue CSV to keep your repair statuses.');});}catch(e){canStore=false;say('Browser storage is unavailable. Export the issue CSV to keep your repair statuses.');}
   }
 
   window.renderAuditReport=function(container, g, opts){
@@ -75,10 +151,11 @@
           +'<div class="la-report__counts">'+chips(c)+'</div>'+sevbar(c)
         +'</div>'
       +'</div>'
-      +(table(g.findings)||clean())
+      +'<div data-audit-workspace></div><div data-audit-findings>'+(table(g.findings)||clean())+'</div>'
       +'<div style="padding:18px 24px 22px;box-shadow:inset 0 1px 0 var(--elite-rule)">'+lighthouse(g)
       +'<p class="rep-note">'+note+'</p></div></div>';
     wireCopy(container);
+    workspace(container,g,opts);
     if(window.eliteMotionRefresh) window.eliteMotionRefresh();
   };
   window.auditReportCounts=counts;
