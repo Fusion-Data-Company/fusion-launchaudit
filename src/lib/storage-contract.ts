@@ -176,7 +176,8 @@ alter table paid_audits add column if not exists grade_claim_token text;
 alter table paid_audits add column if not exists grade_claimed_at timestamptz;
 alter table paid_audits add column if not exists report_pdf_url text;
 alter table paid_audits add column if not exists delivery_json jsonb;
-alter table paid_audits add column if not exists delivered_email_at timestamptz;`;
+alter table paid_audits add column if not exists delivered_email_at timestamptz;
+alter table paid_audits add column if not exists url_request_json jsonb;`;
 
 /** db/migrations/008_order_delivery_and_demo.sql: the persisted public /demo report (one real run, served, never re-run per view). */
 export const demoReportsSchemaSql = `create table if not exists demo_reports (

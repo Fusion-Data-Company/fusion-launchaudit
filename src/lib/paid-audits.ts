@@ -26,7 +26,7 @@ import { withAuditDeadline } from "./audit-deadline.ts";
 import { runDeepGrade, type DeepGrade } from "./deep-grade.ts";
 import { stripeGet, stripeRequest } from "./stripe.ts";
 import { formatUsd, tierInfo } from "./checkout-input.ts";
-import { deliverPaidAudit, orderReportRouteUrl, type DeliveryRecord } from "./audit-delivery.ts";
+import { deliverPaidAudit, sendOrderUrlReceipt, orderReportRouteUrl, type DeliveryRecord, type UrlRequestRecord } from "./audit-delivery.ts";
 
 export type PaidAuditStatus = "awaiting_url" | "queued" | "graded" | "delivered" | "blocked" | "payment_failed" | "refunded" | "disputed";
 
@@ -45,6 +45,7 @@ export type PaidAuditRow = {
   report_pdf_url?: string | null;
   delivery_json?: DeliveryRecord | null;
   delivered_email_at?: string | null;
+  url_request_json?: UrlRequestRecord | null;
 };
 
 export async function ensurePaidAuditsTable(sql: SqlClient): Promise<void> {
@@ -94,6 +95,7 @@ export async function setPaidAuditUrl(sql: SqlClient, stripeSessionId: string, t
  * delivery is idempotent on the row.
  */
 export async function gradePaidAudit(sql: SqlClient, row: PaidAuditRow): Promise<PaidAuditRow> {
+  if (row.status === "awaiting_url") return sendOrderUrlReceipt(sql, row);
   if (row.status === "delivered") return deliverPaidAudit(sql, row);
   if (row.status === "blocked") return retryBlockedRefund(sql, row);
   if (row.status !== "queued") return row;

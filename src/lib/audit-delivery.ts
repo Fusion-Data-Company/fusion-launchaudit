@@ -130,6 +130,58 @@ function definitelyRejected(error: string): boolean {
     || /^(MONITOR_SMTP_URL is not a valid URL|Only smtps:\/\/)/.test(error);
 }
 
+export type UrlRequestRecord = {
+  token: string;
+  state: 'preparing' | 'sending' | 'done' | 'retryable' | 'uncertain';
+  started_at: string;
+  provider_message_id?: string | null;
+  detail?: string | null;
+};
+
+export const URL_RECEIPT_RECOVERY_PREDICATE = `status = 'awaiting_url' and (
+  url_request_json is null or (url_request_json->>'state' in ('preparing','retryable')
+    and (url_request_json->>'started_at')::timestamptz < now() - interval '10 minutes'))`;
+
+/** Preserve the order link when checkout happened before a target was named.
+ * Its separate receipt cannot suppress the later PDF delivery. */
+export async function sendOrderUrlReceipt(sql: SqlClient, row: PaidAuditRow,
+  deps: Pick<DeliveryDependencies, 'send'> = {}): Promise<PaidAuditRow> {
+  if (row.status !== 'awaiting_url') return row;
+  const record: UrlRequestRecord = {token: randomUUID(), state: 'preparing', started_at: new Date().toISOString()};
+  const current = async () => ((await sql('select * from paid_audits where id=$1', [row.id]))[0] as PaidAuditRow) ?? row;
+  const claim = await sql(`update paid_audits set url_request_json=$2::jsonb
+    where id=$1 and ${URL_RECEIPT_RECOVERY_PREDICATE} returning *`, [row.id, JSON.stringify(record)]);
+  if (!claim.length) return current();
+  row = claim[0] as PaidAuditRow;
+  const info = tierInfo(row.tier);
+  record.state = 'sending';
+  const sending = await sql(`update paid_audits set url_request_json=$2::jsonb
+    where id=$1 and status='awaiting_url' and url_request_json->>'token'=$3 returning id`,
+    [row.id, JSON.stringify(record), record.token]);
+  if (!sending.length) return current();
+  try {
+    const sent = await (deps.send ?? sendMail)({to: row.email,
+      subject: 'Your 80/20 order is saved: add your website to begin',
+      text: `Hi,\n\nYour ${info.label} payment of ${formatUsd(row.amount_cents)} is confirmed.\n\n` +
+        `One step remains: tell us which website to audit. Your audit has not started yet.\n\n` +
+        `Open your saved order, enter your website, and start the audit:\n${orderPageUrl(row.stripe_session_id)}\n\n` +
+        `After you submit it, the automated report runs even if you close the page. We will email the PDF when it is ready.\n\n` +
+        `Included: ${info.includes}\n${info.handsOn ? 'After you submit your site, we will email within one business day to confirm the hands-on scope and arrange any test access.\n' : ''}\n` +
+        `Keep this private order link for your records. Questions? Reply to this email.\n\nRob Yeager\nFusion Data Company\n80/20 Launch Audit`,
+    });
+    record.state = 'ok' in sent ? (sent.ok ? 'done' : definitelyRejected(sent.error) ? 'retryable' : 'uncertain') : 'retryable';
+    record.detail = 'ok' in sent ? (sent.ok ? null : sent.error) : sent.skipped;
+    record.provider_message_id = 'ok' in sent && sent.ok ? sent.id ?? null : null;
+  } catch {
+    record.state = 'uncertain';
+    record.detail = 'Email acceptance is unconfirmed. Check the sender before retrying.';
+  }
+  // Record acceptance even if the buyer submitted the URL while mail was sending.
+  await sql(`update paid_audits set url_request_json=$2::jsonb
+    where id=$1 and url_request_json->>'token'=$3`, [row.id, JSON.stringify(record), record.token]);
+  return current();
+}
+
 export async function deliverPaidAudit(sql: SqlClient, row: PaidAuditRow, deps: DeliveryDependencies = {}): Promise<PaidAuditRow> {
   if (row.status !== "delivered") return row;
   const grade = row.grade_json && "ok" in row.grade_json && row.grade_json.ok ? (row.grade_json as OkGrade) : null;

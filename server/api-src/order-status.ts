@@ -24,8 +24,7 @@ export default async function handler(req: Req, res: Res) {
     await ensurePaidAuditsTable(sql);
     let row = await getPaidAuditBySession(sql, sid);
     if (!row) { res.status(200).json({ ok: true, status: "pending", grade: null, report_url: null }); return; }
-    // The webhook only records the order. The first poll that finds it queued
-    // runs the grade right here, inside this function's own time budget.
+    // The webhook starts work in the background; this is also a recovery path.
     if (row.status === "queued" || row.status === "delivered") row = await gradePaidAudit(sql, row);
     const status = publicOrderStatus(row);
     const workState = status.hands_on && row.status === 'delivered'

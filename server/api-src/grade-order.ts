@@ -4,7 +4,7 @@
  * eligible scan, email-delivery and blocked-refund retries one job per invocation. Exists so an order whose buyer closed the tab
  * still gets graded by the hourly sweep instead of sitting queued forever.
  */
-import { DELIVERY_RECOVERY_PREDICATE } from "../../src/lib/audit-delivery.ts";
+import { DELIVERY_RECOVERY_PREDICATE, URL_RECEIPT_RECOVERY_PREDICATE } from "../../src/lib/audit-delivery.ts";
 import { getSqlClient } from "../../src/lib/db.ts";
 import { BLOCKED_REFUND_RECOVERY_PREDICATE, ensurePaidAuditsTable, getPaidAuditBySession, gradePaidAudit, type PaidAuditRow } from "../../src/lib/paid-audits.ts";
 
@@ -28,7 +28,9 @@ export default async function handler(req: Req, res: Res) {
       where (status = 'queued' and (grade_claimed_at is null or grade_claimed_at < now() - interval '10 minutes'))
         or (${DELIVERY_RECOVERY_PREDICATE})
         or (${BLOCKED_REFUND_RECOVERY_PREDICATE})
+        or (${URL_RECEIPT_RECOVERY_PREDICATE})
       order by case when status in ('queued','blocked') then coalesce(grade_claimed_at, created_at)
+        when status = 'awaiting_url' then coalesce((url_request_json->>'started_at')::timestamptz, created_at)
         else coalesce((delivery_json->'attempt'->>'started_at')::timestamptz, created_at)
       end asc, created_at asc, id asc limit 1`)) as PaidAuditRow[]);
   const out: Array<{ id: string; status: string }> = [];

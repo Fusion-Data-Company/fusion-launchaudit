@@ -46,7 +46,10 @@
   /* Order summary: tier, price, site, where the email goes, what happens next. */
   function renderSummary(d){
     if(!summary) return;
-    var emailLine = d.email_hint ? 'PDF copy emailed to <b>'+esc(d.email_hint)+'</b>' : 'PDF copy emailed to the address on your receipt';
+    var destination = d.email_hint ? '<b>'+esc(d.email_hint)+'</b>' : 'the address on your receipt';
+    var emailLine = d.email_delivery && d.email_delivery.status==='sent' ? 'PDF copy emailed to '+destination
+      : d.status==='awaiting_url' ? 'Add your website below to start. The PDF will be sent to '+destination
+      : 'PDF email delivery to '+destination+' is pending';
     var emailState = d.email_delivery
       ? (d.email_delivery.status==='sent' ? '<span class="chip chip-ok sev-chip">Email sent</span>'
         : d.email_delivery.status==='skipped' ? '<span class="chip chip-idle sev-chip" title="'+esc(d.email_delivery.detail||'')+'">Email pending: PDF below is your copy</span>'
@@ -57,10 +60,10 @@
       +'<div><span class="k">Tier</span><b>'+esc(d.tier_label)+(d.hands_on?' <span class="chip chip-info sev-chip" style="margin-left:6px">Hands-on included</span>':'')+'</b></div>'
       +'<div><span class="k">Paid</span><b class="tabular">'+esc(d.amount_display)+'</b></div>'
       +'<div><span class="k">Site</span><b>'+(d.target_url?esc(d.target_url):'<em>not named yet</em>')+'</b></div>'
-      +'<div><span class="k">Delivery</span><b>On this page, as a PDF, at a hosted link. '+emailLine+'.</b> '+emailState+'</div>'
+      +'<div><span class="k">Delivery</span><b>'+emailLine+'.</b> '+emailState+'</div>'
       +'</div>'
       +'<p class="sum-includes"><b>Included:</b> '+esc(d.includes)+'</p>'
-      +'<p class="sum-next"><b>What happens next:</b> '+esc(d.next)+'</p>';
+      +'<p class="sum-next"><b>What happens next:</b> '+esc(d.status==='awaiting_url' ? 'Enter your website below. The audit starts after you submit it, and we email the report when it is ready.' : d.next)+'</p>';
   }
 
   function renderActions(d){
@@ -71,7 +74,16 @@
       +(d.report_url && d.report_url!==d.report_pdf_url?'<a class="btn ghost" href="'+esc(d.report_url)+'" target="_blank" rel="noopener">Open the hosted copy</a>':'')
       +'<button type="button" class="btn ghost" id="copy-link">Copy this page link</button>';
     var cl=document.getElementById('copy-link');
-    if(cl) cl.addEventListener('click', function(){ var t=window.location.href; function ok(){cl.textContent='Link copied'; setTimeout(function(){cl.textContent='Copy this page link';},1500);} if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok,ok);} else ok(); });
+    if(cl) cl.addEventListener('click', function(){
+      function ok(){cl.textContent='Link copied'; setTimeout(function(){cl.textContent='Copy this page link';},1500);}
+      function manual(){
+        cl.textContent='Select and copy the link below';
+        var field=document.getElementById('manual-order-link');
+        if(!field){field=document.createElement('input');field.id='manual-order-link';field.type='text';field.readOnly=true;field.value=window.location.href;field.setAttribute('aria-label','Private order link to copy');field.style.width='100%';actions.appendChild(field);}
+        field.focus();field.select();
+      }
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(window.location.href).then(ok,manual);}else manual();
+    });
   }
 
   /* Pay-first checkout: the buyer names the site here, once. */
