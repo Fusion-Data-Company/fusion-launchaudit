@@ -29,7 +29,7 @@ export type DeliveryRecord = {
   delivered_at: string;
   pdf_bytes: number;
   blob: { url: string; pathname: string } | null;
-  email: { status: "sent" | "skipped" | "error"; detail: string | null; to: string; at: string; subject: string; preview: string; captured?: string | null };
+  email: { status: "sent" | "skipped" | "error"; detail: string | null; to: string; at: string; subject: string; preview: string; captured?: string | null; provider_message_id?: string | null };
   hands_on: { required: boolean; status: "not_applicable" | "pending_scope" | "scoped" | "report_delivered" | "complete" | "scheduled_by_email" } ;
 };
 
@@ -125,6 +125,8 @@ function definitelyRejected(error: string): boolean {
   const rejection = /^SMTP step (\d+) expected \d+, got: [45]\d\d(?:[ -]|$)/.exec(error);
   // Step 9 is QUIT: DATA was already accepted, so its failure must never resend.
   return Boolean(rejection && Number(rejection[1]) <= 8)
+    || /^Gmail authorization (rejected|unavailable)/.test(error)
+    || /^Gmail send rejected: HTTP 4\d\d\./.test(error)
     || /^(MONITOR_SMTP_URL is not a valid URL|Only smtps:\/\/)/.test(error);
 }
 
@@ -169,6 +171,7 @@ export async function deliverPaidAudit(sql: SqlClient, row: PaidAuditRow, deps: 
       record.email.status = 'ok' in sent ? (sent.ok ? 'sent' : 'error') : 'skipped';
       record.email.detail = 'ok' in sent ? (sent.ok ? null : sent.error) : sent.skipped;
       record.email.captured = sent.captured ?? null;
+      record.email.provider_message_id = 'ok' in sent && sent.ok ? sent.id ?? null : null;
       record.attempt!.state = 'ok' in sent ? (sent.ok ? 'done' : definitelyRejected(sent.error) ? 'retryable' : 'uncertain') : 'retryable';
     } catch {
       record.attempt!.state = 'uncertain';

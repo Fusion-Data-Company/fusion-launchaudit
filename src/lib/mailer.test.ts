@@ -3,12 +3,37 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { buildMessage, mailerConfigured, sendMail } from "./mailer.ts";
+import { buildMessage, mailerConfigured, sendMail, sendGmailMessage } from "./mailer.ts";
 
 test("mailerConfigured is false without both env vars", () => {
   assert.equal(mailerConfigured({}), false);
   assert.equal(mailerConfigured({ MONITOR_SMTP_URL: "smtps://u:p@h:465" }), false);
   assert.equal(mailerConfigured({ MONITOR_SMTP_URL: "smtps://u:p@h:465", MONITOR_MAIL_FROM: "a@b.c" }), true);
+  assert.equal(mailerConfigured({ GOOGLE_CLIENT_ID:'client', GOOGLE_CLIENT_SECRET:'secret', GOOGLE_REFRESH_TOKEN:'refresh', FROM_EMAIL:'a@b.c' }), true);
+});
+
+test('Workspace delivery preserves the complete MIME attachment and requires a provider message id',async()=>{
+  const message=buildMessage('a@b.c',{to:'b@b.c',subject:'Report',text:'Actual report',attachments:[{filename:'audit.pdf',contentType:'application/pdf',content:Buffer.from('%PDF-1.4')}]});
+  const requests:Array<{url:string,init:RequestInit|undefined}>=[];
+  const request:typeof fetch=async(input,init)=>{requests.push({url:String(input),init});return new Response(JSON.stringify(requests.length===1?{access_token:'test-access'}:{id:'gmail-message'}),{status:200});};
+  const result=await sendGmailMessage(message,{GOOGLE_CLIENT_ID:'client',GOOGLE_CLIENT_SECRET:'secret',GOOGLE_REFRESH_TOKEN:'refresh'},request);
+  assert.deepEqual(result,{ok:true,id:'gmail-message'});
+  assert.equal(requests[1].url,'https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
+  assert.equal(Buffer.from(JSON.parse(String(requests[1].init?.body)).raw,'base64url').toString(),message);
+});
+
+test('expired Google authorization never submits mail or exposes provider secret text',async()=>{
+  let calls=0;
+  const request:typeof fetch=async()=>{calls++;return new Response(JSON.stringify({error:'invalid_grant',error_description:'private-secret'}),{status:400});};
+  const result=await sendGmailMessage('message',{},request);
+  assert.equal(calls,1);assert.ok('error' in result);assert.match(result.error,/authorization rejected/);assert.doesNotMatch(result.error,/private-secret/);
+});
+
+test('ambiguous send failure is not reported as delivered or automatically retried',async()=>{
+  let calls=0;
+  const request:typeof fetch=async()=>{if(++calls===1)return new Response(JSON.stringify({access_token:'test-access'}));throw Error('connection interrupted');};
+  const result=await sendGmailMessage('message',{},request);
+  assert.equal(calls,2);assert.ok('error' in result);assert.match(result.error,/outcome uncertain/);
 });
 
 test("sendMail is a documented no-op when not configured", async () => {

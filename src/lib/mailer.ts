@@ -1,11 +1,9 @@
 /**
- * Minimal, dependency-free mailer. It sends ONLY when SMTP is configured through
- * the operator's own server (MONITOR_SMTP_URL = smtps://user:pass@host:465) and
- * is a documented no-op otherwise. No Resend/Postmark/SendGrid/Twilio, no new
- * paid vendor. Used for the weekly monitoring diff and for delivering paid
- * audit reports (PDF attached).
+ * Dependency-free mailer using the operator's configured SMTP server or Fusion's
+ * existing Google Workspace sender. No new paid vendor. Used for weekly
+ * monitoring updates and paid audit reports with the complete PDF attached.
  *
- * Uses implicit TLS (port 465) with AUTH LOGIN. If anything fails it returns
+ * SMTP uses implicit TLS (port 465) with AUTH LOGIN. If anything fails it returns
  * { ok:false, error } and the caller carries on; email is never allowed to
  * break a scan or an order.
  *
@@ -27,7 +25,40 @@ export type MailResult =
   | { skipped: string; captured?: string };
 
 export function mailerConfigured(env: Record<string, string | undefined> = process.env): boolean {
-  return Boolean(env.MONITOR_SMTP_URL && env.MONITOR_MAIL_FROM);
+  return Boolean((env.MONITOR_SMTP_URL && env.MONITOR_MAIL_FROM) ||
+    (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REFRESH_TOKEN &&
+      (env.MONITOR_MAIL_FROM || env.FROM_EMAIL)));
+}
+
+/** Use Fusion's existing Workspace sender when SMTP is not configured. Never
+ * fall back to a second transport after a send with an uncertain outcome. */
+export async function sendGmailMessage(message: string, env: Record<string, string | undefined>, request: typeof fetch = fetch): Promise<MailResult> {
+  let accessToken: string;
+  try {
+    const response = await request('https://oauth2.googleapis.com/token', {
+      method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: env.GOOGLE_CLIENT_ID!, client_secret: env.GOOGLE_CLIENT_SECRET!,
+        refresh_token: env.GOOGLE_REFRESH_TOKEN!, grant_type: 'refresh_token' }),
+      signal: AbortSignal.timeout(12000),
+    });
+    const data = await response.json() as { access_token?: string };
+    if (!response.ok || !data.access_token) return { ok: false, error: `Gmail authorization rejected: HTTP ${response.status}. Reconnect the Fusion sender.` };
+    accessToken = data.access_token;
+  } catch {
+    return { ok: false, error: 'Gmail authorization unavailable before sending. No message was submitted.' };
+  }
+  try {
+    const response = await request('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST', headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ raw: Buffer.from(message, 'utf8').toString('base64url') }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) return { ok: false, error: `Gmail send rejected: HTTP ${response.status}.` };
+    const data = await response.json() as { id?: string };
+    return data.id ? { ok: true, id: data.id } : { ok: false, error: 'Gmail send outcome uncertain: no message identifier returned.' };
+  } catch {
+    return { ok: false, error: 'Gmail send outcome uncertain. Check the sender before retrying.' };
+  }
 }
 
 function b64(s: string): string { return Buffer.from(s, "utf8").toString("base64"); }
@@ -113,11 +144,12 @@ async function captureMessage(message: string, env: Record<string, string | unde
 }
 
 export async function sendMail(input: MailInput, env: Record<string, string | undefined> = process.env): Promise<MailResult> {
-  const from = env.MONITOR_MAIL_FROM || "no-reply@80-20.dev";
+  const from = env.MONITOR_MAIL_FROM || env.FROM_EMAIL || "no-reply@80-20.dev";
   const message = buildMessage(from, input);
   const captured = (await captureMessage(message, env)) ?? undefined;
 
-  if (!mailerConfigured(env)) return { skipped: "SMTP not configured (MONITOR_SMTP_URL / MONITOR_MAIL_FROM unset)", captured };
+  if (!mailerConfigured(env)) return { skipped: "Email sender not configured (SMTP or Fusion Google Workspace required)", captured };
+  if (!env.MONITOR_SMTP_URL) return { ...await sendGmailMessage(message, env), captured };
   let url: URL;
   try { url = new URL(env.MONITOR_SMTP_URL!); } catch { return { ok: false, error: "MONITOR_SMTP_URL is not a valid URL", captured }; }
   if (url.protocol !== "smtps:") return { ok: false, error: "Only smtps:// (implicit TLS, port 465) is supported", captured };

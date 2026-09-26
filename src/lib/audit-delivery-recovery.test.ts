@@ -26,8 +26,9 @@ test('interrupted pre-send delivery keeps PDF route and is recovered by the swee
   assert.equal((await f.sql(`select id from paid_audits where ${DELIVERY_RECOVERY_PREDICATE}`)).length,0);
   await f.age();
   assert.equal((await f.sql(`select id from paid_audits where ${DELIVERY_RECOVERY_PREDICATE}`)).length,1);
-  const recovered=await deliverPaidAudit(f.sql,await f.row(),{upload,send:async()=>{sends++;return {ok:true}}});
+  const recovered=await deliverPaidAudit(f.sql,await f.row(),{upload,send:async()=>{sends++;return {ok:true,id:'gmail_recovery_evidence'}}});
   assert.equal(recovered.delivery_json?.email.status,'sent');assert.equal(sends,1);
+  assert.equal(recovered.delivery_json?.email.provider_message_id,'gmail_recovery_evidence');
   await deliverPaidAudit(f.sql,await f.row(),{upload,send:async()=>{sends++;return {ok:true}}});
   assert.equal(sends,1);
  }finally{await f.db.close()}
@@ -49,11 +50,11 @@ test('acceptance followed by persistence failure stays held without automatic re
 });
 
 test('definite SMTP rejection retries after cooldown; timeout remains uncertain',async()=>{
- for(const error of ['SMTP step 6 expected 250, got: 550 Recipient rejected','SMTP timeout','SMTP step 9 expected 221, got: 500 QUIT rejected']) {
+ for(const error of ['SMTP step 6 expected 250, got: 550 Recipient rejected','SMTP timeout','SMTP step 9 expected 221, got: 500 QUIT rejected','Gmail authorization rejected: HTTP 400. Reconnect the Fusion sender.','Gmail send rejected: HTTP 429.','Gmail send outcome uncertain. Check the sender before retrying.']) {
   const f=await fixture();let sends=0;
   try {
    await deliverPaidAudit(f.sql,await f.row(),{upload,send:async()=>{sends++;return {ok:false,error}}});
-   const retryable=error.startsWith('SMTP step 6');
+   const retryable=error.startsWith('SMTP step 6')||error.startsWith('Gmail authorization rejected')||error.startsWith('Gmail send rejected: HTTP 429');
    assert.equal((await f.row()).delivery_json?.attempt?.state,retryable?'retryable':'uncertain');
    await f.age();
    await deliverPaidAudit(f.sql,await f.row(),{upload,send:async()=>{sends++;return {ok:true}}});
