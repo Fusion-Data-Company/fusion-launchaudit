@@ -6,8 +6,8 @@
  *   3. insert the order into paid_audits (idempotent on stripe_session_id):
  *        status 'queued' when metadata.target_url is present,
  *        status 'awaiting_url' when the buyer paid first and names the site on the success page,
- *   4. ack Stripe at once. The grade + delivery run in /api/order-status on the buyer's first
- *      poll, or in /api/grade-order (the hourly sweep) if nobody polls.
+ *   4. start grading with Vercel waitUntil and acknowledge Stripe at once. Delivery
+ *      continues if the buyer closes the tab; the scheduled sweep recovers interruptions.
  * Lifecycle: async_payment_failed -> payment_failed; charge.refunded -> refunded;
  * charge.dispute.created -> disputed. Refunded/disputed orders stop serving the report.
  *
@@ -23,6 +23,7 @@ import { getSqlClient } from "../../src/lib/db.ts";
 import { stripeGet, verifyStripeSignature } from "../../src/lib/stripe.ts";
 import { ensurePaidAuditsTable, upsertPaidAudit } from "../../src/lib/paid-audits.ts";
 import { isAuditTier } from "../../src/lib/checkout-input.ts";
+import { startPaidAudit } from "../../src/lib/background-paid-audit.ts";
 
 // Vercel: disable the JSON body parser so the raw bytes are available for signature verification.
 export const config = { api: { bodyParser: false } };
@@ -64,7 +65,8 @@ export async function loadCanonicalSession(id: string): Promise<CheckoutSession>
   return stripeGet<CheckoutSession>(key, `/v1/checkout/sessions/${encodeURIComponent(id)}?expand[]=payment_intent.latest_charge`);
 }
 
-export default async function handler(req: Req, res: Res) {
+export function createStripeWebhookHandler(start = startPaidAudit) {
+return async function handler(req: Req, res: Res) {
   if (req.method !== "POST") { res.status(405).json({ error: "Stripe webhook endpoint." }); return; }
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) { res.status(503).json({ error: "STRIPE_WEBHOOK_SECRET not configured." }); return; }
@@ -142,11 +144,14 @@ export default async function handler(req: Req, res: Res) {
       stripeSessionId: session.id, email, targetUrl, tier, amountCents: session.amount_total ?? 0,
       paidAt: charged ? new Date(charged * 1000).toISOString() : undefined,
     });
-    // Ack Stripe inside a second. The grade + delivery run in /api/order-status (the
-    // success page polls it) or /api/grade-order (secret-gated sweep), each with
-    // its own time budget, so a slow or blocked target never times out the webhook.
+    // Register background work before ending the response. Database claims fence
+    // duplicate webhooks, browser polls and scheduled recovery against each other.
+    start(sql, row);
     res.status(200).json({ received: true, id: row.id, status: row.status });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Could not record order." });
   }
 }
+}
+
+export default createStripeWebhookHandler();

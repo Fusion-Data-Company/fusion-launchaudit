@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import handler from '../../server/api-src/stripe-webhook.ts';
+import { createStripeWebhookHandler } from '../../server/api-src/stripe-webhook.ts';
 import { signStripePayload } from './stripe.ts';
 import { getSqlClient } from './db.ts';
 import { handsOnQueue, updateHandsOnWork } from './hands-on-work.ts';
+const handler = createStripeWebhookHandler(() => {});
 
 test('canonical Deep149 and Pro499 paid events reach durable human work exactly once', async () => {
   const saved = {...process.env}; const originalFetch = globalThis.fetch;

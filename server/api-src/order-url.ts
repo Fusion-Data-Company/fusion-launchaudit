@@ -1,13 +1,14 @@
 /**
  * /api/order-url: POST { session_id, url, authorized } from the success page when the
  * buyer paid before naming the site. Sets target_url on the awaiting_url row and queues
- * the audit; the page's next /api/order-status poll runs it. One shot: a row that is
+ * the audit in the background even if the buyer closes the page. One shot: a row that is
  * already queued or delivered is not changed.
  */
 import { getSqlClient } from "../../src/lib/db.ts";
 import { parseTargetUrl } from "../../src/lib/instant-grade.ts";
 import { clientIp, consumeAttempt } from "../../src/lib/rate-limit.ts";
 import { ensurePaidAuditsTable, getPaidAuditBySession, publicOrderStatus, setPaidAuditUrl } from "../../src/lib/paid-audits.ts";
+import { startPaidAudit } from "../../src/lib/background-paid-audit.ts";
 
 type Req = { method?: string; headers?: Record<string, string | string[] | undefined>; body?: { session_id?: string; url?: string; authorized?: boolean } };
 type Res = { status: (n: number) => Res; setHeader?: (k: string, v: string) => void; json: (b: unknown) => void };
@@ -32,6 +33,7 @@ export default async function handler(req: Req, res: Res) {
     if (!row) { res.status(404).json({ error: "We have not received the payment for this order yet. Wait a few seconds and try again." }); return; }
     if (row.status !== "awaiting_url") { res.status(409).json({ error: `This order already has a site (${row.target_url}) and cannot be changed here.`, ...publicOrderStatus(row) }); return; }
     const updated = await setPaidAuditUrl(sql, sid, url);
+    if (updated) startPaidAudit(sql, updated);
     res.status(200).json({ ok: true, ...publicOrderStatus(updated ?? row) });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Could not save the site URL." });

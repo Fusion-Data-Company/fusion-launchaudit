@@ -4,8 +4,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { signStripePayload } from "./stripe.ts";
-import handler from "../../server/api-src/stripe-webhook.ts";
+import { createStripeWebhookHandler } from "../../server/api-src/stripe-webhook.ts";
 import { getSqlClient } from "./db.ts";
+const started: string[] = [];
+const handler = createStripeWebhookHandler((_sql, row) => { if (row.status === 'queued') started.push(row.stripe_session_id); });
 
 type EventSession = {
   id: string;
@@ -93,6 +95,7 @@ test("signed checkout fulfillment requires a canonical paid session; missing URL
       { stripe_session_id: "cs_deferred", status: "awaiting_url", target_url: "" },
       { stripe_session_id: "cs_paid", status: "queued", target_url: "https://example.com" },
     ]);
+    assert.deepEqual(started, ['cs_paid', 'cs_paid']);
   } finally {
     for (const k of ["STRIPE_WEBHOOK_SECRET", "STRIPE_SECRET_KEY", "STRIPE_SESSION_FIXTURE_DIR", "LAUNCHAUDIT_LOCAL_DB", "POSTGRES_URL", "VERCEL_ENV"]) {
       if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k];
